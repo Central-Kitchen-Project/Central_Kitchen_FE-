@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sign In - Central Kitchen System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#22c358",
+              "background-light": "#ffffff",
+              "background-dark": "#242428",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .checkbox-tick {
+            --checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27white%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e');
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#121713] dark:text-gray-100 transition-colors duration-200">
+<div class="flex min-h-screen">
+<!-- Left Section: Form -->
+<div class="flex flex-col w-full lg:w-[45%] xl:w-[40%] px-8 md:px-16 lg:px-24 py-12 justify-between bg-white dark:bg-background-dark">
+<!-- Logo Header -->
+<header class="flex items-center gap-3">
+<div class="p-2 bg-primary rounded-lg text-white">
+<svg class="size-6" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_330)">
+<path clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs><clippath id="clip0_6_330"><rect fill="white" height="48" width="48"></rect></clippath></defs>
+</svg>
+</div>
+<h2 class="text-[#121713] dark:text-white text-xl font-bold tracking-tight">Central Kitchen System</h2>
+</header>
+<!-- Form Container -->
+<main class="max-w-[400px] w-full mx-auto my-12">
+<div class="mb-10">
+<h1 class="text-[#121713] dark:text-white text-4xl font-extrabold leading-tight tracking-[-0.033em] mb-3">
+                        Sign In
+                    </h1>
+<p class="text-[#658670] dark:text-gray-400 text-base font-medium">
+                        Manage your franchise and kitchen operations with ease.
+                    </p>
+</div>
+<form class="space-y-6">
+<!-- Email Field -->
+<div class="flex flex-col gap-2">
+<label class="text-[#121713] dark:text-gray-200 text-sm font-semibold leading-normal">Email or Username</label>
+<input class="form-input w-full rounded-lg text-[#121713] dark:text-white border-[#dce5df] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary focus:ring-2 focus:ring-primary/20 h-14 placeholder:text-[#658670] p-[15px] text-base font-normal transition-all" placeholder="Enter your email or username" type="text"/>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-2">
+<label class="text-[#121713] dark:text-gray-200 text-sm font-semibold leading-normal">Password</label>
+<div class="relative flex items-stretch">
+<input class="form-input w-full rounded-lg text-[#121713] dark:text-white border-[#dce5df] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary focus:ring-2 focus:ring-primary/20 h-14 placeholder:text-[#658670] p-[15px] text-base font-normal transition-all" placeholder="Enter your password" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-[#658670] hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Utilities Row -->
+<div class="flex items-center justify-between py-2">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="h-5 w-5 rounded border-[#dce5df] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 transition-all cursor-pointer" type="checkbox"/>
+<span class="text-[#121713] dark:text-gray-300 text-sm font-medium group-hover:text-primary transition-colors">Remember me</span>
+</label>
+<a class="text-primary text-sm font-bold hover:underline" href="#">Forgot password?</a>
+</div>
+<!-- Submit Button -->
+<button class="w-full flex items-center justify-center rounded-xl h-14 bg-primary text-white text-base font-bold shadow-lg shadow-primary/20 hover:bg-opacity-90 active:scale-[0.98] transition-all" type="submit">
+                        Sign In
+                    </button>
+</form>
+<!-- Social/Other Sign In -->
+<div class="mt-8 pt-8 border-t border-[#f0f4f2] dark:border-gray-800">
+<p class="text-center text-[#658670] dark:text-gray-400 text-sm font-medium">
+                        Don’t have an account? 
+                        <a class="text-primary font-bold hover:underline ml-1" href="#">Sign Up</a>
+</p>
+</div>
+</main>
+<!-- Footer Small Print -->
+<footer class="text-center lg:text-left">
+<p class="text-[#658670] dark:text-gray-500 text-xs font-medium">
+                    © 2024 Central Kitchen System. All rights reserved.
+                </p>
+</footer>
+</div>
+<!-- Right Section: Visual Content -->
+<div class="hidden lg:block lg:flex-1 relative overflow-hidden">
+<!-- Background Image -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" data-alt="Modern high-end restaurant kitchen interior with professional staff" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA6bYu7K-0DGiu4RP5qYGckAxzzjlmmiYSAmJKkag6sD3ICQ-YESpO0Igo1Yd5LuQPpzcZXTOwGTEAOUiMc-aDLA_9u3ylG5vA2IjaU-rreWw30R_JxGbBAIerEzroAsslLenMQdN91SpKFkR-h_DcxiBRpx_GtdVXh4M_MVLsC2DsmNOYQT0KE8c7fNr3wFoEbf1l0HayYlpcnkIKKizAqGmNYmCVOgDC740fIhcSXN1mcCtMrIOVHFfUY-93DlZID7pzYW-txu3g');">
+<!-- Overlay Gradient -->
+<div class="absolute inset-0 bg-gradient-to-tr from-[#121713]/80 via-transparent to-transparent"></div>
+</div>
+<!-- Floating Content Card -->
+<div class="absolute bottom-12 left-12 right-12 p-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 text-white max-w-xl">
+<div class="flex items-center gap-2 mb-4">
+<span class="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-xs font-bold uppercase tracking-widest text-primary">Live Operations</span>
+</div>
+<h3 class="text-2xl font-bold mb-3">Empowering over 500+ franchise locations worldwide.</h3>
+<p class="text-white/80 text-sm leading-relaxed mb-6 font-medium">
+                    Our integrated system streamlines procurement, recipe management, and real-time inventory tracking for high-performance food service providers.
+                </p>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-white/20" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_p6QIWTuQ-up5evUZVpyvqYd1gDm5J0djGHppoHfAmUcQZNgJmJZ0xrLGWR185yT5cVn09QbBUyclYq9Z_8levaVAeC43A4fEfKDL_oYkCi7DcIjpi_vhGkowX258B7i4L_fzHF1aCWHucwxyziofjP86WDw9LSIQs22PxRC7AiUpf5ZtZFjMJI7L4KvQuY5XltxmHg0gSpWGvJrJUJfwgVmmndgDtamzG533VLT-Gx05UmBSgCba6Js3kdpnZrnRYCICq187AZE"/>
+<img class="w-8 h-8 rounded-full border-2 border-white/20" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYnZZF7NUXKuc_KGZfiz3Rkbl94ZJf8hv7ArUqs72FfqxdfVuy2HPnd8Ou2h5dbobnVFPZrNaOmvOOU-AvES84z19MYOMHYw5inbNbdsSDpIwA4WqEadxEQah-caoyhMBY-omJjTaPB5MWkbgK8_9l8CUacCsxJXFZr984MDZS1Nf8tEYIn6iaCF0_YS8G9ILB_0IzdWY2D6c5FMZGjbiTc1yCea2qddeEHiS11Gg116Ylb1zSh2JJoR88eIsIaMIRJyYUTeSZJ2U"/>
+<img class="w-8 h-8 rounded-full border-2 border-white/20" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD8m5wPIS9qYSYmy4l7Vnhk2Rs0ocTU8r18bop_uBTLqY_x5LNn-Tbr4AjvZVyTr-q2Ve7NEi8xhGpfrzSSa6zYx36gaR3Yi7VZlVOq4RbrRyKefUKwwAjlZ9z-UtJGjCvCl7yYRo_Tp50_Oe5POX_cWf7PPCPze2Wsbu7Xt5Pj41t9oKB1FQYJnz0IzkEtvyt6gvzrMXVTWTViuJJ2TVa6P8aZRYavD5tymbOS3mXNI_-EKEcWCv_vTy8C80GVOoCNPzlAghtxL4"/>
+</div>
+<span class="text-xs font-medium text-white/90 italic">"The most intuitive tool for our kitchen team."</span>
+</div>
+</div>
+<!-- Dark Mode Toggle (Fixed Top Right) -->
+<button class="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full border border-white/20 text-white transition-all" onclick="document.documentElement.classList.toggle('dark')">
+<span class="material-symbols-outlined block dark:hidden">dark_mode</span>
+<span class="material-symbols-outlined hidden dark:block text-primary">light_mode</span>
+</button>
+</div>
+</div>
+</body></html>

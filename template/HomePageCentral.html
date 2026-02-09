@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Central Kitchen Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "sidebar-bg": "#ffffff",
+                        "background-main": "#F8FAFC",
+                        "navy-charcoal": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-nav-item {
+            @apply bg-blue-50 text-primary border-l-4 border-primary rounded-r-lg rounded-l-none;
+        }
+        .nav-item {
+            @apply flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 hover:text-navy-charcoal transition-colors;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-display">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-64 bg-sidebar-bg border-r border-slate-200 flex flex-col shrink-0">
+<div class="p-6 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">skillet</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-navy-charcoal text-base font-bold leading-none">Central Kitchen</h1>
+<p class="text-slate-500 text-xs mt-1">Production Unit v2.1</p>
+</div>
+</div>
+<nav class="mt-8 flex flex-col gap-1 -mx-6">
+<a class="nav-item active-nav-item" href="#">
+<span class="material-symbols-outlined text-[20px] fill-1">home</span>
+<span class="text-sm font-semibold">Home</span>
+</a>
+<a class="nav-item" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="nav-item" href="#">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+<span class="text-sm font-medium">Order Processing</span>
+</a>
+<a class="nav-item" href="#">
+<span class="material-symbols-outlined text-[20px]">precision_manufacturing</span>
+<span class="text-sm font-medium">Production Planning</span>
+</a>
+<a class="nav-item" href="#">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span>
+<span class="text-sm font-medium">Raw Materials</span>
+</a>
+<a class="nav-item" href="#">
+<span class="material-symbols-outlined text-[20px]">history_toggle_off</span>
+<span class="text-sm font-medium">Batch &amp; Expiry</span>
+</a>
+<a class="nav-item" href="#">
+<span class="material-symbols-outlined text-[20px]">warehouse</span>
+<span class="text-sm font-medium">Warehouse</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-4 border-t border-slate-100">
+<div class="flex items-center gap-3 p-2">
+<div class="size-8 rounded-full bg-slate-200 overflow-hidden">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdbEzt9uKoM-EeGxRxuXSUUjbWCS64Swo30wpiNAUkquHp8OFoM3JCza1iH47TE21vk4Mk01g9T9BRCzxR6kxBKkuyERaALxHsRvxvxPWOUcDfVm51XV0_p56QIb1pWU2InpmuQt3TGMxGZHcmLCS1UNJN_H0hqGOIeABhALoK2sgXp7IFYge6NLwKoWuApnjiiIb1NX9SnCgdxZ82QexRt-tWrXV3D35jvTAD9l8cg47vqnS10-xgRzLlIMNMkrs6QAjSP85cgkw"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-navy-charcoal">Chef Marco</span>
+<span class="text-xs text-slate-500">Head of Production</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-hidden bg-white">
+<header class="h-20 flex items-center justify-between px-10 border-b border-slate-100 bg-white shrink-0">
+<div class="flex flex-col">
+<h2 class="text-xl font-bold text-slate-900">Good Morning, Chef Marco</h2>
+<div class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span>October 24, 2023</span>
+<span class="mx-1 text-slate-300">•</span>
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>Morning Shift: 06:00 - 14:00</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600 transition-all">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="absolute top-2.5 right-2.5 size-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 transition-all">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+</button>
+</div>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+                    Logout
+                </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-10 flex flex-col gap-10 bg-slate-50/30">
+<section class="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-8 shadow-soft">
+<div class="absolute top-0 right-0 p-4 opacity-5">
+<span class="material-symbols-outlined text-[180px]">restaurant</span>
+</div>
+<div class="relative z-10 flex flex-col gap-4 max-w-2xl">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-primary text-xs font-bold uppercase tracking-wider">Kitchen Status: Active</span>
+<h3 class="text-3xl font-bold text-navy-charcoal">Welcome back to the production floor.</h3>
+<p class="text-lg text-slate-600 leading-relaxed">
+                        The morning prep is underway. You have <span class="text-red-600 font-bold">3 critical alerts</span> to review before starting today's main production cycle.
+                    </p>
+</div>
+</section>
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest">Immediate Attention Required</h4>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex items-center gap-5 p-6 bg-white border-l-4 border-red-500 rounded-xl shadow-soft border-y border-r border-slate-200">
+<div class="size-14 rounded-full bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+<span class="material-symbols-outlined text-[28px]">warning</span>
+</div>
+<div class="flex flex-col">
+<span class="text-lg font-bold text-navy-charcoal">5 Raw Materials Expired Today</span>
+<p class="text-slate-500 text-sm">Action required: Dispose and update inventory records immediately.</p>
+</div>
+<button class="ml-auto p-2 text-slate-400 hover:text-navy-charcoal">
+<span class="material-symbols-outlined">arrow_forward_ios</span>
+</button>
+</div>
+<div class="flex items-center gap-5 p-6 bg-white border-l-4 border-amber-500 rounded-xl shadow-soft border-y border-r border-slate-200">
+<div class="size-14 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+<span class="material-symbols-outlined text-[28px]">priority_high</span>
+</div>
+<div class="flex flex-col">
+<span class="text-lg font-bold text-navy-charcoal">2 Urgent Orders Received</span>
+<p class="text-slate-500 text-sm">Downtown Cafe and Airport T3 requested early delivery.</p>
+</div>
+<button class="ml-auto p-2 text-slate-400 hover:text-navy-charcoal">
+<span class="material-symbols-outlined">arrow_forward_ios</span>
+</button>
+</div>
+</div>
+</section>
+<section class="flex flex-col gap-4">
+<h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest">Next Steps</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<a class="group flex flex-col gap-6 p-8 bg-white border border-slate-200 rounded-2xl shadow-soft hover:border-primary/30 transition-all hover:shadow-lg" href="#">
+<div class="size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px] fill-1">monitoring</span>
+</div>
+<div class="flex flex-col gap-2">
+<h5 class="text-2xl font-bold text-navy-charcoal">Go to Production Dashboard</h5>
+<p class="text-slate-500 leading-relaxed">Monitor real-time batch progress, equipment efficiency, and team performance metrics.</p>
+</div>
+<div class="flex items-center gap-2 text-primary font-bold">
+<span>Open Dashboard</span>
+<span class="material-symbols-outlined text-[18px]">trending_flat</span>
+</div>
+</a>
+<a class="group flex flex-col gap-6 p-8 bg-white border border-slate-200 rounded-2xl shadow-soft hover:border-primary/30 transition-all hover:shadow-lg" href="#">
+<div class="size-16 rounded-2xl bg-slate-100 flex items-center justify-center text-navy-charcoal group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]">list_alt</span>
+</div>
+<div class="flex flex-col gap-2">
+<h5 class="text-2xl font-bold text-navy-charcoal">View Order Queue</h5>
+<p class="text-slate-500 leading-relaxed">Review all incoming and scheduled orders from franchise stores for the next 48 hours.</p>
+</div>
+<div class="flex items-center gap-2 text-primary font-bold">
+<span>Manage Orders</span>
+<span class="material-symbols-outlined text-[18px]">trending_flat</span>
+</div>
+</a>
+</div>
+</section>
+</div>
+</main>
+</div>
+
+</body></html>

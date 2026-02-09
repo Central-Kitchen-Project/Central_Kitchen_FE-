@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Central Kitchen Dashboard (Full Light Theme)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "sidebar-bg": "#F8FAFC",
+                        "background-main": "#ffffff",
+                        "navy-charcoal": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                    boxShadow: {
+                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-nav-item {
+            @apply bg-blue-50 text-primary border-l-4 border-primary rounded-r-lg rounded-l-none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-display">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-64 bg-sidebar-bg border-r border-slate-200 flex flex-col shrink-0">
+<div class="p-6 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">skillet</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-navy-charcoal text-base font-bold leading-none">Central Kitchen</h1>
+<p class="text-slate-500 text-xs mt-1">Production Unit v2.1</p>
+</div>
+</div>
+<nav class="mt-8 flex flex-col gap-1 -mx-6">
+<a class="flex items-center gap-3 px-6 py-2.5 active-nav-item" href="#">
+<span class="material-symbols-outlined text-[20px] fill-1">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+<span class="text-sm font-medium">Order Processing</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">precision_manufacturing</span>
+<span class="text-sm font-medium">Production Planning</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span>
+<span class="text-sm font-medium">Raw Materials</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">history_toggle_off</span>
+<span class="text-sm font-medium">Batch &amp; Expiry</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">warehouse</span>
+<span class="text-sm font-medium">Warehouse</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-4 border-t border-slate-200">
+<div class="flex items-center gap-3 p-2">
+<div class="size-8 rounded-full bg-slate-200 overflow-hidden">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqKUqyvOmO_LSq25kCVyQ0C51YtXWqbKp2KlvVdxTIe6j2jehkAD0Z9EXGhJ6BramLu0REZYLtA807BJRz2QjmyjhXeelfoht2ftzgvthqTdsP1LxxxfJ9_FL6JXT0AaW9qnkns__cCBvnh23-KsTgwiafpuNHSw7y_6RN5qOWIca2C5FnYqZFYa_X35FNaQiCr3jL2onbTlMVg196tF4A3LxORfz362OEwQjkzn7yxG3LLXaeH82WViDe-SQCoXDcWEH0JwGMMjE"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-navy-charcoal">Chef Marco</span>
+<span class="text-xs text-slate-500">Head of Production</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-hidden bg-white">
+<header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
+<div class="flex items-center gap-4">
+<h2 class="text-lg font-bold text-slate-900">Production Overview</h2>
+<span class="h-4 w-px bg-slate-200"></span>
+<div class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Morning Shift: 06:00 - 14:00</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+<button class="px-4 py-2 bg-navy-charcoal text-white rounded-lg text-sm font-bold hover:bg-black transition-colors">
+                    Logout
+                </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-8 flex flex-col gap-8 bg-slate-50/50">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-soft flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Incoming Orders</span>
+<div class="size-8 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">local_shipping</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-3xl font-bold text-navy-charcoal">24</span>
+<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">+12%</span>
+</div>
+</div>
+<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-soft flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Production Queue</span>
+<div class="size-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+<span class="material-symbols-outlined text-[20px]">pending_actions</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-3xl font-bold text-navy-charcoal">12</span>
+<span class="text-xs font-bold text-slate-400 px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100">Stable</span>
+</div>
+</div>
+<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-soft flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Batches</span>
+<div class="size-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+<span class="material-symbols-outlined text-[20px]">cyclone</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-3xl font-bold text-navy-charcoal">08</span>
+<span class="text-xs font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">-2%</span>
+</div>
+</div>
+<div class="bg-white p-5 rounded-xl border border-red-100 shadow-soft ring-1 ring-red-100 flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-xs font-bold text-red-600 uppercase tracking-wider">Raw Material Alerts</span>
+<div class="size-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-3xl font-bold text-navy-charcoal">05</span>
+<span class="text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">Critical</span>
+</div>
+</div>
+</div>
+<div class="flex flex-wrap gap-3 items-center p-4 bg-white rounded-xl border border-slate-200 shadow-soft">
+<h3 class="text-xs font-bold mr-4 text-slate-400 uppercase tracking-widest">Quick Actions</h3>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[18px] fill-1">play_arrow</span>
+                    Start Production
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-navy-charcoal text-white rounded-lg text-sm font-bold hover:bg-black transition-all shadow-sm">
+<span class="material-symbols-outlined text-[18px]">task_alt</span>
+                    Complete Batch
+                </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg text-sm font-bold hover:bg-slate-50 transition-all">
+<span class="material-symbols-outlined text-[18px]">local_shipping</span>
+                    Mark Ready for Dispatch
+                </button>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-end px-1">
+<h3 class="text-xl font-bold text-navy-charcoal">Current Orders</h3>
+<button class="text-primary text-sm font-bold hover:underline">View All Orders</button>
+</div>
+<div class="bg-white rounded-xl border border-slate-200 shadow-soft overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/80 border-b border-slate-200">
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Order ID</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Franchise Store</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Product</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Qty</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Required Date</th>
+<th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 text-slate-700">
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-mono text-sm font-semibold text-slate-600">#ORD-9021</td>
+<td class="px-6 py-4 text-sm font-bold text-navy-charcoal">Downtown Cafe</td>
+<td class="px-6 py-4 text-sm">Brioche Burger Buns</td>
+<td class="px-6 py-4 text-sm text-center">500 units</td>
+<td class="px-6 py-4 text-sm">Oct 24, 2023</td>
+<td class="px-6 py-4 text-right">
+<span class="px-3 py-1 bg-blue-50 text-primary border border-blue-100 rounded-full text-[11px] font-black uppercase tracking-tight">New</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-mono text-sm font-semibold text-slate-600">#ORD-8945</td>
+<td class="px-6 py-4 text-sm font-bold text-navy-charcoal">Airport Terminal 3</td>
+<td class="px-6 py-4 text-sm">Marinated Beef Patties</td>
+<td class="px-6 py-4 text-sm text-center">200 kg</td>
+<td class="px-6 py-4 text-sm">Oct 24, 2023</td>
+<td class="px-6 py-4 text-right">
+<span class="px-3 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-[11px] font-black uppercase tracking-tight">Scheduled</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-mono text-sm font-semibold text-slate-600">#ORD-8832</td>
+<td class="px-6 py-4 text-sm font-bold text-navy-charcoal">Eastside Mall</td>
+<td class="px-6 py-4 text-sm">Secret Burger Sauce</td>
+<td class="px-6 py-4 text-sm text-center">50 L</td>
+<td class="px-6 py-4 text-sm">Oct 23, 2023</td>
+<td class="px-6 py-4 text-right">
+<span class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full text-[11px] font-black uppercase tracking-tight">In Production</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-mono text-sm font-semibold text-slate-600">#ORD-8711</td>
+<td class="px-6 py-4 text-sm font-bold text-navy-charcoal">West End Hub</td>
+<td class="px-6 py-4 text-sm">Vintage Cheddar Slices</td>
+<td class="px-6 py-4 text-sm text-center">100 kg</td>
+<td class="px-6 py-4 text-sm">Oct 23, 2023</td>
+<td class="px-6 py-4 text-right">
+<span class="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[11px] font-black uppercase tracking-tight">Ready</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+<div class="flex flex-col gap-4">
+<h3 class="text-lg font-bold text-navy-charcoal">Active Production Plan</h3>
+<div class="bg-white rounded-xl border border-slate-200 shadow-soft overflow-hidden">
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between p-4 rounded-lg bg-white border border-slate-100 shadow-sm">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-bold text-navy-charcoal">Truffle Mayo Batch</span>
+<span class="text-xs text-slate-500 font-medium">ID: BTH-2291 | Target: 40L</span>
+</div>
+<div class="flex flex-col items-end gap-2">
+<span class="text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded uppercase">Mixing Stage</span>
+<div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="w-1/2 h-full bg-amber-500"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg bg-white border border-slate-100 shadow-sm">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-bold text-navy-charcoal">Potato Buns - Line A</span>
+<span class="text-xs text-slate-500 font-medium">ID: BTH-2292 | Target: 2000u</span>
+</div>
+<div class="flex flex-col items-end gap-2">
+<span class="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-primary border border-blue-100 rounded uppercase">Proofing</span>
+<div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-primary"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<h3 class="text-lg font-bold text-navy-charcoal">Material Expiry Monitor</h3>
+<div class="bg-white rounded-xl border border-slate-200 shadow-soft overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+<th class="px-5 py-3.5">Material</th>
+<th class="px-5 py-3.5">Qty</th>
+<th class="px-5 py-3.5">Expiry</th>
+<th class="px-5 py-3.5 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="text-sm divide-y divide-slate-50 text-slate-700">
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-3.5 font-bold text-navy-charcoal">Fresh Whipping Cream</td>
+<td class="px-5 py-3.5">24 L</td>
+<td class="px-5 py-3.5 font-medium">In 2 Days</td>
+<td class="px-5 py-3.5 text-right">
+<span class="text-amber-600 font-black text-[10px] bg-amber-50 px-2 py-1 rounded uppercase tracking-wider">Expiring Soon</span>
+</td>
+</tr>
+<tr class="bg-red-50/30">
+<td class="px-5 py-3.5 font-bold text-red-900">Pasteurized Egg Yolks</td>
+<td class="px-5 py-3.5 font-semibold text-red-800">12 kg</td>
+<td class="px-5 py-3.5 text-red-600 font-bold">Expired Today</td>
+<td class="px-5 py-3.5 text-right">
+<span class="bg-red-600 text-white font-black px-2 py-0.5 rounded text-[10px] uppercase">Critical</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50">
+<td class="px-5 py-3.5 font-bold text-navy-charcoal">Wagyu Beef Flank</td>
+<td class="px-5 py-3.5">85 kg</td>
+<td class="px-5 py-3.5">Oct 28, 2023</td>
+<td class="px-5 py-3.5 text-right">
+<span class="text-slate-400 font-bold text-[10px] uppercase">Normal</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Home - Central Kitchen Management System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "sidebar-text": "#334155",
+                        "sidebar-active": "#137fec",
+                        "background-light": "#f8fafc",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display">
+<div class="flex min-h-screen">
+<aside class="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-20">
+<div class="p-6">
+<div class="flex items-center gap-3">
+<div class="bg-primary rounded-lg p-2 text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 text-base font-bold leading-tight">Central Kitchen</h1>
+<p class="text-slate-500 text-xs font-normal">Management System</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-4 flex flex-col gap-1">
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary group cursor-pointer">
+<span class="material-symbols-outlined text-[22px]">home</span>
+<p class="text-sm font-semibold">Home</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-text hover:bg-slate-50 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-[22px] text-slate-400 group-hover:text-primary">dashboard</span>
+<p class="text-sm font-medium">Dashboard</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-text hover:bg-slate-50 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-[22px] text-slate-400 group-hover:text-primary">add_circle</span>
+<p class="text-sm font-medium">Create Order</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-text hover:bg-slate-50 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-[22px] text-slate-400 group-hover:text-primary">inventory_2</span>
+<p class="text-sm font-medium">Inventory</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-text hover:bg-slate-50 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-[22px] text-slate-400 group-hover:text-primary">local_shipping</span>
+<p class="text-sm font-medium">Order Tracking</p>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-text hover:bg-slate-50 cursor-pointer transition-colors group">
+<span class="material-symbols-outlined text-[22px] text-slate-400 group-hover:text-primary">rate_review</span>
+<p class="text-sm font-medium">Feedback</p>
+</div>
+</nav>
+<div class="p-4 border-t border-slate-100">
+<div class="flex items-center gap-3 px-2 py-1">
+<div class="w-10 h-10 rounded-full bg-slate-200 bg-cover bg-center border border-slate-100" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuArL6LMmhfprJJIgPL27X4ehzw6zA5F1MySky4vVwBMlBFgHHSivzWpg_tSlDUI1JJM0y0V8H90Ffp8HXmvbXEqLQQRNt0liR3iCy_7Y2DJ_vwk75Y7-2qkz9uNqYTRMkqjnwhT2jONosRlgFAwgweq9wyBV802U7O6LKWIs-e5c2qXlgfR-VdHGPOIDanpots-Tosr5nhVtIPPfk9LRwStw6_0C2yJ6e-q_kZnJw_psjZs_bNe-zH_X1xyPC0_z_PuAYFKVXJ5PPQ');"></div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-slate-900 truncate">Alex Johnson</p>
+<p class="text-xs text-slate-500 truncate">Store Manager</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors">logout</span>
+</div>
+</div>
+</aside>
+<main class="ml-64 flex-1">
+<header class="sticky top-0 z-10 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
+<div class="flex flex-col">
+<h2 class="text-xl font-bold text-slate-900">Store Home</h2>
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="text-xs font-medium">Downtown Branch</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-6 mr-4">
+<div class="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full border border-blue-100">
+<span class="w-2 h-2 rounded-full bg-blue-500"></span>
+<span class="text-sm font-semibold text-blue-700">Active Orders: 24</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full border border-green-100">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-sm font-semibold text-green-700">Today's Deliveries: 8</span>
+</div>
+</div>
+<button class="p-2 rounded-lg bg-slate-100 text-slate-600 relative hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+</div>
+</header>
+<div class="p-8 space-y-8 max-w-6xl mx-auto">
+<section class="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-10 text-white shadow-xl relative overflow-hidden">
+<div class="relative z-10">
+<h2 class="text-4xl font-bold mb-3">Welcome Back, Alex Johnson</h2>
+<p class="text-blue-100 text-lg flex items-center gap-2">
+<span class="material-symbols-outlined">info</span>
+                            You have 5 low stock items needing attention today.
+                        </p>
+</div>
+<div class="absolute right-0 top-0 h-full w-1/3 opacity-10 flex items-center justify-center">
+<span class="material-symbols-outlined !text-[12rem]">storefront</span>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<button class="group flex flex-col items-start p-8 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-primary transition-all text-left">
+<div class="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">add_shopping_cart</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 mb-2">Create New Order</h3>
+<p class="text-slate-500">Restock ingredients or supplies from the central kitchen quickly.</p>
+</button>
+<button class="group flex flex-col items-start p-8 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-primary transition-all text-left">
+<div class="w-14 h-14 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">inventory_2</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 mb-2">Inventory Management</h3>
+<p class="text-slate-500">Update current stock levels or check upcoming deliveries.</p>
+</button>
+</div>
+<section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+<div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+<h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">history</span>
+                            Recent Updates
+                        </h3>
+<button class="text-primary text-sm font-semibold hover:underline">View All Notifications</button>
+</div>
+<div class="divide-y divide-slate-100">
+<div class="px-8 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">local_shipping</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900">Order <span class="text-primary">#ORD-7721</span> is now Shipping</p>
+<p class="text-xs text-slate-500">Expected delivery today at 4:30 PM</p>
+</div>
+</div>
+<span class="text-xs text-slate-400">5 mins ago</span>
+</div>
+<div class="px-8 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">warning</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900">Low Stock Alert: Pizza Flour</p>
+<p class="text-xs text-slate-500">Current stock: 5.0 Bags (Critical)</p>
+</div>
+</div>
+<span class="text-xs text-slate-400">2 hours ago</span>
+</div>
+<div class="px-8 py-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-xl">done_all</span>
+</div>
+<div>
+<p class="text-sm font-semibold text-slate-900">Order <span class="text-primary">#ORD-7715</span> was Delivered</p>
+<p class="text-xs text-slate-500">Accepted by Store Staff (D. Miller)</p>
+</div>
+</div>
+<span class="text-xs text-slate-400">Yesterday</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+
+</body></html>
