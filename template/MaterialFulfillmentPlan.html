@@ -1,12 +1,17 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Material Fulfillment Plan - #BAT-1025</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title id="page-title">Material Fulfillment Plan</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -20,7 +25,7 @@
                     fontFamily: {
                         "display": ["Inter"]
                     },
-                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
                     boxShadow: {
                         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                         'glow-amber': '0 0 15px rgba(245, 158, 11, 0.3)',
@@ -29,7 +34,7 @@
             },
         }
     </script>
-<style type="text/tailwindcss">
+    <style type="text/tailwindcss">
         body { font-family: 'Inter', sans-serif; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -39,221 +44,280 @@
         .toggle-checked:checked + label { color: #137fec; font-weight: 600; }
     </style>
 </head>
-<body class="bg-background-light text-charcoal font-display transition-colors duration-200">
-<div class="flex h-screen overflow-hidden">
-<aside class="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
-<div class="p-6 flex flex-col gap-8 h-full">
-<div class="flex items-center gap-3">
-<div class="bg-primary size-10 rounded-lg flex items-center justify-center text-white shadow-md">
-<span class="material-symbols-outlined text-2xl">soup_kitchen</span>
-</div>
-<div class="flex flex-col">
-<h1 class="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">Central Kitchen</h1>
-<p class="text-slate-500 text-[10px] font-medium uppercase tracking-tighter">Management System</p>
-</div>
-</div>
-<nav class="flex flex-col gap-1 grow">
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-<span class="material-symbols-outlined text-[22px]">dashboard</span>
-<span class="text-sm font-medium">Dashboard</span>
-</a>
-<a class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 text-primary font-semibold relative" href="#">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-[22px] fill-1">list_alt</span>
-<span class="text-sm">Order Aggregation</span>
-</div>
-<span class="size-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-<span class="material-symbols-outlined text-[22px]">precision_manufacturing</span>
-<span class="text-sm font-medium">Production Coordination</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-<span class="material-symbols-outlined text-[22px]">local_shipping</span>
-<span class="text-sm font-medium">Delivery Scheduling</span>
-</a>
-<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-<span class="material-symbols-outlined text-[22px]">warning</span>
-<span class="text-sm font-medium">Issue Management</span>
-</a>
-</nav>
-<div class="mt-auto border-t border-slate-100 pt-6">
-<div class="flex items-center gap-3 px-3 py-2">
-<div class="size-9 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-<img alt="Supply coordinator user avatar profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhHdaEx1GhRPaejZLkmmYJS6Mlmzzp2NVAZv4v4p7Vs10r_XoQiVvwR9obsQevw9CuJ2To5iwlacgZV1o9mR7rJ5E_YQAk7Cugr6-xf2r9gNDcRks5tyjAJuCwly_JF87rg8rJGpd4KOp8draITFD-GTxQvy7KuAuU3NGSo74QdFl_oY5kp6NAT9P6MNcEY9bW5APLYm-NuvAYaUtLi7yGatGSEhhWcZIFJE8u80kW_8zPkZPrbAK4n4OBVIMk75hXXcy7LpzQuMA"/>
-</div>
-<div class="flex flex-col">
-<span class="text-slate-900 text-xs font-bold">Alex Rivers</span>
-<span class="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
-</div>
-</div>
-</div>
-</div>
-</aside>
-<main class="flex-1 flex flex-col overflow-hidden">
-<header class="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
-<div>
-<h2 class="text-xl font-bold tracking-tight text-slate-900">Material Fulfillment Plan</h2>
-<p class="text-slate-500 text-xs font-medium">Processing Urgent Request #BAT-1025</p>
-</div>
-<div class="flex items-center gap-4">
-<div class="flex items-center bg-amber-50 rounded-lg px-3 py-2 gap-2 text-sm border border-amber-200 text-amber-700">
-<span class="material-symbols-outlined text-sm">bolt</span>
-<span class="font-bold uppercase text-[11px] tracking-wide">Urgent Priority</span>
-</div>
-<button class="p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">
-<span class="material-symbols-outlined text-[22px]">settings</span>
-</button>
-</div>
-</header>
-<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
-<div class="mb-8 rounded-xl bg-white border border-slate-200 shadow-soft overflow-hidden">
-<div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
-<h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-<span class="material-symbols-outlined text-primary">analytics</span>
-                        Request Overview
-                    </h3>
-<span class="text-[10px] font-black text-white px-2.5 py-1 bg-amber-500 rounded-full shadow-sm">JUST NOW</span>
-</div>
-<div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-<div class="flex flex-col gap-1">
-<p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Requested Materials</p>
-<p class="text-lg font-bold text-slate-900">Potato Rolls &amp; Beef</p>
-</div>
-<div class="flex flex-col gap-1">
-<p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Origin Location</p>
-<p class="text-lg font-bold text-slate-900">Central Kitchen A</p>
-</div>
-<div class="flex flex-col gap-1">
-<p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Priority Level</p>
-<div class="flex items-center gap-2">
-<span class="size-3 bg-red-500 rounded-full"></span>
-<p class="text-lg font-bold text-red-600">Urgent</p>
-</div>
-</div>
-</div>
-</div>
-<section class="mb-8">
-<div class="flex items-center justify-between mb-4">
-<h3 class="text-lg font-bold flex items-center gap-2 text-slate-900">
-<span class="material-symbols-outlined text-primary">checklist</span> Material Requirements &amp; Actions
-                    </h3>
-</div>
-<div class="space-y-4">
-<div class="bg-white border border-slate-200 rounded-xl shadow-soft overflow-hidden">
-<div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-<div class="lg:col-span-4">
-<h4 class="font-bold text-slate-900">Potato Rolls</h4>
-<div class="mt-2 flex items-center gap-4 text-xs font-medium text-slate-500">
-<span class="flex items-center gap-1"><b class="text-slate-700">Requested:</b> 100 units</span>
-<span class="flex items-center gap-1"><b class="text-slate-700">Stock:</b> 40</span>
-<span class="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-bold">Deficit: 60 units</span>
-</div>
-</div>
-<div class="lg:col-span-5">
-<div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-<label class="flex-1 relative cursor-pointer group">
-<input checked="" class="sr-only peer" name="action-rolls" type="radio"/>
-<div class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
-                                            Schedule Internal Production
-                                        </div>
-</label>
-<label class="flex-1 relative cursor-pointer group">
-<input class="sr-only peer" name="action-rolls" type="radio"/>
-<div class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
-                                            External Sourcing
-                                        </div>
-</label>
-</div>
-</div>
-<div class="lg:col-span-3 text-right">
-<div class="inline-flex items-center gap-2 text-xs font-bold text-slate-400">
-<span class="material-symbols-outlined text-lg">check_circle</span>
-                                    Ready to Trigger
-                                </div>
-</div>
-</div>
-</div>
-<div class="bg-white border border-slate-200 rounded-xl shadow-soft overflow-hidden border-l-4 border-l-red-500">
-<div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-<div class="lg:col-span-4">
-<h4 class="font-bold text-slate-900">Fresh Beef</h4>
-<div class="mt-2 flex items-center gap-4 text-xs font-medium text-slate-500">
-<span class="flex items-center gap-1"><b class="text-slate-700">Requested:</b> 30kg</span>
-<span class="flex items-center gap-1"><b class="text-slate-700">Stock:</b> 15kg</span>
-<span class="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-bold">Deficit: 15kg</span>
-</div>
-</div>
-<div class="lg:col-span-5">
-<div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-<label class="flex-1 relative cursor-pointer group">
-<input class="sr-only peer" name="action-beef" type="radio"/>
-<div class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
-                                            Schedule Internal Production
-                                        </div>
-</label>
-<label class="flex-1 relative cursor-pointer group">
-<input checked="" class="sr-only peer" name="action-beef" type="radio"/>
-<div class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
-                                            External Sourcing
-                                        </div>
-</label>
-</div>
-</div>
-<div class="lg:col-span-3 text-right">
-<div class="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
-<span class="material-symbols-outlined text-lg">local_shipping</span>
-                                    Quick Dispatch
-                                </div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div class="bg-white border border-slate-200 p-6 rounded-xl shadow-soft">
-<h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Distribution Logistics</h4>
-<div class="space-y-4">
-<div class="flex items-center justify-between">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-400">calendar_today</span>
-<span class="text-sm text-slate-600">Expected Completion</span>
-</div>
-<span class="text-sm font-bold text-slate-900">Today, 14:30 PM</span>
-</div>
-<div class="flex items-center justify-between">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-400">local_shipping</span>
-<span class="text-sm text-slate-600">Assigned Vehicle</span>
-</div>
-<span class="text-sm font-bold text-slate-900">TRUCK-08 (Chilled)</span>
-</div>
-</div>
-</div>
-<div class="bg-blue-50/50 border border-blue-100 p-6 rounded-xl shadow-soft">
-<h4 class="text-xs font-black text-blue-400 uppercase tracking-widest mb-4">Internal Notes</h4>
-<p class="text-xs text-blue-900 font-medium leading-relaxed">
-                        Urgent restock requested to avoid lunch service disruption at central hub. Beef sourcing switched to External due to primary line maintenance.
-                    </p>
-</div>
-</div>
-</div>
-<footer class="bg-white border-t border-slate-200 px-8 py-5 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-<button class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-slate-600 font-bold text-sm hover:bg-slate-100 transition-all">
-<span class="material-symbols-outlined text-lg">arrow_back</span>
-                Back to Dashboard
-            </button>
-<div class="flex gap-3">
-<button class="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-all">
-                    Discard Plan
-                </button>
-<button class="px-8 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-md hover:bg-blue-600 transition-all flex items-center gap-2">
-<span class="material-symbols-outlined text-lg">rocket_launch</span>
-                    Confirm &amp; Trigger Production
-                </button>
-</div>
-</footer>
-</main>
-</div>
 
-</body></html>
+<body class="bg-background-light text-charcoal font-display transition-colors duration-200">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
+            <div class="p-6 flex flex-col gap-8 h-full">
+                <div class="flex items-center gap-3">
+                    <div class="bg-primary size-10 rounded-lg flex items-center justify-center text-white shadow-md">
+                        <span class="material-symbols-outlined text-2xl">soup_kitchen</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">Central
+                            Kitchen</h1>
+                        <p class="text-slate-500 text-[10px] font-medium uppercase tracking-tighter">Management System
+                        </p>
+                    </div>
+                </div>
+                <nav class="flex flex-col gap-1 grow">
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        href="#">
+                        <span class="material-symbols-outlined text-[22px]">dashboard</span>
+                        <span class="text-sm font-medium">Dashboard</span>
+                    </a>
+                    <a class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 text-primary font-semibold relative"
+                        href="#">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[22px] fill-1">list_alt</span>
+                            <span class="text-sm">Order Aggregation</span>
+                        </div>
+                        <span class="size-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        href="#">
+                        <span class="material-symbols-outlined text-[22px]">precision_manufacturing</span>
+                        <span class="text-sm font-medium">Production Coordination</span>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        href="#">
+                        <span class="material-symbols-outlined text-[22px]">local_shipping</span>
+                        <span class="text-sm font-medium">Delivery Scheduling</span>
+                    </a>
+                    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        href="#">
+                        <span class="material-symbols-outlined text-[22px]">warning</span>
+                        <span class="text-sm font-medium">Issue Management</span>
+                    </a>
+                </nav>
+                <div class="mt-auto border-t border-slate-100 pt-6">
+                    <div class="flex items-center gap-3 px-3 py-2">
+                        <div class="size-9 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                            <img alt="Supply coordinator user avatar profile" class="w-full h-full object-cover"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhHdaEx1GhRPaejZLkmmYJS6Mlmzzp2NVAZv4v4p7Vs10r_XoQiVvwR9obsQevw9CuJ2To5iwlacgZV1o9mR7rJ5E_YQAk7Cugr6-xf2r9gNDcRks5tyjAJuCwly_JF87rg8rJGpd4KOp8draITFD-GTxQvy7KuAuU3NGSo74QdFl_oY5kp6NAT9P6MNcEY9bW5APLYm-NuvAYaUtLi7yGatGSEhhWcZIFJE8u80kW_8zPkZPrbAK4n4OBVIMk75hXXcy7LpzQuMA" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-slate-900 text-xs font-bold">Alex Rivers</span>
+                            <span class="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header
+                class="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
+                <div>
+                    <h2 class="text-xl font-bold tracking-tight text-slate-900">Material Fulfillment Plan</h2>
+                    <p class="text-slate-500 text-xs font-medium">
+                        Processing Urgent Request <span id="batch-id" class="font-bold"></span>
+                    </p>
+
+                </div>
+                <div class="flex items-center gap-4">
+                    <div
+                        class="flex items-center bg-amber-50 rounded-lg px-3 py-2 gap-2 text-sm border border-amber-200 text-amber-700">
+                        <span class="material-symbols-outlined text-sm">bolt</span>
+                        <span class="font-bold uppercase text-[11px] tracking-wide">Urgent Priority</span>
+                    </div>
+                    <button
+                        class="p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">
+                        <span class="material-symbols-outlined text-[22px]">settings</span>
+                    </button>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div class="mb-8 rounded-xl bg-white border border-slate-200 shadow-soft overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">analytics</span>
+                            Request Overview
+                        </h3>
+                        <span
+                            class="text-[10px] font-black text-white px-2.5 py-1 bg-amber-500 rounded-full shadow-sm">JUST
+                            NOW</span>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="flex flex-col gap-1">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Requested Materials
+                            </p>
+                            <p class="text-lg font-bold text-slate-900">Potato Rolls &amp; Beef</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Origin Location</p>
+                            <p class="text-lg font-bold text-slate-900">Central Kitchen A</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Priority Level</p>
+                            <div class="flex items-center gap-2">
+                                <span class="size-3 bg-red-500 rounded-full"></span>
+                                <p class="text-lg font-bold text-red-600">Urgent</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <section class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold flex items-center gap-2 text-slate-900">
+                            <span class="material-symbols-outlined text-primary">checklist</span> Material Requirements
+                            &amp; Actions
+                        </h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-soft overflow-hidden">
+                            <div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                                <div class="lg:col-span-4">
+                                    <h4 class="font-bold text-slate-900">Potato Rolls</h4>
+                                    <div class="mt-2 flex items-center gap-4 text-xs font-medium text-slate-500">
+                                        <span class="flex items-center gap-1"><b class="text-slate-700">Requested:</b>
+                                            100 units</span>
+                                        <span class="flex items-center gap-1"><b class="text-slate-700">Stock:</b>
+                                            40</span>
+                                        <span
+                                            class="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-bold">Deficit:
+                                            60 units</span>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-5">
+                                    <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                        <label class="flex-1 relative cursor-pointer group">
+                                            <input checked="" class="sr-only peer" name="action-rolls" type="radio" />
+                                            <div
+                                                class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
+                                                Schedule Internal Production
+                                            </div>
+                                        </label>
+                                        <label class="flex-1 relative cursor-pointer group">
+                                            <input class="sr-only peer" name="action-rolls" type="radio" />
+                                            <div
+                                                class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
+                                                External Sourcing
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-3 text-right">
+                                    <div class="inline-flex items-center gap-2 text-xs font-bold text-slate-400">
+                                        <span class="material-symbols-outlined text-lg">check_circle</span>
+                                        Ready to Trigger
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-white border border-slate-200 rounded-xl shadow-soft overflow-hidden border-l-4 border-l-red-500">
+                            <div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                                <div class="lg:col-span-4">
+                                    <h4 class="font-bold text-slate-900">Fresh Beef</h4>
+                                    <div class="mt-2 flex items-center gap-4 text-xs font-medium text-slate-500">
+                                        <span class="flex items-center gap-1"><b class="text-slate-700">Requested:</b>
+                                            30kg</span>
+                                        <span class="flex items-center gap-1"><b class="text-slate-700">Stock:</b>
+                                            15kg</span>
+                                        <span
+                                            class="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full font-bold">Deficit:
+                                            15kg</span>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-5">
+                                    <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                        <label class="flex-1 relative cursor-pointer group">
+                                            <input class="sr-only peer" name="action-beef" type="radio" />
+                                            <div
+                                                class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
+                                                Schedule Internal Production
+                                            </div>
+                                        </label>
+                                        <label class="flex-1 relative cursor-pointer group">
+                                            <input checked="" class="sr-only peer" name="action-beef" type="radio" />
+                                            <div
+                                                class="text-center py-2 px-3 text-[11px] font-bold uppercase tracking-tight rounded-md peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-sm text-slate-500 transition-all">
+                                                External Sourcing
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-3 text-right">
+                                    <div
+                                        class="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+                                        <span class="material-symbols-outlined text-lg">local_shipping</span>
+                                        Quick Dispatch
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white border border-slate-200 p-6 rounded-xl shadow-soft">
+                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Distribution
+                            Logistics</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-slate-400">calendar_today</span>
+                                    <span class="text-sm text-slate-600">Expected Completion</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-900">Today, 14:30 PM</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-slate-400">local_shipping</span>
+                                    <span class="text-sm text-slate-600">Assigned Vehicle</span>
+                                </div>
+                                <span class="text-sm font-bold text-slate-900">TRUCK-08 (Chilled)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50/50 border border-blue-100 p-6 rounded-xl shadow-soft">
+                        <h4 class="text-xs font-black text-blue-400 uppercase tracking-widest mb-4">Internal Notes</h4>
+                        <p class="text-xs text-blue-900 font-medium leading-relaxed">
+                            Urgent restock requested to avoid lunch service disruption at central hub. Beef sourcing
+                            switched to External due to primary line maintenance.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <footer
+                class="bg-white border-t border-slate-200 px-8 py-5 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-slate-600 font-bold text-sm hover:bg-slate-100 transition-all">
+                    <span class="material-symbols-outlined text-lg">arrow_back</span>
+                    Back to Dashboard
+                </button>
+                <div class="flex gap-3">
+                    <button
+                        class="px-6 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-all">
+                        Discard Plan
+                    </button>
+                    <button
+                        class="px-8 py-2.5 rounded-lg bg-primary text-white font-bold text-sm shadow-md hover:bg-blue-600 transition-all flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">rocket_launch</span>
+                        Confirm &amp; Trigger Production
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const batchId = params.get("batchId");
+
+        if (batchId) {
+            // Update title
+            document.title = `Material Fulfillment Plan - #${batchId}`;
+
+            // Update header text
+            const batchSpan = document.getElementById("batch-id");
+            if (batchSpan) {
+                batchSpan.innerText = `#${batchId}`;
+            }
+        } else {
+            // fallback nếu mở trực tiếp
+            document.getElementById("batch-id").innerText = "#UNKNOWN";
+        }
+    </script>
+
+</body>
+
+</html>

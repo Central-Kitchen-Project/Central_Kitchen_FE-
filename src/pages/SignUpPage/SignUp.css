@@ -1,0 +1,42 @@
+
+        
+          .signup-page {
+            font-family: 'Manrope', sans-serif;
+            background-color: #ffffff;   /* ✅ nền trắng */
+            min-height: 100vh;           /* full chiều cao */
+        }
+
+       
+
+          .signup-page .bg-primary {
+            background-color: #57c436;
+          }
+
+          .signup-page .text-primary {
+            color: #57c436;
+          }
+
+          .signup-page .rounded-default {
+            border-radius: 0.5rem;
+          }
+
+          .signup-page .rounded-lg {
+            border-radius: 1rem;
+          }
+
+          .signup-page .rounded-xl {
+            border-radius: 1.5rem;
+          }
+
+          .signup-page .rounded-full {
+            border-radius: 9999px;
+          }
+
+          .signup-page .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0,
+              'wght' 400,
+              'GRAD' 0,
+              'opsz' 24;
+          }
+        
+      
