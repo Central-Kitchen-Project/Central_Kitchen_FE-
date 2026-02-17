@@ -1,6 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import "./SignUp.css";
 
 export default function SignUp() {
+
+  const navigate = useNavigate();
+
+
   return (
     <div className="signup-wrapper">
       {/* Left Section: Form */}
@@ -96,15 +101,19 @@ export default function SignUp() {
           </div>
 
           {/* Submit Button */}
-          <button className="signup-btn" type="submit">
-            <span>Sign Up</span>
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
+          <button
+      className="signup-btn"
+      type="button"
+      onClick={() => navigate("/SignIn")}
+    >
+      <span>Sign Up</span>
+      <span className="material-symbols-outlined">arrow_forward</span>
+    </button>
 
           {/* Footer Link */}
           <p className="signup-footer-text">
             Already have an account?{" "}
-            <a className="signup-link" href="#">Sign In</a>
+            <a className="signup-link" href="/SignIn">Sign In</a>
           </p>
         </form>
       </div>
