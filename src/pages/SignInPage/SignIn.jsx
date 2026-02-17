@@ -95,7 +95,7 @@ function SignIn() {
       </div>
 
       {/* Right Section */}
-      <div className="hidden lg:block lg:flex-1 relative overflow-hidden">
+      <div className=" lg:block lg:flex-1 relative overflow">
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
           style={{
