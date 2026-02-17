@@ -1,0 +1,61 @@
+       .signin-page {
+           font-family: 'Manrope', sans-serif;
+           background: #f8faf8;
+       }
+
+       .signin-page .form-input {
+           border: 1px solid #dce5df;
+           transition: all 0.25s ease;
+       }
+
+       .signin-page .form-input:focus {
+           border-color: #57c436;
+           box-shadow: 0 0 0 4px rgba(87, 196, 54, 0.15);
+           outline: none;
+       }
+
+       .signin-page .primary-btn {
+           background: #57c436;
+           transition: all 0.25s ease;
+       }
+
+       .signin-page .primary-btn:hover {
+           background: #4caf30;
+           transform: translateY(-2px);
+           box-shadow: 0 10px 25px rgba(87, 196, 54, 0.3);
+       }
+
+       .signin-page .primary-btn:active {
+           transform: scale(0.98);
+       }
+
+       .signin-page .glass-card {
+           background: rgba(255, 255, 255, 0.12);
+           backdrop-filter: blur(18px);
+           border: 1px solid rgba(255, 255, 255, 0.2);
+       }
+
+       .signin-page .material-symbols-outlined {
+           font-variation-settings:
+               'FILL' 0,
+               'wght' 400,
+               'GRAD' 0,
+               'opsz' 24;
+       }
+
+       .signin-page .logo-box {
+           background: #57c436;
+           box-shadow: 0 8px 20px rgba(87, 196, 54, 0.35);
+       }
+
+       /* Tắt icon mặc định của Edge */
+       input[type="password"]::-ms-reveal,
+       input[type="password"]::-ms-clear {
+           display: none;
+       }
+
+       /* Tắt icon mặc định của Chrome */
+       input[type="password"]::-webkit-credentials-auto-fill-button,
+       input[type="password"]::-webkit-textfield-decoration-container {
+           display: none !important;
+       }
