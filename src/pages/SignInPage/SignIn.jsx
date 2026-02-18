@@ -66,6 +66,9 @@ function SignIn() {
                   {showPassword ? "visibility_off" : "visibility"}
                 </span>
               </div>
+              <p className="text-right mt-2">
+                <span onClick={() => navigate('/ForgotPassword')} className="text-[#57c436] font-semibold cursor-pointer hover:underline">Forgot password?</span>
+              </p>
             </div>
 
             {/* Button */}
