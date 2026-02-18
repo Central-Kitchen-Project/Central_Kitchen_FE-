@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--gray-900);
+        }
+
+        .sidebar-menu {
+            padding: 12px 0;
+        }
+
+        .nav-link {
+            color: #6b7280;
+            padding: 12px 20px;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background-color: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .nav-link.active {
+            background-color: #dbeafe;
+            border-left-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .admin-info h6 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .admin-info p {
+            font-size: 12px;
+            color: #9ca3af;
+            margin: 0;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 32px;
+            background-color: var(--gray-100);
+            min-height: 100vh;
+            flex: 1;
+            width: 100%;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.blue {
+            background-color: #dbeafe;
+            color: var(--primary);
+        }
+
+        .stat-icon.yellow {
+            background-color: #fef3c7;
+            color: var(--warning);
+        }
+
+        .stat-icon.green {
+            background-color: #d1fae5;
+            color: var(--success);
+        }
+
+        .stat-icon.red {
+            background-color: #fee2e2;
+            color: var(--danger);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1;
+        }
+
+        .stat-subtitle {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-top: 4px;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-900);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            font-weight: 500;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            font-size: 13px;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        tbody tr:hover {
+            background-color: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .system-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .metric-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-100);
+            border-right: 1px solid var(--gray-100);
+        }
+
+        .metric-item:nth-child(2), .metric-item:nth-child(4) {
+            border-right: none;
+        }
+
+        .metric-item:nth-child(3), .metric-item:nth-child(4) {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .quick-btn {
+            background: white;
+            border: 1px solid var(--gray-200);
+            padding: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+        }
+
+        .quick-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .quick-icon.blue {
+            background: #dbeafe;
+            color: var(--primary);
+        }
+
+        .quick-icon.purple {
+            background: #ede9fe;
+            color: #8b5cf6;
+        }
+
+        .quick-icon.orange {
+            background: #fed7aa;
+            color: #ea580c;
+        }
+
+        .quick-icon.emerald {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .quick-text h6 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .main-content {
+                margin-left: 200px;
+                padding: 16px;
+            }
+
+            .stats-row, .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-cog"></i> Admin Dashboard
+            </div>
+            <div class="sidebar-menu">
+                <div class="nav-link active">
+                    <i class="fas fa-chart-line"></i>Dashboard
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-users"></i>User Management
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-lock"></i>RBAC Settings
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-sliders-h"></i>System Configuration
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-database"></i>Master Data
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="avatar">AU</div>
+                <div class="admin-info">
+                    <h6>Admin User</h6>
+                    <p>Admin User</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value">1,256</div>
+                        <div class="stat-subtitle">Active accounts</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow"><i class="fas fa-utensils"></i></div>
+                    <div>
+                        <div class="stat-label">Central Kitchens</div>
+                        <div class="stat-value">14</div>
+                        <div class="stat-subtitle">Active locations</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-store"></i></div>
+                    <div>
+                        <div class="stat-label">Franchise Stores</div>
+                        <div class="stat-value">68</div>
+                        <div class="stat-subtitle">Active stores</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div>
+                        <div class="stat-label">System Alerts</div>
+                        <div class="stat-value">5</div>
+                        <div class="stat-subtitle">Issues pending</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">Inventory Alerts <span>⋯</span></div>
+                    <div class="card-body">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Material Name</th>
+                                    <th>Category</th>
+                                    <th>Unit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Mozzarella Blend (S/8)</strong><br><small style="color: #9ca3af;">SKU: 4 8oz</small></td>
+                                    <td>Dairy & Cheese</td>
+                                    <td><span class="badge badge-warning">● Low Stock</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Takeaway Boxes - Medium</strong><br><small style="color: #9ca3af;">SKU: + 19 etz</small></td>
+                                    <td>Packaging</td>
+                                    <td><span class="badge badge-warning">● Low Stock</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>San Marzano Tomatoes</strong><br><small style="color: #9ca3af;">SKU: + 1 etz</small></td>
+                                    <td>Produce</td>
+                                    <td><span class="badge badge-danger">● Low Stock</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div style="padding-top: 16px; border-top: 1px solid var(--gray-200); margin-top: 16px;">
+                            <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 500;">View Inventory</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Purchase Requests <span>⋯</span></div>
+                    <div class="card-body">
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <div style="border-bottom: 1px solid var(--gray-200); padding-bottom: 16px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <div><strong style="color: var(--gray-900);">Order #5737</strong><br><small style="color: #9ca3af;">📦 Dairy Gold Ltd</small></div>
+                                    <span class="badge badge-warning">Pending Approval</span>
+                                </div>
+                                <small style="color: #9ca3af;">📦 30L Whipping Cream Apr 28, 2024</small>
+                                <div style="text-align: right; margin-top: 8px;">
+                                    <small style="color: #9ca3af;">30L</small>
+                                    <button class="btn-primary" style="margin-left: 8px; padding: 4px 12px;">Restock ↻</button>
+                                </div>
+                            </div>
+                            <div style="border-bottom: 1px solid var(--gray-200); padding-bottom: 16px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <div><strong style="color: var(--gray-900);">Order #5736</strong><br><small style="color: #9ca3af;">📦 Global Grains Supply</small></div>
+                                    <span class="badge badge-danger">Approval Needed</span>
+                                </div>
+                                <small style="color: #9ca3af;">📦 500kg All-Purpose Flour Apr 28, 2024</small>
+                                <div style="text-align: right; margin-top: 8px;">
+                                    <small style="color: #9ca3af;">500kg</small>
+                                    <button class="btn-primary" style="margin-left: 8px; padding: 4px 12px;">Restock ↻</button>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <div><strong style="color: var(--gray-900);">Order #5735</strong><br><small style="color: #9ca3af;">📦 Mediterranean Imports</small></div>
+                                    <span class="badge badge-warning">Pending Approval</span>
+                                </div>
+                                <small style="color: #9ca3af;">📦 50L Olive Oil Apr 24, 2024</small>
+                                <div style="text-align: right; margin-top: 8px;">
+                                    <small style="color: #9ca3af;">0</small>
+                                    <button class="btn-primary" style="margin-left: 8px; padding: 4px 12px;">Restock ↻</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">System Overview <span>⋯</span></div>
+                    <div class="card-body">
+                        <div class="system-grid">
+                            <div class="metric-item">
+                                <div class="metric-label"><i class="fas fa-file-alt" style="color: var(--primary);"></i> Total Requests <small style="color: #9ca3af;">Today</small></div>
+                                <div class="metric-value">6,854 <span style="color: var(--success); font-size: 14px;"><i class="fas fa-arrow-up"></i></span></div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label"><i class="fas fa-clock" style="color: var(--success);"></i> Avg Response Time <small style="color: #9ca3af;">Today</small></div>
+                                <div class="metric-value">132ms <span style="color: var(--success); font-size: 14px;"><i class="fas fa-arrow-down"></i></span></div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label"><i class="fas fa-chart-line" style="color: var(--success);"></i> Success Rate <small style="color: #9ca3af;">Today</small></div>
+                                <div class="metric-value">99.2% <span style="color: var(--success); font-size: 14px;"><i class="fas fa-arrow-up"></i></span></div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-label"><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Failed Jobs <small style="color: #9ca3af;">Last 24h</small></div>
+                                <div class="metric-value">8 <span style="color: var(--danger); font-size: 14px;"><i class="fas fa-arrow-up"></i></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Quick Actions <span>⋯</span></div>
+                    <div class="card-body">
+                        <div class="quick-grid">
+                            <div class="quick-btn">
+                                <div class="quick-icon blue"><i class="fas fa-users"></i></div>
+                                <div class="quick-text"><h6>Manage Users</h6></div>
+                            </div>
+                            <div class="quick-btn">
+                                <div class="quick-icon purple"><i class="fas fa-lock"></i></div>
+                                <div class="quick-text"><h6>Configure Roles</h6></div>
+                            </div>
+                            <div class="quick-btn">
+                                <div class="quick-icon orange"><i class="fas fa-sliders-h"></i></div>
+                                <div class="quick-text"><h6>System Settings</h6></div>
+                            </div>
+                            <div class="quick-btn">
+                                <div class="quick-icon emerald"><i class="fas fa-database"></i></div>
+                                <div class="quick-text"><h6>Master Data</h6></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - Purchase Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10b981;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--gray-900);
+        }
+
+        .sidebar-menu {
+            padding: 12px 0;
+        }
+
+        .nav-link {
+            color: #6b7280;
+            padding: 12px 20px;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background-color: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .nav-link.active {
+            background-color: #d1fae5;
+            border-left-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .admin-info h6 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .admin-info p {
+            font-size: 12px;
+            color: #9ca3af;
+            margin: 0;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 32px;
+            background-color: var(--gray-100);
+            min-height: 100vh;
+            flex: 1;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            font-weight: 500;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            font-size: 13px;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        tbody tr:hover {
+            background-color: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-info {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #059669;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #9ca3af;
+        }
+
+        .modal-close:hover {
+            color: var(--gray-900);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-save,
+        .btn-cancel {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-save {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background-color: #059669;
+        }
+
+        .btn-cancel {
+            background-color: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .btn-cancel:hover {
+            background-color: #d1d5db;
+        }
+
+        .inventory-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--primary);
+            transition: all 0.2s;
+        }
+
+        .btn-small:hover {
+            color: #059669;
+        }
+
+        .btn-small-danger {
+            color: var(--danger);
+        }
+
+        .btn-small-danger:hover {
+            color: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .main-content {
+                margin-left: 200px;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-briefcase"></i> Manager Dashboard
+            </div>
+            <div class="sidebar-menu">
+                <div class="nav-link">
+                    <i class="fas fa-chart-line"></i>Dashboard
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-boxes"></i>Inventory Management
+                </div>
+                <div class="nav-link active">
+                    <i class="fas fa-clipboard-list"></i>Purchase Orders
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-industry"></i>Menu Management
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-chart-bar"></i>Reports & Analytics
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="avatar">M</div>
+                <div class="admin-info">
+                    <h6>Manager</h6>
+                    <p>Central Kitchen #1</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <h3 class="section-title">Purchase Orders</h3>
+            <div class="card">
+                <div class="card-body">
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn-primary" onclick="openAddOrderModal()"><i class="fas fa-plus"></i> Create Order</button>
+                    </div>
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Supplier</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <!-- Generated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Order Modal -->
+    <div class="modal-overlay" id="addOrderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Purchase Order</h3>
+                <button class="modal-close" onclick="closeAddOrderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Supplier Name</label>
+                    <input type="text" id="newOrderSupplier" placeholder="Enter supplier name">
+                </div>
+                <div class="form-group">
+                    <label>Items Count</label>
+                    <input type="number" id="newOrderItems" placeholder="Number of items" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Total Amount ($)</label>
+                    <input type="number" id="newOrderTotal" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="newOrderStatus">
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="in-transit">In Transit</option>
+                        <option value="received">Received</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="newOrderDueDate">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAddOrderModal()">Cancel</button>
+                <button class="btn-save" onclick="saveNewOrder()">Create Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Order Modal -->
+    <div class="modal-overlay" id="editOrderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Purchase Order</h3>
+                <button class="modal-close" onclick="closeEditOrderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Supplier Name</label>
+                    <input type="text" id="editOrderSupplier" placeholder="Enter supplier name">
+                </div>
+                <div class="form-group">
+                    <label>Items Count</label>
+                    <input type="number" id="editOrderItems" placeholder="Number of items" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Total Amount ($)</label>
+                    <input type="number" id="editOrderTotal" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="editOrderStatus">
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="in-transit">In Transit</option>
+                        <option value="received">Received</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="editOrderDueDate">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeEditOrderModal()">Cancel</button>
+                <button class="btn-save" onclick="saveEditOrder()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let purchaseOrders = [
+            { id: 1, orderID: "#PO-2024-001", supplier: "Fresh Produce Co.", items: 5, total: 2450, status: "confirmed", dueDate: "2026-01-20", date: new Date("2026-01-18") },
+            { id: 2, orderID: "#PO-2024-002", supplier: "Dairy Imports Ltd", items: 3, total: 1890, status: "pending", dueDate: "2026-01-22", date: new Date("2026-01-18") },
+            { id: 3, orderID: "#PO-2024-003", supplier: "Global Grains Supply", items: 2, total: 890, status: "in-transit", dueDate: "2026-01-18", date: new Date("2026-01-17") }
+        ];
+
+        let currentEditOrder = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const saved = localStorage.getItem('purchaseOrders');
+            if (saved) {
+                purchaseOrders = JSON.parse(saved);
+            }
+            renderOrdersTable();
+        });
+
+        function renderOrdersTable() {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '';
+
+            purchaseOrders.forEach(order => {
+                let statusBadge = '';
+                let statusClass = '';
+                switch(order.status) {
+                    case 'confirmed':
+                        statusBadge = 'Confirmed';
+                        statusClass = 'badge-success';
+                        break;
+                    case 'pending':
+                        statusBadge = 'Pending';
+                        statusClass = 'badge-warning';
+                        break;
+                    case 'in-transit':
+                        statusBadge = 'In Transit';
+                        statusClass = 'badge-info';
+                        break;
+                    case 'received':
+                        statusBadge = 'Received';
+                        statusClass = 'badge-success';
+                        break;
+                }
+
+                const row = `
+                    <tr>
+                        <td><strong>${order.orderID}</strong></td>
+                        <td>${order.supplier}</td>
+                        <td>${order.items} items</td>
+                        <td>$${order.total.toFixed(2)}</td>
+                        <td><span class="badge ${statusClass}">${statusBadge}</span></td>
+                        <td>${new Date(order.dueDate).toLocaleDateString()}</td>
+                        <td>
+                            <div class="inventory-actions">
+                                <button class="btn-small" onclick="openEditOrderModal(${order.id})" title="Edit"><i class="fas fa-edit"></i> Edit</button>
+                                <button class="btn-small btn-small-danger" onclick="deleteOrder(${order.id})" title="Delete"><i class="fas fa-trash"></i> Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function openAddOrderModal() {
+            document.getElementById('newOrderSupplier').value = '';
+            document.getElementById('newOrderItems').value = '';
+            document.getElementById('newOrderTotal').value = '';
+            document.getElementById('newOrderStatus').value = 'pending';
+            document.getElementById('newOrderDueDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addOrderModal').classList.add('active');
+        }
+
+        function closeAddOrderModal() {
+            document.getElementById('addOrderModal').classList.remove('active');
+        }
+
+        function saveNewOrder() {
+            const supplier = document.getElementById('newOrderSupplier').value;
+            const items = parseInt(document.getElementById('newOrderItems').value);
+            const total = parseFloat(document.getElementById('newOrderTotal').value);
+            const status = document.getElementById('newOrderStatus').value;
+            const dueDate = document.getElementById('newOrderDueDate').value;
+
+            if (!supplier || !items || !total) {
+                alert('Please fill all required fields');
+                return;
+            }
+
+            const newOrder = {
+                id: Math.max(...purchaseOrders.map(o => o.id), 0) + 1,
+                orderID: `#PO-${new Date().getFullYear()}-${String(purchaseOrders.length + 1).padStart(3, '0')}`,
+                supplier,
+                items,
+                total,
+                status,
+                dueDate,
+                date: new Date()
+            };
+
+            purchaseOrders.push(newOrder);
+            localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders));
+            renderOrdersTable();
+            closeAddOrderModal();
+            alert('Order created successfully!');
+        }
+
+        function openEditOrderModal(orderId) {
+            const order = purchaseOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            currentEditOrder = order;
+            document.getElementById('editOrderSupplier').value = order.supplier;
+            document.getElementById('editOrderItems').value = order.items;
+            document.getElementById('editOrderTotal').value = order.total;
+            document.getElementById('editOrderStatus').value = order.status;
+            document.getElementById('editOrderDueDate').value = order.dueDate;
+            document.getElementById('editOrderModal').classList.add('active');
+        }
+
+        function closeEditOrderModal() {
+            document.getElementById('editOrderModal').classList.remove('active');
+            currentEditOrder = null;
+        }
+
+        function saveEditOrder() {
+            if (!currentEditOrder) return;
+
+            currentEditOrder.supplier = document.getElementById('editOrderSupplier').value;
+            currentEditOrder.items = parseInt(document.getElementById('editOrderItems').value);
+            currentEditOrder.total = parseFloat(document.getElementById('editOrderTotal').value);
+            currentEditOrder.status = document.getElementById('editOrderStatus').value;
+            currentEditOrder.dueDate = document.getElementById('editOrderDueDate').value;
+
+            localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders));
+            renderOrdersTable();
+            closeEditOrderModal();
+            alert('Order updated successfully!');
+        }
+
+        function deleteOrder(orderId) {
+            if (confirm('Are you sure you want to delete this order?')) {
+                purchaseOrders = purchaseOrders.filter(o => o.id !== orderId);
+                localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders));
+                renderOrdersTable();
+                alert('Order deleted successfully!');
+            }
+        }
+    </script>
