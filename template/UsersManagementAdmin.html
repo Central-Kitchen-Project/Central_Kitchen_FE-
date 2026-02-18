@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #f8f9fa;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--gray-900);
+        }
+
+        .sidebar-menu {
+            padding: 12px 0;
+        }
+
+        .nav-link {
+            color: #6b7280;
+            padding: 12px 20px;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background-color: var(--gray-200);
+            color: var(--gray-900);
+        }
+
+        .nav-link.active {
+            background-color: #dbeafe;
+            border-left-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .admin-info h6 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .admin-info p {
+            font-size: 12px;
+            color: #9ca3af;
+            margin: 0;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 32px;
+            background-color: var(--gray-100);
+            min-height: 100vh;
+            flex: 1;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            font-weight: 500;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            font-size: 13px;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        tbody tr:hover {
+            background-color: var(--gray-50);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .form-control {
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            padding: 9px 12px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .main-content {
+                margin-left: 200px;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-cog"></i> Admin Dashboard
+            </div>
+            <div class="sidebar-menu">
+                <div class="nav-link">
+                    <i class="fas fa-chart-line"></i>Dashboard
+                </div>
+                <div class="nav-link active">
+                    <i class="fas fa-users"></i>User Management
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-lock"></i>RBAC Settings
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-sliders-h"></i>System Configuration
+                </div>
+                <div class="nav-link">
+                    <i class="fas fa-database"></i>Master Data
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="avatar">AU</div>
+                <div class="admin-info">
+                    <h6>Admin User</h6>
+                    <p>Admin User</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <h3 class="section-title">User Management</h3>
+            <div class="card">
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                        <button class="btn-primary"><i class="fas fa-plus"></i> Add New User</button>
+                        <input type="text" class="form-control" placeholder="Search users...">
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-user-circle" style="color: var(--primary); margin-right: 8px;"></i> John Doe</td>
+                                <td>john.doe@kitchen.com</td>
+                                <td><span class="badge badge-primary">Manager</span></td>
+                                <td>Central Kitchen</td>
+                                <td><span class="badge badge-success">Active</span></td>
+                                <td><i class="fas fa-ellipsis-v" style="cursor: pointer;"></i></td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-user-circle" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-right: 8px;"></i> Sarah Anderson</td>
+                                <td>sarah.anderson@stores.com</td>
+                                <td><span class="badge badge-success">Store Staff</span></td>
+                                <td>Store #12</td>
+                                <td><span class="badge badge-success">Active</span></td>
+                                <td><i class="fas fa-ellipsis-v" style="cursor: pointer;"></i></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
