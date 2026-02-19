@@ -1,0 +1,36 @@
+/* 1. Import Font Inter từ Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* 2. Thiết lập cơ bản cho Body */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc; /* background-light */
+    color: #334155; /* sidebar-text */
+    margin: 0;
+}
+
+/* 3. Cấu hình Material Symbols */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+}
+
+/* 4. Utility Classes - Màu sắc (Colors) */
+.text-primary { color: #137fec; }
+.bg-primary { background-color: #137fec; }
+
+.text-sidebar { color: #334155; }
+.text-sidebar-active { color: #137fec; }
+.bg-background-light { background-color: #f8fafc; }
+
+/* 5. Utility Classes - Bo góc (Border Radius) */
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* 6. Font Family */
+.font-display {
+    font-family: 'Inter', sans-serif;
+}
