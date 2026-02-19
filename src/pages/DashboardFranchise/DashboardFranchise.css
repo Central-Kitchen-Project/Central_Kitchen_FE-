@@ -1,0 +1,40 @@
+/* 1. Nhúng font chữ Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* 2. Thiết lập cơ bản (Base) */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f6f7f8; /* background-light mặc định */
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* 3. Màu sắc (Colors) - Utility Classes */
+.text-primary { color: #137fec; }
+.bg-primary { background-color: #137fec; }
+
+.text-background-light { color: #f6f7f8; }
+.bg-background-light { background-color: #f6f7f8; }
+
+.text-background-dark { color: #101922; }
+.bg-background-dark { background-color: #101922; }
+
+/* 4. Bo góc (Border Radius) - Utility Classes */
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* 5. Font Family */
+.font-display {
+    font-family: 'Inter', sans-serif;
+}
+
+/* 6. Chế độ Dark Mode (Dùng class .dark ở thẻ html hoặc body) */
+.dark body {
+    background-color: #101922;
+    color: #f6f7f8;
+}
+
+.dark .bg-background-dark { background-color: #f6f7f8; } /* Đảo ngược nếu cần */
+.dark .text-background-dark { color: #f6f7f8; }
