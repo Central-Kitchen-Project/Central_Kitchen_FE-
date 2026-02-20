@@ -14,6 +14,7 @@ import DashboardManager from "./pages/DashboardManager/DashboardManager";
 import OrderAggregation from "./pages/OrderAggregationPage/OrderAggregation";
 import SupplyOrderProcessing from "./pages/SupplyOrderProcessingPage/SupplyOrderProcessing";
 import AcceptOrder from "./pages/SupplyOrderProcessingPage/AcceptOrder";
+import MaterialFulfillmentPlan from "./pages/MaterialFulfillmentPlanPage/MaterialFulfillmentPlan";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
       <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
       <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
       <Route path="/OrderAggregation" element={<OrderAggregation />} />
+      <Route path="/MaterialFulfillmentPlan" element={<MaterialFulfillmentPlan />} />
 
       {/* Dashboard */}
       <Route path="/DashboardCentral" element={<DashboardCentral />} />

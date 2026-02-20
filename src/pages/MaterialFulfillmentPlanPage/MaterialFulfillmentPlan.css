@@ -1,0 +1,72 @@
+/* 1. CẤU HÌNH CƠ BẢN */
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #F8FAFC; /* background-light */
+    color: #334155; /* charcoal */
+    margin: 0;
+}
+
+.material-symbols-outlined { 
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; 
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* 2. CÁC CLASS TIỆN ÍCH (Chuyển đổi từ Colors & Shadow) */
+.bg-primary { background-color: #137fec !important; }
+.text-primary { color: #137fec !important; }
+
+.bg-background-light { background-color: #F8FAFC !important; }
+.text-charcoal { color: #334155 !important; }
+
+.bg-urgent-amber { background-color: #f59e0b !important; }
+.text-urgent-amber { color: #f59e0b !important; }
+
+/* Box Shadows */
+.shadow-soft { 
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; 
+}
+.shadow-glow-amber { 
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.3) !important; 
+}
+
+/* Border Radius */
+.rounded { border-radius: 0.25rem !important; }
+.rounded-lg { border-radius: 0.5rem !important; }
+.rounded-xl { border-radius: 0.75rem !important; }
+.rounded-full { border-radius: 9999px !important; }
+
+/* 3. CUSTOM COMPONENTS (Giữ nguyên logic của bạn) */
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { 
+    width: 6px; 
+    height: 6px; 
+}
+.custom-scrollbar::-webkit-scrollbar-track { 
+    background: transparent; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; 
+    border-radius: 10px; 
+}
+
+/* Toggle Switch Logic */
+.toggle-checked:checked + label .toggle-switch { 
+    transform: translateX(100%); 
+    background-color: #137fec; 
+}
+.toggle-checked:checked + label { 
+    color: #137fec; 
+    font-weight: 600; 
+}
+
+/* 4. FIX LAYOUT PHỔ BIẾN (Dành cho bản không cài Tailwind) */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.size-10 { width: 2.5rem; height: 2.5rem; }
+.size-8 { width: 2rem; height: 2rem; }
