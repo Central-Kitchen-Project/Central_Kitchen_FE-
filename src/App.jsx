@@ -5,6 +5,7 @@ import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import OrderAggregation from "./pages/OrderAggregationPage/OrderAggregation";
 import SupplyOrderProcessing from "./pages/SupplyOrderProcessingPage/SupplyOrderProcessing";
+import AcceptOrder from "./pages/SupplyOrderProcessingPage/AcceptOrder";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
 
       {/* Order */}
       <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
+      <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
       <Route path="/OrderAggregation" element={<OrderAggregation />} />
 
       {/* Not found */}

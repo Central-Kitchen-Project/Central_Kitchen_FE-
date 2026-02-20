@@ -1,6 +1,46 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import "./SupplyOrderProcessing.css"
 function SupplyOrderProcessing() {
+  const navigate = useNavigate()
+  const [acceptModalOpen, setAcceptModalOpen] = useState(false)
+  const [requestModalOpen, setRequestModalOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [requestItems, setRequestItems] = useState([])
+
+  const openAcceptModal = (orderId) => {
+    setSelectedOrder(orderId)
+    setAcceptModalOpen(true)
+  }
+
+  const confirmAccept = () => {
+    setAcceptModalOpen(false)
+    // redirect to an accept page (simple route)
+    // strip leading '#' from order id so it becomes a proper path segment
+    const cleanId = String(selectedOrder || '').replace(/^#/, '')
+    navigate(`/SupplyOrderProcessing/accept/${encodeURIComponent(cleanId)}`)
+  }
+
+  const openRequestModal = (orderId, items = []) => {
+    setSelectedOrder(orderId)
+    // create a shallow copy with a qty field for inputs
+    setRequestItems(items.map((i) => ({ ...i, requestQty: '' })))
+    setRequestModalOpen(true)
+  }
+
+  const updateRequestQty = (index, value) => {
+    setRequestItems((prev) => {
+      const copy = [...prev]
+      copy[index] = { ...copy[index], requestQty: value }
+      return copy
+    })
+  }
+
+  const submitRequest = () => {
+    // In a real app you'd POST this to the server. For now just log and close.
+    console.log('Request submitted for', selectedOrder, requestItems)
+    setRequestModalOpen(false)
+  }
   return (
     <><div className="flex h-screen overflow-hidden">
   <aside className="w-64 bg-sidebar-bg border-r border-slate-200 flex flex-col shrink-0">
@@ -221,10 +261,14 @@ function SupplyOrderProcessing() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
+                    <button onClick={() => openAcceptModal('#ORD-9021')} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
                       Accept
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
+                    <button onClick={() => openRequestModal('#ORD-9021', [
+                      { name: 'Brioche Burger Buns', stock: '120 units' },
+                      { name: 'Potato Rolls', stock: '15 units' },
+                      { name: 'Fresh Beef', stock: '20kg' },
+                    ])} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
                       Request
                     </button>
                   </div>
@@ -263,10 +307,12 @@ function SupplyOrderProcessing() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
+                    <button onClick={() => openAcceptModal('#ORD-9018')} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
                       Accept
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
+                    <button onClick={() => openRequestModal('#ORD-9018', [
+                      { name: 'Secret Burger Sauce', stock: '100L' },
+                    ])} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
                       Request
                     </button>
                   </div>
@@ -305,10 +351,12 @@ function SupplyOrderProcessing() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
+                    <button onClick={() => openAcceptModal('#ORD-8992')} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
                       Accept
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
+                    <button onClick={() => openRequestModal('#ORD-8992', [
+                      { name: 'Vintage Cheddar Slices', stock: '50kg' },
+                    ])} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
                       Request
                     </button>
                   </div>
@@ -347,10 +395,12 @@ function SupplyOrderProcessing() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
-                    <button className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
+                    <button onClick={() => openAcceptModal('#ORD-8988')} className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90">
                       Accept
                     </button>
-                    <button className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
+                    <button onClick={() => openRequestModal('#ORD-8988', [
+                      { name: 'Truffle Mayo Sachet', stock: '400x' },
+                    ])} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50">
                       Request
                     </button>
                   </div>
@@ -426,6 +476,77 @@ function SupplyOrderProcessing() {
     </div>
   </main>
 </div>
+
+  {/* Accept confirmation modal */}
+  {acceptModalOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={() => setAcceptModalOpen(false)} />
+      <div className="bg-white rounded-2xl shadow-2xl z-10 w-96 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
+            <span className="material-symbols-outlined">inventory_2</span>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold">Accept Order</h3>
+            <p className="text-sm text-slate-500 mt-1">Are you sure you want to accept <span className="font-mono">{String(selectedOrder || '').replace(/^#/, '')}</span>? This will move the order to the Processing queue.</p>
+          </div>
+          <button onClick={() => setAcceptModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <button onClick={() => setAcceptModalOpen(false)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm">Cancel</button>
+          <button onClick={confirmAccept} className="px-4 py-2 rounded-lg bg-primary text-white text-sm shadow">Confirm Accept</button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Request items modal */}
+  {requestModalOpen && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={() => setRequestModalOpen(false)} />
+      <div className="bg-white rounded-2xl shadow-2xl z-10 w-[680px] p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <span className="material-symbols-outlined">add_shopping_cart</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Request Additional Materials</h3>
+              <p className="text-sm text-slate-500 mt-1">Please specify quantities needed for order <span className="font-mono">{String(selectedOrder || '').replace(/^#/, '')}</span>.</p>
+            </div>
+          </div>
+          <button onClick={() => setRequestModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <div className="mt-4 overflow-y-auto max-h-64 border rounded-md">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 text-xs text-slate-500">
+                <th className="px-4 py-3">Material Name</th>
+                <th className="px-4 py-3">Current Stock</th>
+                <th className="px-4 py-3">Request Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requestItems.map((it, idx) => (
+                <tr key={idx} className="border-t">
+                  <td className="px-4 py-3 text-sm">{it.name}</td>
+                  <td className="px-4 py-3 text-sm text-slate-500">{it.stock}</td>
+                  <td className="px-4 py-3">
+                    <input value={it.requestQty} onChange={(e) => updateRequestQty(idx, e.target.value)} className="w-full rounded-md border border-slate-200 px-3 py-2 focus:ring-primary focus:border-primary" placeholder="Qty" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4 text-sm text-amber-700 bg-amber-50 p-3 rounded mb-4">Requesting these materials will alert the inventory manager. Lead time for these items is approximately 45 minutes.</div>
+        <div className="flex justify-end gap-3">
+          <button onClick={() => setRequestModalOpen(false)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm">Cancel</button>
+          <button onClick={submitRequest} className="px-4 py-2 rounded-lg bg-primary text-white text-sm">Submit Request</button>
+        </div>
+      </div>
+    </div>
+  )}
 
     </>
   )
