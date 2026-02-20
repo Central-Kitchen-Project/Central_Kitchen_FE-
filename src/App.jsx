@@ -13,6 +13,7 @@ import DashboardAdmin from "./pages/DashboardAdmin/DashboardAdmin";
 import DashboardManager from "./pages/DashboardManager/DashboardManager";
 import OrderAggregation from "./pages/OrderAggregationPage/OrderAggregation";
 import SupplyOrderProcessing from "./pages/SupplyOrderProcessingPage/SupplyOrderProcessing";
+import AcceptOrder from "./pages/SupplyOrderProcessingPage/AcceptOrder";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
 
       {/* Order */}
       <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
+      <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
       <Route path="/OrderAggregation" element={<OrderAggregation />} />
 
       {/* Dashboard */}
