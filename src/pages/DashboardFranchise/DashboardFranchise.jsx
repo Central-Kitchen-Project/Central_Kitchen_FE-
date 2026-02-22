@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import './DashboardFranchise.css'   
 
 function DashboardFranchise() {
@@ -14,7 +15,7 @@ function DashboardFranchise() {
         </div>
         <div className="flex flex-col">
           <h1 className="text-[#111418] dark:text-white text-base font-bold leading-tight">
-            Central Kitchen
+            Franchise Store
           </h1>
           <p className="text-[#617589] dark:text-slate-400 text-xs font-normal">
             Management System
@@ -23,14 +24,14 @@ function DashboardFranchise() {
       </div>
     </div>
     <nav className="flex-1 px-4 flex flex-col gap-2">
-      <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary">
+      <Link to="/DashboardFranchise" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary">
         <span className="material-symbols-outlined">dashboard</span>
         <p className="text-sm font-semibold">Dashboard</p>
-      </div>
-      <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+      </Link>
+      <Link to="/CreateOrderFranchise" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
         <span className="material-symbols-outlined">add_circle</span>
         <p className="text-sm font-medium">Create Order</p>
-      </div>
+      </Link>
       <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
         <span className="material-symbols-outlined">local_shipping</span>
         <p className="text-sm font-medium">Order Tracking</p>

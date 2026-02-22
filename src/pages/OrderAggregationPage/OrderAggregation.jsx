@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 function OrderAggregation() {
   const navigate = useNavigate();
@@ -31,16 +31,13 @@ function OrderAggregation() {
           </div>
           
           <nav className="flex flex-col gap-1 grow">
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" href="#">
+            <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" to="/DashboardCentral">
               <span className="material-symbols-outlined text-[22px]">dashboard</span>
               <span className="text-sm font-medium">Dashboard</span>
-            </a>
-            <a className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 text-blue-600 font-semibold relative" href="#">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[22px]">list_alt</span>
-                <span className="text-sm">Order Aggregation</span>
-              </div>
-              <span className="size-2 bg-red-500 rounded-full ring-2 ring-white" />
+            </Link>
+            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-600 font-semibold" href="#">
+              <span className="material-symbols-outlined text-[22px]">list_alt</span>
+              <span className="text-sm">Order Aggregation</span>
             </a>
             <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" href="#">
               <span className="material-symbols-outlined text-[22px]">precision_manufacturing</span>
@@ -63,7 +60,7 @@ function OrderAggregation() {
               </div>
               <div className="flex flex-col">
                 <span className="text-slate-900 text-xs font-bold">Alex Rivers</span>
-                <span className="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
+                <span className="text-slate-500 text-[10px] font-medium">Central Kitchen Staff</span>
               </div>
             </div>
           </div>

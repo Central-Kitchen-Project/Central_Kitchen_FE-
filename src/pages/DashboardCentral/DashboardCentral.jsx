@@ -1,94 +1,60 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import './DashboardCentral.css'
 
 function DashboardCentral() {
   return (
     <>
-    <div className="flex h-screen overflow-hidden">
-  <aside className="w-64 bg-sidebar-bg border-r border-slate-200 flex flex-col shrink-0">
-    <div className="p-6 flex flex-col gap-4">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+  {/* SIDEBAR */}
+  <aside className="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
+    <div className="p-6 flex flex-col gap-8 h-full">
       <div className="flex items-center gap-3">
-        <div className="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
-          <span className="material-symbols-outlined">skillet</span>
+        <div className="bg-blue-600 size-10 rounded-lg flex items-center justify-center text-white shadow-md">
+          <span className="material-symbols-outlined text-2xl">soup_kitchen</span>
         </div>
         <div className="flex flex-col">
-          <h1 className="text-navy-charcoal text-base font-bold leading-none">
+          <h1 className="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">
             Central Kitchen
           </h1>
-          <p className="text-slate-500 text-xs mt-1">Production Unit v2.1</p>
+          <p className="text-slate-500 text-[10px] font-medium uppercase tracking-tighter">
+            Management System
+          </p>
         </div>
       </div>
-      <nav className="mt-8 flex flex-col gap-1 -mx-6">
-        <a
-          className="flex items-center gap-3 px-6 py-2.5 active-nav-item"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[20px] fill-1">
-            dashboard
-          </span>
-          <span className="text-sm font-semibold">Dashboard</span>
+      
+      <nav className="flex flex-col gap-1 grow">
+        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-600 font-semibold" to="/DashboardCentral">
+          <span className="material-symbols-outlined text-[22px]">dashboard</span>
+          <span className="text-sm">Dashboard</span>
+        </Link>
+        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" to="/OrderAggregation">
+          <span className="material-symbols-outlined text-[22px]">list_alt</span>
+          <span className="text-sm font-medium">Order Aggregation</span>
+        </Link>
+        <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" href="#">
+          <span className="material-symbols-outlined text-[22px]">precision_manufacturing</span>
+          <span className="text-sm font-medium">Production Coordination</span>
         </a>
-        <a
-          className="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            receipt_long
-          </span>
-          <span className="text-sm font-medium">Order Processing</span>
-        </a>
-        <a
-          className="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            precision_manufacturing
-          </span>
-          <span className="text-sm font-medium">Production Planning</span>
-        </a>
-        <a
-          className="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            inventory_2
-          </span>
-          <span className="text-sm font-medium">Raw Materials</span>
-        </a>
-        <a
-          className="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            history_toggle_off
-          </span>
-          <span className="text-sm font-medium">Batch &amp; Expiry</span>
-        </a>
-        <a
-          className="flex items-center gap-3 px-6 py-2.5 text-slate-600 hover:bg-slate-100 hover:text-navy-charcoal transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            warehouse
-          </span>
-          <span className="text-sm font-medium">Warehouse</span>
+        <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors" href="#">
+          <span className="material-symbols-outlined text-[22px]">local_shipping</span>
+          <span className="text-sm font-medium">Delivery Scheduling</span>
         </a>
       </nav>
-    </div>
-    <div className="mt-auto p-4 border-t border-slate-200">
-      <div className="flex items-center gap-3 p-2">
-        <div className="size-8 rounded-full bg-slate-200 overflow-hidden">
-          <img
-            alt="User"
-            className="w-full h-full object-cover"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqKUqyvOmO_LSq25kCVyQ0C51YtXWqbKp2KlvVdxTIe6j2jehkAD0Z9EXGhJ6BramLu0REZYLtA807BJRz2QjmyjhXeelfoht2ftzgvthqTdsP1LxxxfJ9_FL6JXT0AaW9qnkns__cCBvnh23-KsTgwiafpuNHSw7y_6RN5qOWIca2C5FnYqZFYa_X35FNaQiCr3jL2onbTlMVg196tF4A3LxORfz362OEwQjkzn7yxG3LLXaeH82WViDe-SQCoXDcWEH0JwGMMjE"
-          />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-navy-charcoal">
-            Chef Marco
-          </span>
-          <span className="text-xs text-slate-500">Head of Production</span>
+
+      <div className="mt-auto border-t border-slate-100 pt-6">
+        <div className="flex items-center gap-3 px-3 py-2">
+          <div className="size-9 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+            <img
+              alt="User"
+              className="w-full h-full object-cover"
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-slate-900 text-xs font-bold">Alex Rivers</span>
+            <span className="text-slate-500 text-[10px] font-medium">Central Kitchen Staff </span>
+          </div>
         </div>
       </div>
     </div>
