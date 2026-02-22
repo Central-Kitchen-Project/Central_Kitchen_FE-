@@ -7,10 +7,13 @@ import MasterAdmin from "./pages/MasterAdminPage/MasterAdmin";
 import HomepageFranchise from "./pages/HomepageFranchise/HomepageFranchise";
 import HomepageCentral from "./pages/HomepageCentral/HomepageCentral";
 import HomepageSupply from "./pages/HomepageSupply/HomepageSupply";
+import DashboardSupplier from "./pages/DashboardSupplier/DashboardSupplier";    
 import DashboardCentral from "./pages/DashboardCentral/DashboardCentral";
 import DashboardFranchise from "./pages/DashboardFranchise/DashboardFranchise"; 
 import DashboardAdmin from "./pages/DashboardAdmin/DashboardAdmin"; 
 import DashboardManager from "./pages/DashboardManager/DashboardManager";
+import CreateOrderFranchise from "./pages/CreateOrderFranchise/CreateOrderFranchise";
+import ConfirmOrderFranchise from "./pages/ConfirmOrderFranchise/ConfirmOrderFranchise";
 import OrderAggregation from "./pages/OrderAggregationPage/OrderAggregation";
 import SupplyOrderProcessing from "./pages/SupplyOrderProcessingPage/SupplyOrderProcessing";
 import AcceptOrder from "./pages/SupplyOrderProcessingPage/AcceptOrder";
@@ -31,12 +34,15 @@ function App() {
       <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
       <Route path="/OrderAggregation" element={<OrderAggregation />} />
       <Route path="/MaterialFulfillmentPlan" element={<MaterialFulfillmentPlan />} />
-
+      <Route path="/CreateOrderFranchise" element={<CreateOrderFranchise />} />
+      <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} />
+ 
       {/* Dashboard */}
       <Route path="/DashboardCentral" element={<DashboardCentral />} />
       <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
       <Route path="/DashboardAdmin" element={<DashboardAdmin />} /> 
       <Route path="/DashboardManager" element={<DashboardManager />} /> 
+      <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
 
 
       {/* Homepage */}

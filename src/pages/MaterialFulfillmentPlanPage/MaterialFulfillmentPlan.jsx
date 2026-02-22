@@ -65,7 +65,7 @@ function MaterialFulfillmentPlan() {
               </div>
               <div className="flex flex-col">
                 <span className="text-slate-900 text-xs font-bold">Alex Rivers</span>
-                <span className="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
+                <span className="text-slate-500 text-[10px] font-medium">Central Kitchen Staff</span>
               </div>
             </div>
           </div>

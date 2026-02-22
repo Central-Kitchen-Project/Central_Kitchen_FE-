@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details - Central Kitchen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #2563eb;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .container-main {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            padding: 24px 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            padding: 12px;
+            background: #dbeafe;
+            border-radius: 8px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .sidebar-header i {
+            font-size: 20px;
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: var(--gray-50);
+            color: var(--gray-900);
+        }
+
+        .nav-item.active {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 20px 32px;
+        }
+
+        .breadcrumb-custom {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 24px 32px;
+            overflow-y: auto;
+        }
+
+        .order-item-section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .item-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .item-qty {
+            background: var(--gray-100);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .ingredients-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .ingredients-table thead {
+            background: var(--gray-50);
+        }
+
+        .ingredients-table th {
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+            border-bottom: 1px solid var(--gray-200);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ingredients-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 13px;
+        }
+
+        .ingredient-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-available {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-low {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-insufficient {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+
+        .checkbox-cell input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .summary-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 13px;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-row.total {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-900);
+            padding-top: 16px;
+            border-top: 2px solid var(--gray-200);
+            margin-top: 16px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            flex: 1;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .user-section {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-info h6 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .user-info p {
+            font-size: 11px;
+            color: var(--gray-600);
+            margin: 0;
+        }
+
+        .note-text {
+            font-size: 12px;
+            color: var(--gray-600);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-main">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-utensils"></i>
+                <span>Central Kitchen</span>
+            </div>
+
+            <div class="sidebar-menu">
+                <div class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    Dashboard
+                </div>
+                <div class="nav-item active">
+                    <i class="fas fa-plus"></i>
+                    Create Order
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-clipboard-list"></i>
+                    Order Tracking
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-boxes"></i>
+                    Inventory
+                </div>
+                <div class="nav-item">
+                    <i class="fas fa-comments"></i>
+                    Feedback
+                </div>
+            </div>
+
+            <div class="user-section">
+                <div class="user-avatar">AJ</div>
+                <div class="user-info">
+                    <h6>Alex Johnson</h6>
+                    <p>Store Manager</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="breadcrumb-custom">
+                    <i class="fas fa-home"></i>
+                    <span>Downtown Branch > Verify Ingredients</span>
+                </div>
+                <div class="header-title">Verify & Confirm Ingredients for Order</div>
+            </div>
+
+            <!-- Content -->
+            <div class="content-area">
+                <!-- Order Items will be generated here -->
+                <div id="ordersContainer"></div>
+
+                <!-- Summary Section -->
+                <div class="summary-section">
+                    <h4 style="margin-bottom: 16px; font-weight: 700;">Total Purchase Order Summary</h4>
+                    <div class="summary-row">
+                        <span>Total Ingredients Needed</span>
+                        <span id="totalNeeded">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total Available (Checked)</span>
+                        <span id="totalAvailable">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total Additional Purchase Required</span>
+                        <span id="totalRequired">0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total Cost</span>
+                        <span id="totalCost">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="goBack()">← Back to Order</button>
+                    <button class="btn btn-primary" onclick="confirmAndProcess()">Confirm & Deduct from Stock</button>
+                </div>
+
+                <p class="note-text" style="margin-top: 16px; text-align: center;">
+                    ✓ Check the box to confirm ingredient availability and deduct from current stock<br>
+                    The "Need to Order" column shows what needs to be ordered from suppliers if stock is insufficient<br>
+                    Includes ingredients from all selected dishes PLUS any raw materials added separately
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app-order-details.js"></script>
+</body>
+</html>

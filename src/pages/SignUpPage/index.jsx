@@ -58,10 +58,9 @@ export default function SignUp() {
             <label className="signup-label">Organization Role</label>
             <select className="signup-select" defaultValue="">
               <option disabled value="">Select your role</option>
-              <option value="kitchen_manager">Kitchen Manager</option>
-              <option value="franchise_owner">Franchise Owner</option>
-              <option value="store_staff">Store Staff</option>
-              <option value="logistics">Logistics Coordinator</option>
+              <option value="kitchen_manager">Central Kitchen Staff </option>
+              <option value="franchise_owner">Franchise Store Staff </option>
+              <option value="logistics">Supply Coordinator </option>
             </select>
           </div>
 
