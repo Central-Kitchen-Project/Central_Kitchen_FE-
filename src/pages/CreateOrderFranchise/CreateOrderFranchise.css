@@ -1,0 +1,340 @@
+/* 1. Nhúng font chữ Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* --- Reset & Base --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background-color: #f3f4f6; /* Thay thế var(--gray-100) */
+    color: #4b5563; /* Thay thế var(--gray-600) */
+    line-height: 1.5;
+}
+
+/* --- Layout --- */
+.create-order-page {
+    height: 100vh;
+}
+
+/* --- Main Content & Header --- */
+.create-order-page .ml-64 {
+    height: 100vh;
+}
+
+.header {
+    background: white;
+    border-bottom: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.breadcrumb-custom {
+    font-size: 13px;
+    color: #4b5563; /* Thay thế var(--gray-600) */
+    margin-bottom: 8px;
+}
+
+.breadcrumb-custom span {
+    margin: 0 4px;
+}
+
+.header-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827; /* Thay thế var(--gray-900) */
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.search-box {
+    padding: 6px 12px;
+    border: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
+    border-radius: 6px;
+    width: 220px;
+    font-size: 12px;
+    background: #f9fafb; /* Thay thế var(--gray-50) */
+}
+
+/* --- Content Area --- */
+.content-area {
+    flex: 1 !important;
+    padding: 20px 24px !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    gap: 20px !important;
+    min-width: 0 !important;
+}
+
+.products-section {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+/* --- Tabs --- */
+.category-tabs {
+    display: flex !important;
+    gap: 4px !important;
+    margin-bottom: 16px !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Hide scrollbar for Chrome/Safari */
+.category-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    padding: 6px 12px;
+    border: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: #4b5563; /* Thay thế var(--gray-600) */
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: #2563eb; /* Thay thế var(--primary) */
+    color: white;
+    border-color: #2563eb;
+}
+
+/* --- Grid & Cards --- */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.product-card {
+    background: white;
+    border: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+}
+
+.product-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.product-image {
+    width: 120px;
+    height: 120px;
+    background: #f3f4f6; /* Thay thế var(--gray-100) */
+    border-radius: 6px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+}
+
+.product-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827; /* Thay thế var(--gray-900) */
+    margin-bottom: 4px;
+}
+
+.product-desc {
+    font-size: 11px;
+    color: #4b5563; /* Thay thế var(--gray-600) */
+    margin-bottom: 12px;
+    flex: 1;
+}
+
+.product-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827; /* Thay thế var(--gray-900) */
+    margin-bottom: 12px;
+}
+
+.add-to-cart-btn {
+    width: 100%;
+    padding: 8px;
+    background: #2563eb; /* Thay thế var(--primary) */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.add-to-cart-btn:hover {
+    background: #059669; /* Giữ nguyên màu xanh lá khi hover */
+}
+
+/* --- Tooltip --- */
+.product-tooltip {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 1000;
+    margin-left: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    width: 280px;
+    min-height: 200px;
+    white-space: normal;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.product-card:hover .product-tooltip {
+    display: flex;
+}
+
+.product-tooltip::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 8px solid transparent;
+    border-right-color: #1f2937;
+}
+
+.tooltip-ingredients li {
+    padding: 6px 0;
+    border-bottom: 1px solid #374151;
+    font-size: 13px;
+}
+
+/* --- Order Summary --- */
+.order-summary {
+    width: 320px;
+    background: white;
+    border: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
+    border-radius: 8px;
+    padding: 20px;
+    height: fit-content;
+}
+
+.summary-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827; /* Thay thế var(--gray-900) */
+    margin-bottom: 4px;
+}
+
+.summary-subtitle {
+    font-size: 11px;
+    color: #4b5563;
+    margin-bottom: 12px;
+}
+
+.summary-items {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 16px;
+}
+
+.summary-item-name {
+    color: #111827;
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: #ef4444; /* Thay thế var(--danger) */
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+
+.summary-footer {
+    margin-bottom: 12px;
+}
+
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #4b5563;
+    margin-bottom: 6px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 10px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* --- User Section --- */
+.user-section {
+    margin-top: auto !important;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.user-info h6 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #111827;
+}
