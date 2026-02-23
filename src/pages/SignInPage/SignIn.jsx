@@ -1,10 +1,70 @@
 import React, { useState } from "react";
 import "./SignIn.css";
 import { useNavigate } from "react-router-dom";
+import { fetchLogin } from "../../store/authSlice";
+import { useDispatch } from "react-redux";
 
 function SignIn() {
-  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [error, setError] = useState("");
+
+  // Handle input change
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  // Handle submit
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("formdata",formData);
+    
+    dispatch(fetchLogin(formData)).then((res) => {
+      console.log("res.payload",res.payload);
+      
+      if (res.payload.data.token.roleId === 1) {
+        navigate("/DashboardAdmin");
+      } else if (res.payload.data.token.roleId === 2) {
+        navigate("/DashboardManager");
+      } else if (res.payload.data.token.roleId === 3) {
+        navigate("/DashboardFranchise");
+      } else if (res.payload.data.token.roleId === 4) {
+        navigate("/DashboardCentral");
+      } else if (res.payload.data.token.roleId === 5) {
+        navigate("/DashboardSupplier");
+        // setError("Login failed. Please check your credentials.");
+      }
+      
+    });
+
+    const { email, password } = formData;
+
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
+    console.log("Email:", email);
+    console.log("Password:", password);
+
+    setError("");
+
+    // navigate("/Dashboard");
+  };
+
   return (
     <div className="signin-page flex min-h-screen">
       {/* Left Section */}
@@ -27,7 +87,7 @@ function SignIn() {
         </header>
 
         {/* Form */}
-        <main className="max-w-[420px] w-full mx-auto my-12">
+        <main className="max-w-105 w-full mx-auto my-12">
           <h1 className="text-[#121713] text-4xl font-extrabold mb-3">
             Welcome Back 👋
           </h1>
@@ -35,16 +95,19 @@ function SignIn() {
             Sign in to manage your kitchen operations seamlessly.
           </p>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Email */}
             <div>
               <label className="text-sm font-semibold text-[#121713]">
-                Email or Username
+                Email
               </label>
               <input
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 className="form-input w-full rounded-xl h-14 p-4 mt-2"
                 placeholder="Enter your email"
-                type="text"
+                type="email"
               />
             </div>
 
@@ -55,6 +118,9 @@ function SignIn() {
               </label>
               <div className="relative mt-2">
                 <input
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
                   className="form-input w-full rounded-xl h-14 p-4 pr-12"
                   placeholder="Enter your password"
                   type={showPassword ? "text" : "password"}
@@ -66,10 +132,21 @@ function SignIn() {
                   {showPassword ? "visibility_off" : "visibility"}
                 </span>
               </div>
+
               <p className="text-right mt-2">
-                <span onClick={() => navigate('/ForgotPassword')} className="text-[#57c436] font-semibold cursor-pointer hover:underline">Forgot password?</span>
+                <span
+                  onClick={() => navigate("/ForgotPassword")}
+                  className="text-[#57c436] font-semibold cursor-pointer hover:underline"
+                >
+                  Forgot password?
+                </span>
               </p>
             </div>
+
+            {/* Error */}
+            {error && (
+              <p className="text-red-500 text-sm font-medium">{error}</p>
+            )}
 
             {/* Button */}
             <button
@@ -98,7 +175,7 @@ function SignIn() {
       </div>
 
       {/* Right Section */}
-      <div className=" lg:block lg:flex-1 relative overflow">
+      <div className="lg:block lg:flex-1 relative overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
           style={{
@@ -106,7 +183,7 @@ function SignIn() {
               'url("https://images.unsplash.com/photo-1556910103-1c02745aae4d")',
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/70 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-tr from-black/70 to-transparent" />
         </div>
 
         <div className="absolute bottom-12 left-12 right-12 p-8 glass-card rounded-2xl text-white max-w-xl">
