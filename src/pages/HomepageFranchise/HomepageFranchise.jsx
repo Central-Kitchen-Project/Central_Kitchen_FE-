@@ -1,7 +1,24 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './HomepageFranchise.css'
 
 function HomepageFranchise() {
+  const navigate = useNavigate()
+  const [userInfo, setUserInfo] = useState({ username: 'User' })
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN')
+    localStorage.removeItem('USER_INFO')
+    navigate('/SignIn')
+  }
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
+      if (stored) setUserInfo(stored)
+    } catch (e) {}
+  }, [])
+
   return (
     <>
     <div className="flex min-h-screen">
@@ -68,11 +85,11 @@ function HomepageFranchise() {
         ></div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-900 truncate">
-            Alex Johnson
+            {userInfo.username}
           </p>
           <p className="text-xs text-slate-500 truncate">Store Manager</p>
         </div>
-        <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors">
+        <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">
           logout
         </span>
       </div>
@@ -112,7 +129,7 @@ function HomepageFranchise() {
       <section className="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-10 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <h2 className="text-4xl font-bold mb-3">
-            Welcome Back, Alex Johnson
+            Welcome Back, {userInfo.username}
           </h2>
           <p className="text-blue-100 text-lg flex items-center gap-2">
             <span className="material-symbols-outlined">info</span>

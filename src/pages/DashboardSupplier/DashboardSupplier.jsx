@@ -1,95 +1,12 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import './DashboardSupplier.css'   
+import { useOutletContext } from 'react-router-dom'
+import './DashboardSupplier.css'
 
 function DashboardSupplier() {
+  const { handleLogout } = useOutletContext()
+
   return (
     <>
-    <div className="flex h-screen overflow-hidden">
-  <aside className="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
-    <div className="p-6 flex flex-col gap-8 h-full">
-      <div className="flex items-center gap-3">
-        <div className="bg-primary size-10 rounded-lg flex items-center justify-center text-white shadow-md">
-          <span className="material-symbols-outlined text-2xl">
-            soup_kitchen
-          </span>
-        </div>
-        <div className="flex flex-col">
-          <h1 className="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">
-            Central Kitchen
-          </h1>
-          <p className="text-slate-500 text-[10px] font-medium uppercase tracking-tighter">
-            Management System
-          </p>
-        </div>
-      </div>
-      <nav className="flex flex-col gap-1 grow">
-        <Link
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-primary font-semibold"
-          to="/DashboardSupplier"
-        >
-          <span className="material-symbols-outlined text-[22px] fill-1">
-            dashboard
-          </span>
-          <span className="text-sm">Dashboard</span>
-        </Link>
-        <Link
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-          to="/SupplyOrderProcessing"
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            list_alt
-          </span>
-          <span className="text-sm font-medium">Order Processing</span>
-        </Link>
-        <a
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            precision_manufacturing
-          </span>
-          <span className="text-sm font-medium">Production Coordination</span>
-        </a>
-        <a
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[22px]">
-            local_shipping
-          </span>
-          <span className="text-sm font-medium">Delivery Scheduling</span>
-        </a>
-        <a
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-          href="#"
-        >
-          <span className="material-symbols-outlined text-[22px]">warning</span>
-          <span className="text-sm font-medium">Issue Management</span>
-        </a>
-      </nav>
-      <div className="mt-auto border-t border-slate-100 pt-6">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="size-9 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-            <img
-              className="w-full h-full object-cover"
-              data-alt="Supply coordinator user avatar profile"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXMdzcP…adU2zuyJj3DaFIYiNuhg_E6z2KTkCT2Al8Ax1_ptnw57A1C1BUGJkgJLC9Tw"
-            />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-900 text-xs font-bold">
-              Alex Rivers
-            </span>
-            <span className="text-slate-500 text-[10px] font-medium">
-              Supply Coordinator
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </aside>
-  <main className="flex-1 flex flex-col overflow-hidden">
     <header className="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
       <div>
         <h2 className="text-xl font-bold tracking-tight text-slate-900">
@@ -530,8 +447,6 @@ function DashboardSupplier() {
         </div>
       </div>
     </div>
-  </main>
-</div>
     </>
   )
 }

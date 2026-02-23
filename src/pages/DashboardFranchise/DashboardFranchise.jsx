@@ -1,8 +1,23 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import './DashboardFranchise.css'   
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import './DashboardFranchise.css'
 
 function DashboardFranchise() {
+  const navigate = useNavigate()
+  const [userInfo, setUserInfo] = useState({ username: 'User', roleId: 3 })
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
+      if (stored) setUserInfo(stored)
+    } catch (e) {}
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN')
+    localStorage.removeItem('USER_INFO')
+    navigate('/SignIn')
+  }
   return (
     <>
     <div className="flex min-h-screen">
@@ -57,13 +72,11 @@ function DashboardFranchise() {
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-            Alex Johnson
+            {userInfo.username}
           </p>
           <p className="text-xs text-slate-500 truncate">Store Manager</p>
         </div>
-        <span className="material-symbols-outlined text-slate-400 text-sm">
-          logout
-        </span>
+        <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
       </div>
     </div>
   </aside>
