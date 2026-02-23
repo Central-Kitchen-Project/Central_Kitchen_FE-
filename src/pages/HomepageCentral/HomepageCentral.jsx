@@ -1,8 +1,24 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import './HomepageCentral.css'
 
 function HomepageCentral() {
+  const navigate = useNavigate()
+  const [userInfo, setUserInfo] = useState({ username: 'User' })
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN')
+    localStorage.removeItem('USER_INFO')
+    navigate('/SignIn')
+  }
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
+      if (stored) setUserInfo(stored)
+    } catch (e) {}
+  }, [])
+
   return (
     <>
     <div className="flex h-screen overflow-hidden">
@@ -50,10 +66,11 @@ function HomepageCentral() {
               src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
             />
           </div>
-          <div className="flex flex-col">
-            <span className="text-slate-900 text-xs font-bold">Alex Rivers</span>
-            <span className="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-slate-900 text-xs font-bold truncate">{userInfo.username}</span>
+            <span className="text-slate-500 text-[10px] font-medium">Central Kitchen Staff</span>
           </div>
+          <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
         </div>
       </div>
     </div>
@@ -62,7 +79,7 @@ function HomepageCentral() {
     <header className="h-20 flex items-center justify-between px-10 border-b border-slate-100 bg-white shrink-0">
       <div className="flex flex-col">
         <h2 className="text-xl font-bold text-slate-900">
-          Good Morning, Chef Marco
+          Good Morning, {userInfo.username}
         </h2>
         <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
           <span className="material-symbols-outlined text-[16px]">
@@ -90,10 +107,6 @@ function HomepageCentral() {
             </span>
           </button>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">logout</span>
-          Logout
-        </button>
       </div>
     </header>
     <div className="flex-1 overflow-y-auto p-10 flex flex-col gap-10 bg-slate-50/30">

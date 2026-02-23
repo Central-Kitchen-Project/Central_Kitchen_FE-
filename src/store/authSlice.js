@@ -47,8 +47,18 @@ const authSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         builder.addCase(fetchLogin.fulfilled, (state, action) => {
-            state.token = action.payload.data.token;
-           localStorage.setItem("ACCESS_TOKKEN", state.token);
+            if (action.payload.ok) {
+                state.token = action.payload.data.token;
+                localStorage.setItem("ACCESS_TOKEN", JSON.stringify(state.token));
+                // Store user info for sidebar display
+                if (state.token.username) {
+                    localStorage.setItem("USER_INFO", JSON.stringify({
+                        username: state.token.username,
+                        email: state.token.email,
+                        roleId: state.token.roleId,
+                    }));
+                }
+            }
         });
         builder.addCase(fetchRegister.fulfilled, (state, action) => {
             if (action.payload.ok) {

@@ -508,8 +508,7 @@ function OrderAggregation() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </>
   );
 }
 
