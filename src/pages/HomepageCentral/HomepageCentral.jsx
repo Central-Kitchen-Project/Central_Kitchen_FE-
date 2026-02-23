@@ -68,7 +68,7 @@ function HomepageCentral() {
           </div>
           <div className="flex flex-col flex-1 min-w-0">
             <span className="text-slate-900 text-xs font-bold truncate">{userInfo.username}</span>
-            <span className="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
+            <span className="text-slate-500 text-[10px] font-medium">Central Kitchen Staff</span>
           </div>
           <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
         </div>

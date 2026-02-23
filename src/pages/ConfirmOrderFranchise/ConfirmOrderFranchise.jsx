@@ -68,7 +68,7 @@ function ConfirmOrderFranchise() {
       <div className="user-avatar">{userInfo.username?.charAt(0).toUpperCase()}</div>
       <div className="user-info" style={{flex: 1, minWidth: 0}}>
         <h6>{userInfo.username}</h6>
-        <p>Store Manager</p>
+        <p>Franchise Store Staff</p>
       </div>
       <span onClick={handleLogout} className="material-symbols-outlined" style={{color: '#94a3b8', fontSize: '18px', cursor: 'pointer'}} title="Logout" onMouseEnter={e => e.target.style.color='#ef4444'} onMouseLeave={e => e.target.style.color='#94a3b8'}>logout</span>
     </div>
