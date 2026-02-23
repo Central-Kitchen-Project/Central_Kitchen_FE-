@@ -1,10 +1,25 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import './CreateOrderFranchise.css'
 
 function CreateOrderFranchise() {
-  // State để lưu số lượng items 
-  const [itemCount, setItemCount] = React.useState(7)
+  const navigate = useNavigate()
+  const [itemCount, setItemCount] = useState(7)
+  const [userInfo, setUserInfo] = useState({ username: 'User' })
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN')
+    localStorage.removeItem('USER_INFO')
+    navigate('/SignIn')
+  }
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
+      if (stored) setUserInfo(stored)
+    } catch (e) {}
+  }, [])
+
   return (
     <>
     <div className="create-order-page flex min-h-screen">
@@ -58,10 +73,11 @@ function CreateOrderFranchise() {
         />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-900 truncate">
-            Alex Johnson
+            {userInfo.username}
           </p>
           <p className="text-xs text-slate-500 truncate">Store Manager</p>
         </div>
+        <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
       </div>
     </div>
   </aside>

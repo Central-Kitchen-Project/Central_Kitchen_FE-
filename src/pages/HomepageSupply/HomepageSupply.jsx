@@ -1,6 +1,23 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './HomepageSupply.css'
 function HomepageSupply() {
+  const navigate = useNavigate()
+  const [userInfo, setUserInfo] = useState({ username: 'User' })
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN')
+    localStorage.removeItem('USER_INFO')
+    navigate('/SignIn')
+  }
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
+      if (stored) setUserInfo(stored)
+    } catch (e) {}
+  }, [])
+
   return (
     <>
     <>
@@ -92,14 +109,15 @@ function HomepageSupply() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXMdzcPLmUaCOomOYln5geVOGrqnDbjLnI68iBJ3t-xm81TyhAmnp7JFFskkBl2nOJ7Hn4HJJvtRCVUpt1EXnQ2AuVNWt434Yz_7zPF8Dg4O7019AFTVMWCs4lhDkKAeJG6ODpekRn8DlhVBOBVTO7LTScZHAuoV8dAuLel6LUJNjqHW66EvrUybQXfIfdUw5n_zWoPaoe2igYDJ7adU2zuyJj3DaFIYiNuhg_E6z2KTkCT2Al8Ax1_ptnw57A1C1BUGJkgJLC9Tw"
               />
             </div>
-            <div className="flex flex-col">
-              <span className="text-slate-900 text-xs font-bold">
-                Alex Rivers
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-slate-900 text-xs font-bold truncate">
+                {userInfo.username}
               </span>
               <span className="text-slate-500 text-[10px] font-medium uppercase tracking-tight">
                 Supply Coordinator
               </span>
             </div>
+            <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
           </div>
         </div>
       </div>
@@ -108,7 +126,7 @@ function HomepageSupply() {
       <header className="flex items-center justify-between border-b border-slate-200 px-8 py-5 bg-white/80 backdrop-blur-md sticky top-0 z-10">
         <div>
           <p className="text-primary text-sm font-bold mb-0.5">
-            Welcome Back, Alex Rivers
+            Welcome Back, {userInfo.username}
           </p>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             Supply Coordination Home

@@ -18,6 +18,8 @@ import OrderAggregation from "./pages/OrderAggregationPage/OrderAggregation";
 import SupplyOrderProcessing from "./pages/SupplyOrderProcessingPage/SupplyOrderProcessing";
 import AcceptOrder from "./pages/SupplyOrderProcessingPage/AcceptOrder";
 import MaterialFulfillmentPlan from "./pages/MaterialFulfillmentPlanPage/MaterialFulfillmentPlan";
+import CentralLayout from "./layouts/CentralLayout";
+import SupplierLayout from "./layouts/SupplierLayout";
 
 function App() {
   return (
@@ -29,27 +31,33 @@ function App() {
       <Route path="/SignUp" element={<SignUp />} />
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
 
-      {/* Order */}
-      <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
-      <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
-      <Route path="/OrderAggregation" element={<OrderAggregation />} />
-      <Route path="/MaterialFulfillmentPlan" element={<MaterialFulfillmentPlan />} />
+      {/* Central role — shared sidebar layout */}
+      <Route element={<CentralLayout />}>
+        <Route path="/DashboardCentral" element={<DashboardCentral />} />
+        <Route path="/OrderAggregation" element={<OrderAggregation />} />
+        <Route path="/MaterialFulfillmentPlan" element={<MaterialFulfillmentPlan />} />
+      </Route>
+
+      {/* Supplier role — shared sidebar layout */}
+      <Route element={<SupplierLayout />}>
+        <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
+        <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
+        <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
+      </Route>
+
+      {/* Franchise */}
+      <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
       <Route path="/CreateOrderFranchise" element={<CreateOrderFranchise />} />
       <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} />
- 
+
       {/* Dashboard */}
-      <Route path="/DashboardCentral" element={<DashboardCentral />} />
-      <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
       <Route path="/DashboardAdmin" element={<DashboardAdmin />} /> 
       <Route path="/DashboardManager" element={<DashboardManager />} /> 
-      <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
-
 
       {/* Homepage */}
       <Route path="/HomepageFranchise" element={<HomepageFranchise />} />
       <Route path="/HomepageCentral" element={<HomepageCentral />} />
       <Route path="/HomepageSupply" element={<HomepageSupply />} /> 
-
 
       {/* Admin */}
       <Route path="/MasterAdmin" element={<MasterAdmin />} />

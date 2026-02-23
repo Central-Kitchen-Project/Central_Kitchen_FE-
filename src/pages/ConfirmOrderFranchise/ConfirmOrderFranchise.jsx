@@ -1,10 +1,24 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import './ConfirmOrderFranchise.css'
 
 function ConfirmOrderFranchise() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [userInfo, setUserInfo] = useState({ username: 'User' })
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN')
+    localStorage.removeItem('USER_INFO')
+    navigate('/SignIn')
+  }
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
+      if (stored) setUserInfo(stored)
+    } catch (e) {}
+  }, [])
   
   // Get cart items passed from CreateOrder page
   const cartItems = location.state?.cartItems || []
@@ -50,12 +64,13 @@ function ConfirmOrderFranchise() {
         Feedback
       </div>
     </div>
-    <div className="user-section">
-      <div className="user-avatar">AJ</div>
-      <div className="user-info">
-        <h6>Alex Johnson</h6>
+    <div className="user-section" style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+      <div className="user-avatar">{userInfo.username?.charAt(0).toUpperCase()}</div>
+      <div className="user-info" style={{flex: 1, minWidth: 0}}>
+        <h6>{userInfo.username}</h6>
         <p>Store Manager</p>
       </div>
+      <span onClick={handleLogout} className="material-symbols-outlined" style={{color: '#94a3b8', fontSize: '18px', cursor: 'pointer'}} title="Logout" onMouseEnter={e => e.target.style.color='#ef4444'} onMouseLeave={e => e.target.style.color='#94a3b8'}>logout</span>
     </div>
   </div>
   {/* Main Content */}
