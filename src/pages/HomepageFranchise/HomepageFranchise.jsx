@@ -87,7 +87,7 @@ function HomepageFranchise() {
           <p className="text-sm font-semibold text-slate-900 truncate">
             {userInfo.username}
           </p>
-          <p className="text-xs text-slate-500 truncate">Store Manager</p>
+          <p className="text-xs text-slate-500 truncate">Franchise Store Staff</p>
         </div>
         <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">
           logout
