@@ -5,21 +5,24 @@ import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import MasterAdmin from "./pages/MasterAdminPage/MasterAdmin";
 import HomepageFranchise from "./pages/Franchise/HomepageFranchise/HomepageFranchise";
-import HomepageCentral from "./pages/HomepageCentral/HomepageCentral";
-import HomepageSupply from "./pages/HomepageSupply/HomepageSupply";
-import DashboardSupplier from "./pages/DashboardSupplier/DashboardSupplier";    
-import DashboardCentral from "./pages/DashboardCentral/DashboardCentral";
+import HomepageCentral from "./pages/CentralKitchen/HomepageCentral/HomepageCentral";
+import HomepageSupply from "./pages/SupplyCoordinator/HomepageSupply/HomepageSupply";
+import DashboardSupplier from "./pages/SupplyCoordinator/DashboardSupplier/DashboardSupplier";    
+import DashboardCentral from "./pages/CentralKitchen/DashboardCentral/DashboardCentral";
 import DashboardFranchise from "./pages/Franchise/DashboardFranchise/DashboardFranchise"; 
 import DashboardAdmin from "./pages/DashboardAdmin/DashboardAdmin"; 
 import DashboardManager from "./pages/DashboardManager/DashboardManager";
 import CreateOrderFranchise from "./pages/Franchise/CreateOrderFranchise/CreateOrderFranchise";
 import ConfirmOrderFranchise from "./pages/Franchise/ConfirmOrderFranchise/ConfirmOrderFranchise";
-import OrderAggregation from "./pages/OrderAggregationPage/OrderAggregation";
-import SupplyOrderProcessing from "./pages/SupplyOrderProcessingPage/SupplyOrderProcessing";
-import AcceptOrder from "./pages/SupplyOrderProcessingPage/AcceptOrder";
+import OrderAggregation from "./pages/CentralKitchen/OrderAggregationPage/OrderAggregation";
+import SupplyOrderProcessing from "./pages/SupplyCoordinator/SupplyOrderProcessingPage/SupplyOrderProcessing";
+import AcceptOrder from "./pages/SupplyCoordinator/SupplyOrderProcessingPage/AcceptOrder";
 import MaterialFulfillmentPlan from "./pages/MaterialFulfillmentPlanPage/MaterialFulfillmentPlan";
 import CentralLayout from "./layouts/CentralLayout";
 import SupplierLayout from "./layouts/SupplierLayout";
+import FranchiseLayout from "./layouts/FranchiseLayout";
+import OrderTracking from "./pages/Franchise/OrderTracking";
+import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
 
 function App() {
   return (
@@ -32,24 +35,27 @@ function App() {
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
 
       {/* Central role — shared sidebar layout */}
-      {/* <Route element={<CentralLayout />}> */}
+      <Route element={<CentralLayout />}>
         <Route path="/DashboardCentral" element={<DashboardCentral />} />
         <Route path="/OrderAggregation" element={<OrderAggregation />} />
+        <Route path="/MaterialTracking" element={<MaterialTracking />} />
         <Route path="/MaterialFulfillmentPlan" element={<MaterialFulfillmentPlan />} />
-      {/* </Route> */}
+      </Route>
 
       {/* Supplier role — shared sidebar layout */}
-      {/* <Route element={<SupplierLayout />}> */}
+      <Route element={<SupplierLayout />}>
         <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
         <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
         <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
-      {/* </Route> */}
+      </Route>
 
       {/* Franchise */}
+      <Route element={<FranchiseLayout />}>
       <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
       <Route path="/CreateOrderFranchise" element={<CreateOrderFranchise />} />
-      <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} />
-
+        <Route path="/OrderTrackingFranchise" element={<OrderTracking />} />
+      </Route>
+      {/* <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} /> Không dùng nữa */}
       {/* Dashboard */}
       <Route path="/DashboardAdmin" element={<DashboardAdmin />} /> 
       <Route path="/DashboardManager" element={<DashboardManager />} /> 
