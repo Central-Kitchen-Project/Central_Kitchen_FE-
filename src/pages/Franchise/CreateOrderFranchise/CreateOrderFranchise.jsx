@@ -9,6 +9,15 @@ function CreateOrderFranchise() {
   const data = useSelector(state => state.ITEM.listItems);
   const dispatch = useDispatch();
 
+  // Get logged-in user info from localStorage
+  const userInfo = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('USER_INFO')) || {};
+    } catch {
+      return {};
+    }
+  })();
+
   // State quản lý items được chọn: { [itemId]: quantity }
   const [selectedItems, setSelectedItems] = useState({});
   const [toast, setToast] = useState(null);
@@ -102,7 +111,7 @@ function CreateOrderFranchise() {
     setLoading(true);
     try {
       const payload = {
-        userId: 1,
+        userId: userInfo.id,
         items: selectedList.map(({ itemId, quantity }) => ({ itemId, quantity })),
       };
 
