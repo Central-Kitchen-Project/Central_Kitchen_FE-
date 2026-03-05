@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom'
 import './DashboardCentral.css'
 
 function DashboardCentral() {
-  // const { handleLogout } = useOutletContext()
+  const { handleLogout } = useOutletContext()
 
   return (
     <>

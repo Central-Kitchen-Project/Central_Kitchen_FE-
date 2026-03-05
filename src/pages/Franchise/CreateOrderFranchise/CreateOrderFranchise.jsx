@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import './CreateOrderFranchise.css'
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
@@ -8,7 +8,21 @@ import axios from 'axios';
 function CreateOrderFranchise() {
   const data = useSelector(state => state.ITEM.listItems);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({ username: 'User' });
 
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('USER_INFO'));
+      if (stored) setUserInfo(stored);
+    } catch (e) {}
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('ACCESS_TOKEN');
+    localStorage.removeItem('USER_INFO');
+    navigate('/SignIn');
+  };
 
   // State quản lý items được chọn: { [itemId]: quantity }
   const [selectedItems, setSelectedItems] = useState({});
@@ -154,9 +168,12 @@ function CreateOrderFranchise() {
                 }}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">Alex Johnson</p>
-                <p className="text-xs text-slate-500 truncate">Store Manager</p>
+                <p className="text-sm font-semibold text-slate-900 truncate">{userInfo.username}</p>
+                <p className="text-xs text-slate-500 truncate">Franchise Store Staff</p>
               </div>
+              <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">
+                logout
+              </span>
             </div>
           </div>
         </aside>

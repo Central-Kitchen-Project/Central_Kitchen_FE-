@@ -32,18 +32,18 @@ function App() {
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
 
       {/* Central role — shared sidebar layout */}
-      {/* <Route element={<CentralLayout />}> */}
+      <Route element={<CentralLayout />}>
         <Route path="/DashboardCentral" element={<DashboardCentral />} />
         <Route path="/OrderAggregation" element={<OrderAggregation />} />
         <Route path="/MaterialFulfillmentPlan" element={<MaterialFulfillmentPlan />} />
-      {/* </Route> */}
+      </Route>
 
       {/* Supplier role — shared sidebar layout */}
-      {/* <Route element={<SupplierLayout />}> */}
+      <Route element={<SupplierLayout />}>
         <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
         <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
         <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
-      {/* </Route> */}
+      </Route>
 
       {/* Franchise */}
       <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
