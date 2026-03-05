@@ -52,7 +52,14 @@ const authSlice = createSlice({
                 localStorage.setItem("ACCESS_TOKEN", JSON.stringify(state.token));
                 // Store user info for sidebar display
                 if (state.token.username) {
+                    // Decode JWT to get userId
+                    let userId = null;
+                    try {
+                        const jwtPayload = JSON.parse(atob(state.token.token.split('.')[1]));
+                        userId = jwtPayload.nameid || jwtPayload.sub || jwtPayload.userId || jwtPayload.Id;
+                    } catch (e) { console.log('JWT decode error', e); }
                     localStorage.setItem("USER_INFO", JSON.stringify({
+                        id: userId ? Number(userId) : null,
                         username: state.token.username,
                         email: state.token.email,
                         roleId: state.token.roleId,

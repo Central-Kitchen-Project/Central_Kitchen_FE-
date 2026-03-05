@@ -449,6 +449,8 @@ function DashboardSupplier() {
         </div>
       </div>
     </div>
+    </main>
+    </div>
     </>
   )
 }

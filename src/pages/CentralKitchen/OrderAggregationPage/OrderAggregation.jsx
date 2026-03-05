@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { fetchGetMaterialRequest } from "../../../store/materialSlice";
 
 function DetailModal({ requestId, onClose }) {
@@ -424,6 +424,7 @@ function OrderAggregation() {
           {/* Bottom Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
         </div>
+      </main>
     </>
   );
 }

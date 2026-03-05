@@ -7,4 +7,13 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://meinamfpt-001-site1.ltempurl.com',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })
