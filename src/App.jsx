@@ -23,6 +23,7 @@ import SupplierLayout from "./layouts/SupplierLayout";
 import FranchiseLayout from "./layouts/FranchiseLayout";
 import OrderTracking from "./pages/Franchise/OrderTracking";
 import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
+import FeedbackFranchise from "./pages/Franchise/FeedbackFranchise/FeedbackFranchise";
 
 function App() {
   return (
@@ -53,7 +54,8 @@ function App() {
       <Route element={<FranchiseLayout />}>
       <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
       <Route path="/CreateOrderFranchise" element={<CreateOrderFranchise />} />
-        <Route path="/OrderTrackingFranchise" element={<OrderTracking />} />
+      <Route path="/OrderTrackingFranchise" element={<OrderTracking />} />
+      <Route path="/FeedbackFranchise" element={<FeedbackFranchise />} />
       </Route>
       {/* <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} /> Không dùng nữa */}
       {/* Dashboard */}

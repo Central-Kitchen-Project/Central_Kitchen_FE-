@@ -1,8 +1,10 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { useOutletContext } from 'react-router-dom'
 import './DashboardSupplier.css'   
 
 function DashboardSupplier() {
+  const { handleLogout } = useOutletContext()
+
   return (
     <>
     <div className="flex h-screen overflow-hidden">
@@ -447,8 +449,8 @@ function DashboardSupplier() {
         </div>
       </div>
     </div>
-  </main>
-</div>
+    </main>
+    </div>
     </>
   )
 }

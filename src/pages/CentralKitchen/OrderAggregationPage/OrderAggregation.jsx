@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { fetchGetMaterialRequest } from "../../../store/materialSlice";
 
 function DetailModal({ requestId, onClose }) {
@@ -217,6 +217,7 @@ function InfoCell({ icon, label, value, valueClass = "text-slate-800" }) {
 }
 
 function OrderAggregation() {
+  const { handleLogout } = useOutletContext();
   const navigate = useNavigate();
   const data = useSelector((state) => state.MATERIAL.listMaterials);
   const dispatch = useDispatch();
@@ -259,7 +260,7 @@ function OrderAggregation() {
   const pendingItems = data?.filter((item) => item.status === "Pending") || [];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <>
       {/* MODAL */}
       {selectedRequestId && (
         <DetailModal
@@ -424,7 +425,7 @@ function OrderAggregation() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 
