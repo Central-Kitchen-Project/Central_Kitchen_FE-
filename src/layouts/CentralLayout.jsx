@@ -4,7 +4,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 const navItems = [
   { label: 'Dashboard', icon: 'dashboard', path: '/DashboardCentral' },
   { label: 'Order Aggregation', icon: 'list_alt', path: '/OrderAggregation' },
-  { label: 'Production Coordination', icon: 'precision_manufacturing', path: '#' },
+  { label: 'Material Tracking', icon: 'precision_manufacturing', path: '/MaterialTracking' },
   { label: 'Delivery Scheduling', icon: 'local_shipping', path: '#' },
 ]
 

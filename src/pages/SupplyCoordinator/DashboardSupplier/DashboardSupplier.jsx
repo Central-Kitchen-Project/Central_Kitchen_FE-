@@ -7,6 +7,8 @@ function DashboardSupplier() {
 
   return (
     <>
+    <div className="flex h-screen overflow-hidden">
+  <main className="flex-1 flex flex-col overflow-hidden">
     <header className="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
       <div>
         <h2 className="text-xl font-bold tracking-tight text-slate-900">

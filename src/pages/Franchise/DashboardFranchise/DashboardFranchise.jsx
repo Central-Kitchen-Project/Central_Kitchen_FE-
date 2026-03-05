@@ -1,87 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+
 import './DashboardFranchise.css'
 
 function DashboardFranchise() {
-  const navigate = useNavigate()
-  const [userInfo, setUserInfo] = useState({ username: 'User', roleId: 3 })
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('USER_INFO'))
-      if (stored) setUserInfo(stored)
-    } catch (e) {}
-  }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('ACCESS_TOKEN')
-    localStorage.removeItem('USER_INFO')
-    navigate('/SignIn')
-  }
   return (
     <>
     <div className="flex min-h-screen">
-  {/* SideNavBar */}
-  <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
-    <div className="p-6">
-      <div className="flex items-center gap-3">
-        <div className="bg-primary rounded-lg p-2 text-white flex items-center justify-center">
-          <span className="material-symbols-outlined">restaurant</span>
-        </div>
-        <div className="flex flex-col">
-          <h1 className="text-[#111418] dark:text-white text-base font-bold leading-tight">
-            Franchise Store
-          </h1>
-          <p className="text-[#617589] dark:text-slate-400 text-xs font-normal">
-            Management System
-          </p>
-        </div>
-      </div>
-    </div>
-    <nav className="flex-1 px-4 flex flex-col gap-2">
-      <Link to="/DashboardFranchise" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary">
-        <span className="material-symbols-outlined">dashboard</span>
-        <p className="text-sm font-semibold">Dashboard</p>
-      </Link>
-      <Link to="/CreateOrderFranchise" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-        <span className="material-symbols-outlined">add_circle</span>
-        <p className="text-sm font-medium">Create Order</p>
-      </Link>
-      <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-        <span className="material-symbols-outlined">local_shipping</span>
-        <p className="text-sm font-medium">Order Tracking</p>
-      </div>
-      <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-        <span className="material-symbols-outlined">inventory_2</span>
-        <p className="text-sm font-medium">Inventory</p>
-      </div>
-      <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-        <span className="material-symbols-outlined">chat_bubble</span>
-        <p className="text-sm font-medium">Feedback</p>
-      </div>
-    </nav>
-    <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-full bg-slate-200 bg-cover bg-center"
-          data-alt="User profile photo of branch manager"
-          style={{
-            backgroundImage:
-              'url("https://lh3.googleusercontent.com/aida-public/AB6AXuArL6LMmhfprJJIgPL27X4ehzw6zA5F1MySky4vVwBMlBFgHHSivzWpg_tSlDUI1JJM0y0V8H90Ffp8HXmvbXEqLQQRNt0liR3iCy_7Y2DJ_vwk75Y7-2qkz9uNqYTRMkqjnwhT2jONosRlgFAwgweq9wyBV802U7O6LKWIs-e5c2qXlgfR-VdHGPOIDanpots-Tosr5nhVtIPPfk9LRwStw6_0C2yJ6e-q_kZnJw_psjZs_bNe-zH_X1xyPC0_z_PuAYFKVXJ5PPQ")'
-          }}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-            {userInfo.username}
-          </p>
-          <p className="text-xs text-slate-500 truncate">Franchise Store Staff</p>
-        </div>
-        <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
-      </div>
-    </div>
-  </aside>
   {/* Main Content Area */}
-  <main className="ml-64 flex-1">
+  <main className=" flex-1">
     {/* TopNavBar */}
     <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4">
       <div className="flex flex-col">
