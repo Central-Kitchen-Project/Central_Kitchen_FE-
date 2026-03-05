@@ -90,14 +90,22 @@ function FranchiseLayout() {
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-slate-200">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">
-              {userInfo.username}
-            </span>
+        <div className="p-4 border-t border-slate-200 mt-auto">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+              <img
+                alt="User"
+                className="w-full h-full object-cover"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXMdzcP"
+              />
+            </div>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-slate-900 text-xs font-bold truncate">{userInfo.username}</span>
+              <span className="text-slate-500 text-[10px] font-medium">Franchise Store Staff</span>
+            </div>
             <span
               onClick={handleLogout}
-              className="material-symbols-outlined cursor-pointer hover:text-red-500"
+              className="material-symbols-outlined cursor-pointer hover:text-red-500 text-sm"
             >
               logout
             </span>
