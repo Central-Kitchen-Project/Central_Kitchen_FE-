@@ -24,7 +24,8 @@ import FranchiseLayout from "./layouts/FranchiseLayout";
 import OrderTracking from "./pages/Franchise/OrderTracking";
 import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
 import FeedbackFranchise from "./pages/Franchise/FeedbackFranchise/FeedbackFranchise";
-
+import InventoryFranchise from "./pages/Franchise/InventoryFranchise/InventoryFranchise";
+import InventorySupply from "./pages/SupplyCoordinator/InventorySupply/InventorySupply";
 function App() {
   return (
     <Routes>
@@ -48,6 +49,7 @@ function App() {
         <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
         <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
         <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
+        <Route path="/InventorySupply" element={<InventorySupply />} />      
       </Route>
 
       {/* Franchise */}
@@ -55,6 +57,7 @@ function App() {
       <Route path="/DashboardFranchise" element={<DashboardFranchise />} />
       <Route path="/CreateOrderFranchise" element={<CreateOrderFranchise />} />
       <Route path="/OrderTrackingFranchise" element={<OrderTracking />} />
+      <Route path="/InventoryFranchise" element={<InventoryFranchise />} />
       <Route path="/FeedbackFranchise" element={<FeedbackFranchise />} />
       </Route>
       {/* <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} /> Không dùng nữa */}

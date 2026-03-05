@@ -27,10 +27,6 @@ function DashboardFranchise() {
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
           </button>
         </div>
-        <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors font-semibold text-sm">
-          <span className="material-symbols-outlined text-sm">add</span>
-          <span>Create New Order</span>
-        </button>
       </div>
     </header>
     <div className="p-8 space-y-8">
