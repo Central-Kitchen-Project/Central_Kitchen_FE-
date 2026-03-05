@@ -66,9 +66,18 @@ function FranchiseLayout() {
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
           >
             <span className="material-symbols-outlined">
-              add_circle
+              local_shipping
             </span>
             Order Tracking
+          </Link>
+          <Link
+            to="/InventoryFranchise"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
+          >
+            <span className="material-symbols-outlined">
+              inventory_2
+            </span>
+            Inventory
           </Link>
           <Link
             to="/FeedbackFranchise"

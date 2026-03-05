@@ -1,0 +1,48 @@
+/* 1. Nhúng font chữ Inter trực tiếp */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* 2. Thiết lập cơ bản (Base Styles) */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f6f7f8; /* background-light */
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Biểu tượng Material Symbols */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+    font-family: 'Material Symbols Outlined';
+}
+
+/* 3. Lớp tiện ích về Màu sắc (Color Utility Classes) */
+.text-primary { color: #137fec; }
+.bg-primary { background-color: #137fec; }
+
+.text-background-light { color: #f6f7f8; }
+.bg-background-light { background-color: #f6f7f8; }
+
+.text-background-dark { color: #101922; }
+.bg-background-dark { background-color: #101922; }
+
+/* 4. Lớp tiện ích về Bo góc (Border Radius Classes) */
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* 5. Font Family */
+.font-display {
+    font-family: 'Inter', sans-serif;
+}
+
+/* 6. Chế độ Dark Mode (Kích hoạt khi thẻ cha có class 'dark') */
+.dark body {
+    background-color: #101922;
+    color: #f6f7f8;
+}
+
+.dark .bg-background-light { background-color: #101922; }
+.dark .text-primary { color: #60a5fa; } /* Ví dụ điều chỉnh màu cho chế độ tối */
