@@ -26,6 +26,7 @@ import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
 import FeedbackFranchise from "./pages/Franchise/FeedbackFranchise/FeedbackFranchise";
 import InventoryFranchise from "./pages/Franchise/InventoryFranchise/InventoryFranchise";
 import InventorySupply from "./pages/SupplyCoordinator/InventorySupply/InventorySupply";
+import UserManagement from "./pages/DashboardAdmin/UserManagement/UserManagement";
 function App() {
   return (
     <Routes>
@@ -72,6 +73,7 @@ function App() {
 
       {/* Admin */}
       <Route path="/MasterAdmin" element={<MasterAdmin />} />
+      <Route path="/UserManagement" element={<UserManagement />} />
 
       {/* Not found */}
       <Route path="/NotFound" element={<NotFound />} />

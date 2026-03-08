@@ -42,10 +42,10 @@ function DashboardAdmin() {
           <span className="material-symbols-outlined text-[22px]">dashboard</span>
           <span className="text-sm">Dashboard</span>
         </Link>
-        <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
+        <Link className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" to="/UserManagement">
           <span className="material-symbols-outlined text-[22px]">group</span>
           <span className="text-sm font-medium">User Management</span>
-        </a>
+        </Link>
         <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
           <span className="material-symbols-outlined text-[22px]">lock</span>
           <span className="text-sm font-medium">RBAC Settings</span>
