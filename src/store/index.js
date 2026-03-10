@@ -5,6 +5,7 @@ import orderSlice from "./orderSlice";
 import materialSlice from "./materialSlice";
 import feedbackSlice from "./feedbackSlice";
 import inventorySlice from "./inventorySlice";
+import userSlice from "./userSlice";
 const store = configureStore({
   reducer: {
     AUTH: authSlice,
@@ -13,6 +14,7 @@ const store = configureStore({
     MATERIAL: materialSlice,
     FEEDBACK: feedbackSlice,
     INVENTORY: inventorySlice,
+    USER: userSlice,
   },
 });
 export default store;
