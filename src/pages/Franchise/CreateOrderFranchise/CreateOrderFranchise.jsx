@@ -22,6 +22,7 @@ function CreateOrderFranchise() {
   const [selectedItems, setSelectedItems] = useState({});
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   // Cache chi tiết item (có ingredients) theo id
@@ -104,12 +105,16 @@ function CreateOrderFranchise() {
     return Object.values(map);
   };
 
-  const handleSubmitOrder = async () => {
+  const handleSubmitClick = () => {
     if (selectedList.length === 0) {
       showToast('error', 'Please select at least one product!');
       return;
     }
+    setShowConfirm(true);
+  };
 
+  const handleSubmitOrder = async () => {
+    setShowConfirm(false);
     setLoading(true);
     try {
       const payload = {
@@ -384,27 +389,88 @@ function CreateOrderFranchise() {
                 <span>{(subtotal + PROCESSING_FEE).toLocaleString('vi-VN')}đ</span>
               </div>
 
-              <button
-                className="submit-btn flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                onClick={handleSubmitOrder}
-                disabled={loading || selectedList.length === 0}
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  'Submit Order Request ➤'
-                )}
-              </button>
+              <div className="flex gap-3 mt-1">
+                <button
+                  className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setSelectedItems({})}
+                  disabled={loading || selectedList.length === 0}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="submit-btn flex-1 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  onClick={handleSubmitClick}
+                  disabled={loading || selectedList.length === 0}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Order ➤'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Confirmation Popup */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 text-center">
+              <div className="mx-auto size-14 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-3xl text-blue-600">shopping_cart_checkout</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Confirm Order Submission</h3>
+              <p className="text-sm text-slate-500 mt-1">Are you sure you want to submit this order?</p>
+            </div>
+
+            {/* Order Summary */}
+            <div className="mx-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex justify-between text-sm text-slate-600 mb-1">
+                <span>Items</span>
+                <span className="font-semibold text-slate-900">{selectedList.length} products</span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600 mb-1">
+                <span>Subtotal</span>
+                <span className="font-semibold text-slate-900">{subtotal.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Processing Fee</span>
+                <span className="font-semibold text-slate-900">{PROCESSING_FEE.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="border-t border-slate-200 mt-2 pt-2 flex justify-between text-sm font-bold text-slate-900">
+                <span>Total</span>
+                <span className="text-blue-600">{(subtotal + PROCESSING_FEE).toLocaleString('vi-VN')}đ</span>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 px-6 py-5">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitOrder}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25"
+              >
+                Submit Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
