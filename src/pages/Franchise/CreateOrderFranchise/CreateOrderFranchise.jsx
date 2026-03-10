@@ -22,6 +22,8 @@ function CreateOrderFranchise() {
   const [selectedItems, setSelectedItems] = useState({});
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   // Cache chi tiết item (có ingredients) theo id
   const [itemDetails, setItemDetails] = useState({});
   const [loadingDetails, setLoadingDetails] = useState({});
@@ -104,7 +106,7 @@ function CreateOrderFranchise() {
 
   const handleSubmitOrder = async () => {
     if (selectedList.length === 0) {
-      showToast('error', 'Vui lòng chọn ít nhất một sản phẩm!');
+      showToast('error', 'Please select at least one product!');
       return;
     }
 
@@ -122,16 +124,28 @@ function CreateOrderFranchise() {
         },
       });
 
-      showToast('success', 'Đặt hàng thành công! Đơn hàng đã được gửi đến bếp trung tâm.');
+      showToast('success', 'Order placed successfully! Your order has been sent to Central Kitchen.');
       setSelectedItems({});
     } catch (err) {
-      showToast('error', `Đặt hàng thất bại! ${err?.response?.data?.message || err.message}`);
+      showToast('error', `Order failed! ${err?.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   const ingredients = aggregatedIngredients();
+
+  // Filter & search logic
+  const filteredData = (data || []).filter(item => {
+    const matchesFilter = activeFilter === 'all' || item.type?.toLowerCase() === activeFilter;
+    const matchesSearch = !searchTerm || 
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  // Get unique types for filter tabs
+  const itemTypes = [...new Set((data || []).map(item => item.type?.toLowerCase()).filter(Boolean))];
 
   return (
     <>
@@ -152,7 +166,7 @@ function CreateOrderFranchise() {
 
       <div className="create-order-page flex min-h-screen">
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ height: '100vh' }}>
           {/* Header */}
           <div className="header">
             <div>
@@ -167,6 +181,8 @@ function CreateOrderFranchise() {
                 type="text"
                 className="search-box"
                 placeholder="Search products, SKUs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -175,13 +191,45 @@ function CreateOrderFranchise() {
           <div className="content-area">
             {/* Products Section */}
             <div className="products-section">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-2 mb-4 flex-wrap shrink-0">
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                    activeFilter === 'all'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  All ({(data || []).length})
+                </button>
+                {itemTypes.map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setActiveFilter(type)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 capitalize ${
+                      activeFilter === type
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    {type} ({(data || []).filter(i => i.type?.toLowerCase() === type).length})
+                  </button>
+                ))}
+              </div>
+
               <div className="products-grid" id="productsGrid">
                 {(!data || data.length === 0) && (
                   <div className="col-span-full text-center text-slate-400 py-10">
-                    Đang tải sản phẩm...
+                    Loading products...
                   </div>
                 )}
-                {data && data.map((item) => {
+                {data && data.length > 0 && filteredData.length === 0 && (
+                  <div className="col-span-full text-center text-slate-400 py-10">
+                    No matching products found
+                  </div>
+                )}
+                {filteredData.map((item) => {
                   const isSelected = !!selectedItems[item.id];
                   const qty = selectedItems[item.id] || 0;
 
@@ -254,69 +302,73 @@ function CreateOrderFranchise() {
                 Items to be requested from Central Kitchen
               </div>
 
-              {/* Selected Items */}
-              <div className="summary-items" id="summaryItems">
-                {selectedList.length === 0 ? (
-                  <div className="text-center text-slate-400 text-sm py-6">
-                    Chưa có sản phẩm nào được chọn
-                  </div>
-                ) : (
-                  selectedList.map(({ itemId, quantity, item, detail }) => (
-                    <div key={itemId} className="py-2 border-b border-slate-100 last:border-0">
-                      {/* Item row */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 truncate">{item?.name}</p>
-                          <p className="text-xs text-slate-400">x{quantity} {item?.unit}</p>
-                        </div>
-                        <p className="text-sm font-semibold text-slate-800 ml-2">
-                          {((item?.price || 0) * quantity).toLocaleString('vi-VN')}đ
-                        </p>
-                      </div>
-
-                      {/* Ingredients của item này */}
-                      {loadingDetails[itemId] && (
-                        <p className="text-xs text-slate-400 mt-1 ml-2 italic">Đang tải nguyên liệu...</p>
-                      )}
-                      {detail?.ingredients?.length > 0 && (
-                        <div className="mt-2 ml-2 pl-2 border-l-2 border-amber-200">
-                          <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-1">Nguyên liệu</p>
-                          {detail.ingredients.map((ing, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-xs text-slate-500 py-0.5">
-                              <span>{ing.name}</span>
-                              <span className="font-medium text-slate-600 ml-2">
-                                {(ing.qty * quantity % 1 === 0
-                                  ? ing.qty * quantity
-                                  : parseFloat((ing.qty * quantity).toFixed(3))
-                                )} {ing.unit}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+              {/* Scrollable area: items + ingredients */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {/* Selected Items */}
+                <div className="summary-items" id="summaryItems">
+                  {selectedList.length === 0 ? (
+                    <div className="text-center text-slate-400 text-sm py-6">
+                      No items selected
                     </div>
-                  ))
+                  ) : (
+                    selectedList.map(({ itemId, quantity, item, detail }) => (
+                      <div key={itemId} className="py-2 border-b border-slate-100 last:border-0">
+                        {/* Item row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{item?.name}</p>
+                            <p className="text-xs text-slate-400">x{quantity} {item?.unit}</p>
+                          </div>
+                          <p className="text-sm font-semibold text-slate-800 ml-2">
+                            {((item?.price || 0) * quantity).toLocaleString('vi-VN')}đ
+                          </p>
+                        </div>
+
+                        {/* Ingredients của item này */}
+                        {loadingDetails[itemId] && (
+                          <p className="text-xs text-slate-400 mt-1 ml-2 italic">Loading ingredients...</p>
+                        )}
+                        {detail?.ingredients?.length > 0 && (
+                          <div className="mt-2 ml-2 pl-2 border-l-2 border-amber-200">
+                            <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-1">Ingredients</p>
+                            {detail.ingredients.map((ing, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-xs text-slate-500 py-0.5">
+                                <span>{ing.name}</span>
+                                <span className="font-medium text-slate-600 ml-2">
+                                  {(ing.qty * quantity % 1 === 0
+                                    ? ing.qty * quantity
+                                    : parseFloat((ing.qty * quantity).toFixed(3))
+                                  )} {ing.unit}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Tổng hợp toàn bộ nguyên liệu (nếu có nhiều món) */}
+                {ingredients.length > 0 && selectedList.length > 1 && (
+                  <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                    <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-2">
+                      Total Ingredients Required
+                    </p>
+                    {ingredients.map((ing, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs text-slate-600 py-0.5">
+                        <span>{ing.name}</span>
+                        <span className="font-semibold text-amber-700 ml-2">
+                          {(ing.qty % 1 === 0 ? ing.qty : parseFloat(ing.qty.toFixed(3)))} {ing.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Tổng hợp toàn bộ nguyên liệu (nếu có nhiều món) */}
-              {ingredients.length > 0 && selectedList.length > 1 && (
-                <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                  <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide mb-2">
-                    Tổng nguyên liệu cần chuẩn bị
-                  </p>
-                  {ingredients.map((ing, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs text-slate-600 py-0.5">
-                      <span>{ing.name}</span>
-                      <span className="font-semibold text-amber-700 ml-2">
-                        {(ing.qty % 1 === 0 ? ing.qty : parseFloat(ing.qty.toFixed(3)))} {ing.unit}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="summary-footer">
+              {/* Fixed footer area - always visible */}
+              <div className="summary-footer shrink-0 pt-3">
                 <div className="summary-line">
                   <span>Subtotal ({selectedList.length} items)</span>
                   <span>{subtotal.toLocaleString('vi-VN')}đ</span>
@@ -343,7 +395,7 @@ function CreateOrderFranchise() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
-                    Đang gửi...
+                    Submitting...
                   </>
                 ) : (
                   'Submit Order Request ➤'

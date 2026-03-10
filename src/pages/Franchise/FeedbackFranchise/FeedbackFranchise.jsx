@@ -17,11 +17,18 @@ function FeedbackFranchise() {
   // Tạm thời ẩn filter status
   // const [filterStatus, setFilterStatus] = useState('All');
   const [submitting, setSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
 
   useEffect(() => {
     dispatch(fetchGetAllFeedback());
     dispatch(fetchGetOrder());
   }, [dispatch]);
+
+  // Reset to page 1 when feedbacks change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [feedbacks?.length]);
 
   // Lấy userId từ order được chọn
   const getSelectedUserId = () => {
@@ -82,6 +89,20 @@ function FeedbackFranchise() {
       case 'Packaging': return 'bg-purple-100 text-purple-700';
       default: return 'bg-slate-100 text-slate-700';
     }
+  };
+
+  // Pagination logic
+  const totalPages = Math.ceil((filteredFeedbacks?.length || 0) / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIdx = startIdx + ITEMS_PER_PAGE;
+  const paginatedFeedbacks = filteredFeedbacks?.slice(startIdx, endIdx) || [];
+
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
   return (
     <>
@@ -263,7 +284,7 @@ function FeedbackFranchise() {
                   </td>
                 </tr>
               ) : (
-                filteredFeedbacks.map((fb) => {
+                paginatedFeedbacks.map((fb) => {
                   // Tạm thời ẩn status
                   // const sc = statusColor(fb.status);
                   return (
@@ -298,8 +319,37 @@ function FeedbackFranchise() {
         </div>
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
           <p className="text-xs text-slate-500">
-            Showing {filteredFeedbacks?.length || 0} of {feedbacks?.length || 0} reports
+            Showing {paginatedFeedbacks.length > 0 ? startIdx + 1 : 0} to {Math.min(endIdx, filteredFeedbacks?.length || 0)} of {feedbacks?.length || 0} reports
           </p>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handlePrevious}
+              disabled={currentPage === 1}
+              className="p-2 border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-slate-400"
+            >
+              <span className="material-symbols-outlined text-sm">chevron_left</span>
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 flex items-center justify-center rounded text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? 'bg-primary text-white'
+                    : 'border border-slate-200 hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button 
+              onClick={handleNext}
+              disabled={currentPage === totalPages}
+              className="p-2 border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-slate-400"
+            >
+              <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </button>
+          </div>
         </div>
       </section>
     </div>
