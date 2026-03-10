@@ -21,16 +21,30 @@ import MaterialFulfillmentPlan from "./pages/MaterialFulfillmentPlanPage/Materia
 import CentralLayout from "./layouts/CentralLayout";
 import SupplierLayout from "./layouts/SupplierLayout";
 import FranchiseLayout from "./layouts/FranchiseLayout";
+import ManagerLayout from "./layouts/ManagerLayout";
 import OrderTracking from "./pages/Franchise/OrderTracking";
 import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
 import FeedbackFranchise from "./pages/Franchise/FeedbackFranchise/FeedbackFranchise";
 import InventoryFranchise from "./pages/Franchise/InventoryFranchise/InventoryFranchise";
 import InventorySupply from "./pages/SupplyCoordinator/InventorySupply/InventorySupply";
+import InventoryManager from "./pages/ManagerFranchise/InventoryManager/InventoryManager";
+import PurchaseOrderManager from "./pages/ManagerFranchise/PurchaseOrderManager/PurchaseOrderManager";
+import MenuManagement from "./pages/ManagerFranchise/MenuManagement/MenuManagement";
+import ReportAnalyticsManager from "./pages/ManagerFranchise/ReportAnalyticsManager/ReportAnalyticsManager";  
 import UserManagement from "./pages/DashboardAdmin/UserManagement/UserManagement";
 function App() {
   return (
     <Routes>
-      {/* Default: redirect root to SignIn (login) */}
+      {/* Manager role — shared sidebar layout */}
+      <Route element={<ManagerLayout />}>
+        <Route path="/DashboardManager" element={<DashboardManager />} />
+        <Route path="/InventoryManager" element={<InventoryManager />} />
+        <Route path="/PurchaseOrderManager" element={<PurchaseOrderManager />} />
+        <Route path="/MenuManagement" element={<MenuManagement />} />
+        <Route path="/ReportAnalyticsManager" element={<ReportAnalyticsManager />} /> 
+      </Route>
+
+      {/* Default — redirect root to SignIn (login) */}
       <Route path="/" element={<Navigate to="/SignIn" replace />} />
       {/* Auth */}
       <Route path="/SignIn" element={<SignIn />} />
@@ -64,7 +78,6 @@ function App() {
       {/* <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} /> Không dùng nữa */}
       {/* Dashboard */}
       <Route path="/DashboardAdmin" element={<DashboardAdmin />} /> 
-      <Route path="/DashboardManager" element={<DashboardManager />} /> 
 
       {/* Homepage */}
       <Route path="/HomepageFranchise" element={<HomepageFranchise />} />

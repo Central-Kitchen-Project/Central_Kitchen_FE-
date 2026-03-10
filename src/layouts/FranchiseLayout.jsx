@@ -27,7 +27,7 @@ function FranchiseLayout() {
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-20">
         <div className="p-6">
           <div className="flex items-center gap-3">
-            <div className="bg-primary rounded-lg p-2 text-white">
+            <div className="bg-blue-600 rounded-lg p-2 text-white">
               <span className="material-symbols-outlined">
                 restaurant
               </span>
