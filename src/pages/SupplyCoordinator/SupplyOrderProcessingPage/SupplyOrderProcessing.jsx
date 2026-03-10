@@ -145,9 +145,10 @@ function SupplyOrderProcessing() {
     if (!selectedOrder) return;
     setLoadingRequest(true);
     try {
+      const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
       const payload = {
         orderId: selectedOrder.id,
-        requestedByUserId: 1,
+        requestedByUserId: userInfo?.id || 1,
         note: requestNote || "string",
         items: requestItems.map((i) => ({
           itemId: i.itemId,
