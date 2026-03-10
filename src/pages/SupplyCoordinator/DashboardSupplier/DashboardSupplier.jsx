@@ -5,6 +5,13 @@ import { fetchGetMaterialRequest } from '../../../store/materialSlice'
 import { fetchGetAll } from '../../../store/itemSlice'
 import './DashboardSupplier.css'
 
+function parseUTC(dateStr) {
+  if (!dateStr) return new Date(NaN)
+  let s = String(dateStr)
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += 'Z'
+  return new Date(s)
+}
+
 function DashboardSupplier() {
   const dispatch = useDispatch()
   const orders = useSelector(state => state.ORDER.listOrders) || []
@@ -30,14 +37,14 @@ function DashboardSupplier() {
   // Recent orders (last 5)
   const recentOrders = useMemo(() => {
     return [...orders]
-      .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+      .sort((a, b) => parseUTC(b.orderDate) - parseUTC(a.orderDate))
       .slice(0, 5)
   }, [orders])
 
   // Recent material requests (last 5)
   const recentMaterials = useMemo(() => {
     return [...materials]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort((a, b) => parseUTC(b.createdAt) - parseUTC(a.createdAt))
       .slice(0, 5)
   }, [materials])
 
@@ -56,7 +63,7 @@ function DashboardSupplier() {
       dayEnd.setDate(dayStart.getDate() + 1)
 
       const dayReqs = materials.filter(m => {
-        const d = new Date(m.createdAt)
+        const d = parseUTC(m.createdAt)
         return d >= dayStart && d < dayEnd
       })
 
@@ -99,8 +106,7 @@ function DashboardSupplier() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    return parseUTC(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
   return (

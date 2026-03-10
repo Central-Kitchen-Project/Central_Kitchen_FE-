@@ -3,14 +3,22 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetOrder } from '../../../store/orderSlice'
 import './PurchaseOrderManager.css'
 
+function parseUTC(dateStr) {
+  if (!dateStr) return null
+  let s = dateStr
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += 'Z'
+  return new Date(s)
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return parseUTC(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function getTimeDiff(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000)
+  if (!dateStr) return ''
+  const diff = Math.floor((Date.now() - parseUTC(dateStr).getTime()) / 60000)
+  if (diff < 0 || diff < 1) return 'just now'
   if (diff < 60) return `${diff}m ago`
   if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
   return `${Math.floor(diff / 1440)}d ago`
@@ -52,7 +60,7 @@ function PurchaseOrderManager() {
     const matchesSearch = !searchTerm || itemNames.some(name => name.includes(searchTerm.toLowerCase())) || order.username?.toLowerCase().includes(searchTerm.toLowerCase()) || String(order.id).includes(searchTerm)
     const orderStatus = order.status?.toLowerCase()
     const matchesStatus = selectedStatus === 'all' || orderStatus === selectedStatus
-    const orderDateStr = order.orderDate ? new Date(order.orderDate).toISOString().split('T')[0] : ''
+    const orderDateStr = order.orderDate ? parseUTC(order.orderDate).toISOString().split('T')[0] : ''
     const matchesDate = (!dateFilterFrom || orderDateStr >= dateFilterFrom) && (!dateFilterTo || orderDateStr <= dateFilterTo)
     return matchesSearch && matchesStatus && matchesDate
   })

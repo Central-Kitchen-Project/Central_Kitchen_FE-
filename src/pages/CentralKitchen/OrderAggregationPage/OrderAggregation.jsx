@@ -3,6 +3,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { fetchGetMaterialRequest } from "../../../store/materialSlice";
 
+function parseUTC(dateStr) {
+  if (!dateStr) return new Date(NaN);
+  let s = String(dateStr);
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += "Z";
+  return new Date(s);
+}
+
 function DetailModal({ requestId, onClose }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,7 +107,7 @@ function DetailModal({ requestId, onClose }) {
                 <InfoCell
                   icon="schedule"
                   label="Created At"
-                  value={new Date(detail.createdAt).toLocaleString("vi-VN")}
+                  value={parseUTC(detail.createdAt).toLocaleString("vi-VN")}
                 />
                 <InfoCell
                   icon="flag"
