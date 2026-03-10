@@ -4,14 +4,22 @@ import axios from "axios";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
+function parseUTC(dateStr) {
+  if (!dateStr) return null;
+  let s = dateStr;
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += "Z";
+  return new Date(s);
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return parseUTC(dateStr).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getTimeDiff(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (!dateStr) return "";
+  const diff = Math.floor((Date.now() - parseUTC(dateStr).getTime()) / 60000);
+  if (diff < 0 || diff < 1) return "just now";
   if (diff < 60) return `${diff}m ago`;
   if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
   return `${Math.floor(diff / 1440)}d ago`;
@@ -100,7 +108,7 @@ function MaterialTracking() {
         req.note?.toLowerCase().includes(searchTerm.toLowerCase());
       let dateMatch = true;
       if (filterDate) {
-        const reqDay = new Date(req.createdAt).toISOString().slice(0, 10);
+        const reqDay = parseUTC(req.createdAt).toISOString().slice(0, 10);
         dateMatch = reqDay === filterDate;
       }
       return statusMatch && searchMatch && dateMatch;

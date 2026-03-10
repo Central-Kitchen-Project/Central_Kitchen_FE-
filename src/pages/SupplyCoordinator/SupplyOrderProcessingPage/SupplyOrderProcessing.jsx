@@ -8,16 +8,28 @@ import { fetchGetOrder } from "../../../store/orderSlice";
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
 function getTimeDiff(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (!dateStr) return "";
+  // Ensure UTC parsing: if no timezone info, treat as UTC
+  let str = dateStr;
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(str)) str += "Z";
+  const diff = Math.floor((Date.now() - new Date(str).getTime()) / 60000);
+  if (diff < 0) return "just now";
+  if (diff < 1) return "just now";
   if (diff < 60) return `${diff}m ago`;
   if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
   return `${Math.floor(diff / 1440)}d ago`;
 }
 
+function parseUTC(dateStr) {
+  if (!dateStr) return null;
+  let s = dateStr;
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += "Z";
+  return new Date(s);
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return parseUTC(dateStr).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getStatusBadge(status) {
@@ -54,6 +66,7 @@ function SupplyOrderProcessing() {
 
   const [acceptModalOpen, setAcceptModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -65,6 +78,8 @@ function SupplyOrderProcessing() {
   const [toast, setToast] = useState(null);
   const [loadingAccept, setLoadingAccept] = useState(false);
   const [loadingRequest, setLoadingRequest] = useState(false);
+  const [loadingReject, setLoadingReject] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState("");
@@ -117,9 +132,34 @@ function SupplyOrderProcessing() {
     }
   };
 
+  // --- Reject Modal ---
+  const openRejectModal = (order) => {
+    setSelectedOrder(order);
+    setOpenDropdown(null);
+    setRejectModalOpen(true);
+  };
+
+  const confirmReject = async () => {
+    if (!selectedOrder) return;
+    setLoadingReject(true);
+    try {
+      await axios.delete(`${BASE_URL}/Order/${selectedOrder.id}`, {
+        headers: { accept: "*/*" },
+      });
+      showToast("success", `Đơn hàng #${selectedOrder.id} đã bị từ chối và xóa khỏi hệ thống!`);
+      setRejectModalOpen(false);
+      dispatch(fetchGetOrder());
+    } catch (err) {
+      showToast("error", `Lỗi khi từ chối đơn: ${err?.response?.data?.message || err.message}`);
+    } finally {
+      setLoadingReject(false);
+    }
+  };
+
   // --- Request Modal ---
   const openRequestModal = (e, order) => {
     e.stopPropagation();
+    setOpenDropdown(null);
     setSelectedOrder(order);
     setRequestNote("");
     setRequestItems(
@@ -186,7 +226,7 @@ function SupplyOrderProcessing() {
         );
       let dateMatch = true;
       if (filterDate) {
-        const orderDay = new Date(order.orderDate).toISOString().slice(0, 10);
+        const orderDay = parseUTC(order.orderDate).toISOString().slice(0, 10);
         dateMatch = orderDay === filterDate;
       }
       return statusMatch && itemMatch && dateMatch;
@@ -360,21 +400,45 @@ function SupplyOrderProcessing() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end items-center gap-2">
                               <button
                                 onClick={(e) => openAcceptModal(e, order)}
                                 disabled={isApproved || isCompleted}
-                                className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                               >
                                 Accept
                               </button>
                               <button
                                 onClick={(e) => openRequestModal(e, order)}
                                 disabled={isProcessing || isCompleted}
-                                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                               >
                                 Request
                               </button>
+                              {/* More actions dropdown */}
+                              <div className="relative">
+                                <button
+                                  onClick={() => setOpenDropdown(openDropdown === order.id ? null : order.id)}
+                                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                                </button>
+                                {openDropdown === order.id && (
+                                  <>
+                                    <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />
+                                    <div className="absolute right-0 top-full mt-1 z-40 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40">
+                                      <button
+                                        onClick={() => openRejectModal(order)}
+                                        disabled={isApproved || isProcessing || isCompleted}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                      >
+                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                        Reject Order
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -549,6 +613,49 @@ function SupplyOrderProcessing() {
                   </svg>
                 )}
                 Confirm Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Reject Modal ===== */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setRejectModalOpen(false)} />
+          <div className="bg-white rounded-2xl shadow-2xl z-10 w-96 p-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-500 mb-4">
+                <span className="material-symbols-outlined text-3xl">warning</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Reject Order</h3>
+              <p className="text-sm text-slate-500 mt-2">
+                Are you sure you want to reject order{" "}
+                <span className="font-mono font-bold text-slate-700">#{selectedOrder?.id}</span>?
+              </p>
+              <p className="text-xs text-red-500 font-medium mt-2 bg-red-50 px-3 py-1.5 rounded-lg">
+                This action is permanent — the order will be deleted from the system.
+              </p>
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setRejectModalOpen(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReject}
+                disabled={loadingReject}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {loadingReject && (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                )}
+                Reject
               </button>
             </div>
           </div>

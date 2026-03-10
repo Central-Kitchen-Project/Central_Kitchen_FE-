@@ -22,9 +22,9 @@ function CreateOrderFranchise() {
   const [selectedItems, setSelectedItems] = useState({});
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showConfirm, setShowConfirm] = useState(false);
   // Cache chi tiết item (có ingredients) theo id
   const [itemDetails, setItemDetails] = useState({});
   const [loadingDetails, setLoadingDetails] = useState({});
@@ -413,38 +413,49 @@ function CreateOrderFranchise() {
 
       {/* Confirmation Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-200 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-primary">
-                <span className="material-symbols-outlined text-xl">shopping_cart_checkout</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header - centered icon + title */}
+            <div className="px-6 pt-6 pb-4 text-center">
+              <div className="mx-auto size-14 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-3xl text-blue-600">shopping_cart_checkout</span>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Confirm Order</h3>
-                <p className="text-xs text-slate-500">Please review before submitting</p>
+              <h3 className="text-lg font-bold text-slate-900">Confirm Order Submission</h3>
+              <p className="text-sm text-slate-500 mt-1">Are you sure you want to submit this order?</p>
+            </div>
+
+            {/* Order Summary Box */}
+            <div className="mx-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex justify-between text-sm text-slate-600 mb-1">
+                <span>Items</span>
+                <span className="font-semibold text-slate-900">{selectedList.length} products</span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600 mb-1">
+                <span>Subtotal</span>
+                <span className="font-semibold text-slate-900">{subtotal.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-600">
+                <span>Processing Fee</span>
+                <span className="font-semibold text-slate-900">{PROCESSING_FEE.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="border-t border-slate-200 mt-2 pt-2 flex justify-between text-sm font-bold text-slate-900">
+                <span>Total</span>
+                <span className="text-blue-600">{(subtotal + PROCESSING_FEE).toLocaleString('vi-VN')}đ</span>
               </div>
             </div>
-            <div className="px-6 py-4">
-              <p className="text-sm text-slate-600 mb-3">
-                You are about to submit an order with <strong>{selectedList.length}</strong> item{selectedList.length > 1 ? 's' : ''} totaling:
-              </p>
-              <div className="bg-slate-50 rounded-lg p-3 flex items-center justify-between">
-                <span className="text-sm text-slate-500">Estimated Cost</span>
-                <span className="text-lg font-bold text-primary">{(subtotal + PROCESSING_FEE).toLocaleString('vi-VN')}đ</span>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+
+            {/* Buttons */}
+            <div className="flex gap-3 px-6 py-5">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="px-5 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitOrder}
-                className="px-5 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25"
               >
-                <span className="material-symbols-outlined text-base">check</span>
                 Submit Order
               </button>
             </div>
