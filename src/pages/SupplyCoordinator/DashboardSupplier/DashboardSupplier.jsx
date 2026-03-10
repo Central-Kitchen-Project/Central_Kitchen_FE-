@@ -1,457 +1,306 @@
-import React from 'react'
-import { useOutletContext } from 'react-router-dom'
-import './DashboardSupplier.css'   
+import React, { useEffect, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { fetchGetOrder } from '../../../store/orderSlice'
+import { fetchGetMaterialRequest } from '../../../store/materialSlice'
+import { fetchGetAll } from '../../../store/itemSlice'
+import './DashboardSupplier.css'
 
 function DashboardSupplier() {
-  const { handleLogout } = useOutletContext()
+  const dispatch = useDispatch()
+  const orders = useSelector(state => state.ORDER.listOrders) || []
+  const materials = useSelector(state => state.MATERIAL.listMaterials) || []
+  const items = useSelector(state => state.ITEM.listItems) || []
+
+  useEffect(() => {
+    dispatch(fetchGetOrder())
+    dispatch(fetchGetMaterialRequest())
+    dispatch(fetchGetAll({ type: '', category: '' }))
+  }, [dispatch])
+
+  // Stats
+  const totalOrders = orders.length
+  const pendingOrders = orders.filter(o => o.status?.toLowerCase() === 'pending').length
+  const processingOrders = orders.filter(o => o.status?.toLowerCase() === 'processing').length
+  const completedOrders = orders.filter(o => o.status?.toLowerCase() === 'completed').length
+
+  const totalMaterialRequests = materials.length
+  const pendingMaterials = materials.filter(m => m.status?.toLowerCase() === 'pending').length
+  const fulfilledMaterials = materials.filter(m => m.status?.toLowerCase() === 'fulfilled').length
+
+  // Recent orders (last 5)
+  const recentOrders = useMemo(() => {
+    return [...orders]
+      .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+      .slice(0, 5)
+  }, [orders])
+
+  // Recent material requests (last 5)
+  const recentMaterials = useMemo(() => {
+    return [...materials]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5)
+  }, [materials])
+
+  // Weekly material requests chart
+  const weeklyData = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset)
+
+    return days.map((label, idx) => {
+      const dayStart = new Date(monday)
+      dayStart.setDate(monday.getDate() + idx)
+      const dayEnd = new Date(dayStart)
+      dayEnd.setDate(dayStart.getDate() + 1)
+
+      const dayReqs = materials.filter(m => {
+        const d = new Date(m.createdAt)
+        return d >= dayStart && d < dayEnd
+      })
+
+      return {
+        label,
+        total: dayReqs.length,
+        fulfilled: dayReqs.filter(m => m.status?.toLowerCase() === 'fulfilled').length,
+        pending: dayReqs.filter(m => m.status?.toLowerCase() === 'pending').length,
+        approved: dayReqs.filter(m => m.status?.toLowerCase() === 'approved').length,
+      }
+    })
+  }, [materials])
+
+  const maxReqs = Math.max(...weeklyData.map(d => d.total), 1)
+
+  // Top requested materials
+  const topMaterials = useMemo(() => {
+    const map = {}
+    materials.forEach(m => {
+      (m.items || []).forEach(item => {
+        const key = item.materialName || 'Unknown'
+        if (!map[key]) map[key] = { name: key, unit: item.unit, totalQty: 0, count: 0 }
+        map[key].totalQty += item.requestedQuantity || 0
+        map[key].count += 1
+      })
+    })
+    return Object.values(map).sort((a, b) => b.totalQty - a.totalQty).slice(0, 6)
+  }, [materials])
+
+  const statusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending': return 'bg-red-100 text-red-700'
+      case 'approved': return 'bg-purple-100 text-purple-700'
+      case 'processing': return 'bg-blue-100 text-blue-700'
+      case 'completed': return 'bg-green-100 text-green-700'
+      case 'fulfilled': return 'bg-green-100 text-green-700'
+      default: return 'bg-slate-100 text-slate-700'
+    }
+  }
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
 
   return (
-    <>
-    <div className="flex h-screen overflow-hidden">
-  <main className="flex-1 flex flex-col overflow-hidden">
-    <header className="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-slate-900">
-          Supply Coordinator Dashboard
-        </h2>
-        <p className="text-slate-500 text-xs font-medium">
-          Overview of current operations and logistics flow
-        </p>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
+        <h1 className="text-xl font-bold text-slate-900">Supply Coordinator Dashboard</h1>
+        <p className="text-xs text-slate-500 mt-1">Overview of orders, material requests and logistics</p>
       </div>
-      <div className="flex items-center gap-4">
-        <div className="flex items-center bg-slate-50 rounded-lg px-3 py-2 gap-2 text-sm border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors text-slate-700">
-          <span className="material-symbols-outlined text-sm text-slate-500">
-            calendar_today
-          </span>
-          <span className="font-medium">Oct 24, 2023 - Oct 30, 2023</span>
-        </div>
-        <button className="relative p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-primary/5 hover:text-primary transition-colors">
-          <span className="material-symbols-outlined text-[22px]">
-            notifications
-          </span>
-          <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-        </button>
-        <button className="p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">
-          <span className="material-symbols-outlined text-[22px]">
-            settings
-          </span>
-        </button>
-      </div>
-    </header>
-    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-slate-200 shadow-soft">
-          <div className="flex justify-between items-start">
-            <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider text-[11px]">
-              Total Incoming Orders
-            </p>
-            <span className="p-1.5 rounded-md bg-blue-50 text-primary material-symbols-outlined text-sm">
-              shopping_cart
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">1,240</p>
-          <p className="text-green-600 text-xs font-bold flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">
-              trending_up
-            </span>{" "}
-            +12% from yesterday
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-slate-200 shadow-soft">
-          <div className="flex justify-between items-start">
-            <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider text-[11px]">
-              Aggregated Demand
-            </p>
-            <span className="p-1.5 rounded-md bg-amber-50 text-amber-600 material-symbols-outlined text-sm">
-              inventory_2
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">5,800 units</p>
-          <p className="text-red-500 text-xs font-bold flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">
-              trending_down
-            </span>{" "}
-            -3% from last week
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-slate-200 shadow-soft">
-          <div className="flex justify-between items-start">
-            <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider text-[11px]">
-              Deliveries In Progress
-            </p>
-            <span className="p-1.5 rounded-md bg-green-50 text-green-600 material-symbols-outlined text-sm">
-              local_shipping
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">42</p>
-          <p className="text-green-600 text-xs font-bold flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">
-              trending_up
-            </span>{" "}
-            +5 vehicles active
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white border border-slate-200 shadow-soft">
-          <div className="flex justify-between items-start">
-            <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider text-[11px]">
-              Active Issues
-            </p>
-            <span className="p-1.5 rounded-md bg-red-50 text-red-600 material-symbols-outlined text-sm">
-              report
-            </span>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">7</p>
-          <p className="text-slate-500 text-xs font-bold">
-            4 Critical priority
-          </p>
-        </div>
-      </div>
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900">
-            <span className="material-symbols-outlined text-primary">
-              analytics
-            </span>{" "}
-            Order Aggregation
-          </h3>
-          <button className="text-xs font-bold text-primary hover:text-blue-700 uppercase tracking-tight flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm">download</span>{" "}
-            Export Report
-          </button>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
-                  Product Name
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
-                  Total Quantity
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
-                  Stores
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider text-center">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
-                  Assigned Kitchen
-                </th>
-                <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-bold text-sm text-slate-900">
-                  Chicken Breast (Marinated)
-                </td>
-                <td className="px-6 py-4 text-sm font-medium">500kg</td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                  12
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-100 text-blue-700">
-                    In Production
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                  Main Central Kitchen
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="bg-primary text-white text-xs px-4 py-2 rounded-lg font-bold shadow-md hover:bg-blue-600 hover:scale-[1.02] transition-all">
-                    Adjust Quantity
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-bold text-sm text-slate-900">
-                  Special Pizza Dough
-                </td>
-                <td className="px-6 py-4 text-sm font-medium">1,200kg</td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                  45
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700">
-                    Pending Approval
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                  Southside Hub
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="bg-primary text-white text-xs px-4 py-2 rounded-lg font-bold shadow-md hover:bg-blue-600 hover:scale-[1.02] transition-all">
-                    Adjust Quantity
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-bold text-sm text-slate-900">
-                  Premium Olive Oil
-                </td>
-                <td className="px-6 py-4 text-sm font-medium">300L</td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                  28
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-700">
-                    Ready for Delivery
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                  Logistics Center A
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="bg-primary text-white text-xs px-4 py-2 rounded-lg font-bold shadow-md hover:bg-blue-600 hover:scale-[1.02] transition-all">
-                    Adjust Quantity
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section className="mb-8">
-        <h3 className="text-lg font-bold flex items-center gap-2 mb-4 text-slate-900">
-          <span className="material-symbols-outlined text-primary">
-            view_kanban
-          </span>{" "}
-          Production Flow
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-                Pending Approval (3)
-              </span>
-              <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-slate-600">
-                more_horiz
-              </span>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 bg-slate-50/50">
+        {/* Stats Row */}
+        <div className="grid grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Orders</span>
+              <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
+                <span className="material-symbols-outlined text-xl">shopping_cart</span>
+              </div>
             </div>
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-soft border-l-4 border-l-amber-500 hover:border-slate-300 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="text-sm font-bold text-slate-900">
-                    Frozen Veggie Mix
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    2h ago
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mb-3 font-medium">
-                  800kg for 15 locations
-                </p>
-                <div className="flex justify-between items-center">
-                  <div className="flex -space-x-2">
-                    <div className="size-6 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[8px] font-bold">
-                      JD
-                    </div>
-                    <div className="size-6 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-[8px] font-bold">
-                      MS
-                    </div>
+            <span className="text-3xl font-bold text-slate-900">{totalOrders}</span>
+            <span className="text-sm text-slate-500">{pendingOrders} pending · {completedOrders} completed</span>
+          </div>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Material Requests</span>
+              <div className="size-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500">
+                <span className="material-symbols-outlined text-xl">inventory_2</span>
+              </div>
+            </div>
+            <span className="text-3xl font-bold text-slate-900">{totalMaterialRequests}</span>
+            <span className="text-sm text-slate-500">{pendingMaterials} pending · {fulfilledMaterials} fulfilled</span>
+          </div>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Processing</span>
+              <div className="size-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-500">
+                <span className="material-symbols-outlined text-xl">sync</span>
+              </div>
+            </div>
+            <span className="text-3xl font-bold text-slate-900">{processingOrders}</span>
+            <span className="text-sm text-slate-500">Orders in progress</span>
+          </div>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Items</span>
+              <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+                <span className="material-symbols-outlined text-xl">category</span>
+              </div>
+            </div>
+            <span className="text-3xl font-bold text-slate-900">{items.length}</span>
+            <span className="text-sm text-slate-500">
+              {items.filter(i => i.type?.toLowerCase() === 'nguyen lieu').length} raw · {items.filter(i => i.type?.toLowerCase() === 'thanh pham').length} finished
+            </span>
+          </div>
+        </div>
+
+        {/* Chart + Top Materials */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Weekly Material Requests Chart */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <span className="text-base font-semibold text-slate-900">Material Requests This Week</span>
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-green-500 inline-block" /> Fulfilled</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-red-400 inline-block" /> Pending</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-purple-400 inline-block" /> Approved</span>
+              </div>
+            </div>
+            <div className="chart-container">
+              {weeklyData.map((day) => (
+                <div key={day.label} className="chart-bar">
+                  <div className="relative w-full flex flex-col justify-end" style={{ height: '100%' }}>
+                    {day.total > 0 ? (
+                      <div className="flex flex-col-reverse w-full rounded-t-md overflow-hidden" style={{ height: `${(day.total / maxReqs) * 100}%` }}>
+                        {day.fulfilled > 0 && <div className="bg-green-500 w-full" style={{ height: `${(day.fulfilled / day.total) * 100}%` }} title={`Fulfilled: ${day.fulfilled}`} />}
+                        {day.approved > 0 && <div className="bg-purple-400 w-full" style={{ height: `${(day.approved / day.total) * 100}%` }} title={`Approved: ${day.approved}`} />}
+                        {day.pending > 0 && <div className="bg-red-400 w-full" style={{ height: `${(day.pending / day.total) * 100}%` }} title={`Pending: ${day.pending}`} />}
+                      </div>
+                    ) : (
+                      <div className="bg-slate-100 w-full rounded-t-md" style={{ height: '4px' }} />
+                    )}
                   </div>
-                  <button className="text-primary text-xs font-black hover:underline">
-                    Review
-                  </button>
+                  <div className="bar-label">{day.label}</div>
+                  <div className="text-[11px] text-slate-400 font-bold">{day.total}</div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-                In Production (8)
-              </span>
-              <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-slate-600">
-                more_horiz
-              </span>
+
+          {/* Top Requested Materials */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <span className="text-base font-semibold text-slate-900">Top Requested Materials</span>
+              <span className="text-xs text-slate-400">{materials.length} total requests</span>
             </div>
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-soft border-l-4 border-l-primary hover:border-slate-300 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="text-sm font-bold text-slate-900">
-                    Tomato Base Sauce
-                  </h4>
-                  <span className="text-[10px] text-primary font-black uppercase">
-                    45m left
-                  </span>
+            <div className="p-6">
+              {topMaterials.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-10">No data</p>
+              ) : (
+                <div className="space-y-4">
+                  {topMaterials.map((mat, idx) => {
+                    const maxQty = topMaterials[0]?.totalQty || 1
+                    return (
+                      <div key={idx}>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-sm font-semibold text-slate-700">{mat.name}</span>
+                          <span className="text-sm font-bold text-slate-900">{mat.totalQty.toLocaleString()} {mat.unit}</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${(mat.totalQty / maxQty) * 100}%` }} />
+                        </div>
+                        <span className="text-xs text-slate-400 mt-0.5 inline-block">{mat.count} requests</span>
+                      </div>
+                    )
+                  })}
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5 mb-2 overflow-hidden">
-                  <div
-                    className="bg-primary h-1.5 rounded-full"
-                    style={{ width: "65%" }}
-                  />
-                </div>
-                <p className="text-[10px] text-slate-500 font-bold">
-                  Kitchen C | 4,000 Liters
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-                Ready for Delivery (12)
-              </span>
-              <span className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-slate-600">
-                more_horiz
-              </span>
-            </div>
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-soft border-l-4 border-l-green-500 hover:border-slate-300 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="text-sm font-bold text-slate-900">
-                    Bakery Bundle A
-                  </h4>
-                  <span className="material-symbols-outlined text-green-500 text-sm fill-1">
-                    check_circle
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mb-3 font-medium">
-                  Load Stage: Dock 4
-                </p>
-                <button className="w-full py-2 bg-slate-50 border border-slate-200 hover:bg-primary hover:text-white hover:border-primary transition-all text-xs font-black rounded-lg uppercase tracking-tight">
-                  Assign Vehicle
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
-      </section>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900">
-            <span className="material-symbols-outlined text-primary">
-              schedule_send
-            </span>{" "}
-            Delivery Schedule
-          </h3>
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-soft">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-4 py-3 font-black text-slate-500 uppercase text-[10px] tracking-widest">
-                    ID
-                  </th>
-                  <th className="px-4 py-3 font-black text-slate-500 uppercase text-[10px] tracking-widest">
-                    Store
-                  </th>
-                  <th className="px-4 py-3 font-black text-slate-500 uppercase text-[10px] tracking-widest">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 font-black text-slate-500 uppercase text-[10px] tracking-widest">
-                    Vehicle
-                  </th>
-                  <th className="px-4 py-3 font-black text-slate-500 uppercase text-[10px] tracking-widest text-right">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr className="hover:bg-slate-50/50">
-                  <td className="px-4 py-3 font-bold text-slate-900">
-                    #DEL-992
-                  </td>
-                  <td className="px-4 py-3 font-medium">Store #402</td>
-                  <td className="px-4 py-3 text-green-600 font-bold flex items-center gap-1">
-                    <span className="size-1.5 rounded-full bg-green-500" /> On
-                    Time
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-600">
-                    Van-14 (Truck)
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="material-symbols-outlined text-slate-400 hover:text-primary transition-colors">
-                      visibility
-                    </button>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50/50">
-                  <td className="px-4 py-3 font-bold text-slate-900">
-                    #DEL-995
-                  </td>
-                  <td className="px-4 py-3 font-medium">Westside Mall</td>
-                  <td className="px-4 py-3 text-red-600 font-bold flex items-center gap-1">
-                    <span className="size-1.5 rounded-full bg-red-500" />{" "}
-                    Delayed
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-600">
-                    Van-02 (Cold)
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="text-[10px] font-black text-primary border-2 border-primary px-2 py-1 rounded hover:bg-primary hover:text-white transition-all uppercase tracking-tighter">
-                      Reschedule
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-bold flex items-center gap-2 text-red-600">
-            <span className="material-symbols-outlined">gpp_maybe</span> Issues
-            &amp; Exceptions
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-white border border-red-200 shadow-soft relative overflow-hidden group">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
-              <div className="bg-red-50 text-red-600 rounded-full p-2 flex items-center justify-center border border-red-100">
-                <span className="material-symbols-outlined text-sm">
-                  inventory_2
-                </span>
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-0.5">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">
-                    Stock Shortage
-                  </h4>
-                  <span className="text-[9px] font-black text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
-                    CRITICAL
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 font-medium">
-                  Store #402: 20kg Flour Shortage for Morning Prep
-                </p>
-              </div>
-              <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded-lg transition-all shadow-md active:scale-95 uppercase">
-                Resolve
-              </button>
+
+        {/* Recent Orders + Recent Material Requests */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Recent Orders */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <span className="text-base font-semibold text-slate-900">Recent Orders</span>
+              <span className="text-xs text-slate-400">{orders.length} total</span>
             </div>
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-white border border-amber-200 shadow-soft relative overflow-hidden group">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-              <div className="bg-amber-50 text-amber-600 rounded-full p-2 flex items-center justify-center border border-amber-100">
-                <span className="material-symbols-outlined text-sm">
-                  warning
-                </span>
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-0.5">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">
-                    Late Production
-                  </h4>
-                  <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                    MEDIUM
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 font-medium">
-                  South Kitchen: Bread oven maintenance delay (30 min)
-                </p>
-              </div>
-              <button className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black rounded-lg transition-all shadow-md active:scale-95 uppercase">
-                Notify
-              </button>
+            <div className="divide-y divide-slate-100">
+              {recentOrders.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-10">No orders yet</p>
+              ) : (
+                recentOrders.map(order => {
+                  const total = (order.orderLines || []).reduce((s, l) => s + (l.price || 0) * (l.quantity || 0), 0)
+                  const firstItem = order.orderLines?.[0]
+                  return (
+                    <div key={order.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-sm font-bold text-slate-900">#PO-{order.id}</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColor(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          {order.username} · {firstItem ? `${firstItem.name} x${firstItem.quantity}` : 'No items'}
+                          {(order.orderLines?.length || 0) > 1 && ` +${order.orderLines.length - 1} more`}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0 ml-4">
+                        <p className="text-sm font-bold text-slate-900">{total.toLocaleString('vi-VN')}đ</p>
+                        <p className="text-xs text-slate-400">{formatDate(order.orderDate)}</p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Recent Material Requests */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+              <span className="text-base font-semibold text-slate-900">Recent Material Requests</span>
+              <span className="text-xs text-slate-400">{materials.length} total</span>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {recentMaterials.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-10">No requests yet</p>
+              ) : (
+                recentMaterials.map(req => (
+                  <div key={req.id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-sm font-bold text-slate-900">#{req.id}</span>
+                        <span className="text-xs text-slate-500">Order #{req.orderId}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColor(req.status)}`}>
+                          {req.status}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{formatDate(req.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-xs text-slate-500">{req.requestedByUsername} ·</span>
+                      <span className="text-xs text-slate-600 font-medium truncate">
+                        {(req.items || []).map(i => `${i.materialName} (${i.requestedQuantity}${i.unit})`).join(', ')}
+                      </span>
+                    </div>
+                    {req.note && <p className="text-xs text-slate-400 mt-1 italic truncate">"{req.note}"</p>}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
       </div>
     </div>
-    </main>
-    </div>
-    </>
   )
 }
 

@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 const navItems = [
-  { label: 'Dashboard', icon: 'dashboard', path: '/DashboardSupplier' },
-  { label: 'Order Processing', icon: 'list_alt', path: '/SupplyOrderProcessing' },
-  { label: 'Inventory', icon: 'inventory_2', path: '/InventorySupply' },
-  { label: 'Delivery Scheduling', icon: 'local_shipping', path: '#' },
-  { label: 'Issue Management', icon: 'warning', path: '#' },
+  { label: 'Dashboard', icon: 'dashboard', path: '/DashboardManager' },
+  { label: 'Inventory Management', icon: 'inventory_2', path: '/InventoryManager' },
+  { label: 'Purchase Orders', icon: 'shopping_bag', path: '/PurchaseOrderManager' },
+  { label: 'Menu Management', icon: 'restaurant_menu', path: '/MenuManagement' },
+  { label: 'Reports & Analytics', icon: 'bar_chart', path: '/ReportAnalyticsManager' },
 ]
 
-function SupplierLayout() {
+function ManagerLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [userInfo, setUserInfo] = useState({ username: 'User', roleId: 5 })
+  const [userInfo, setUserInfo] = useState({ username: 'User', roleId: 2 })
 
   useEffect(() => {
     try {
@@ -29,19 +29,17 @@ function SupplierLayout() {
 
   const isActive = (path) => {
     if (path === '#') return false
-    if (path === '/SupplyOrderProcessing')
-      return location.pathname.startsWith('/SupplyOrderProcessing')
-    return location.pathname === path
+    return location.pathname === path || location.pathname.startsWith(path + '/')
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* SIDEBAR — shared, never re-renders on navigation */}
+      {/* SIDEBAR */}
       <aside className="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
         <div className="p-6 flex flex-col gap-8 h-full">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 size-10 rounded-lg flex items-center justify-center text-white shadow-md">
-              <span className="material-symbols-outlined text-2xl">soup_kitchen</span>
+              <span className="material-symbols-outlined text-2xl">manage_accounts</span>
             </div>
             <div className="flex flex-col">
               <h1 className="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">
@@ -64,24 +62,20 @@ function SupplierLayout() {
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
-                <span className="text-sm">{item.label}</span>
+                <span className="material-symbols-outlined text-[22px] shrink-0">{item.icon}</span>
+                <span className="text-sm whitespace-nowrap">{item.label}</span>
               </Link>
             ))}
           </nav>
 
           <div className="mt-auto border-t border-slate-100 pt-6">
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="size-9 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                <img
-                  alt="User"
-                  className="w-full h-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXMdzcP"
-                />
+              <div className="size-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold">
+                {userInfo.username?.charAt(0).toUpperCase()}
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-slate-900 text-xs font-bold truncate">{userInfo.username}</span>
-                <span className="text-slate-500 text-[10px] font-medium">Supply Coordinator</span>
+                <span className="text-slate-500 text-[10px] font-medium">Manager</span>
               </div>
               <span onClick={handleLogout} className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors" title="Logout">logout</span>
             </div>
@@ -89,7 +83,7 @@ function SupplierLayout() {
         </div>
       </aside>
 
-      {/* MAIN — only the Outlet content swaps on navigation */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <Outlet context={{ userInfo, handleLogout }} />
       </main>
@@ -97,4 +91,4 @@ function SupplierLayout() {
   )
 }
 
-export default SupplierLayout
+export default ManagerLayout
