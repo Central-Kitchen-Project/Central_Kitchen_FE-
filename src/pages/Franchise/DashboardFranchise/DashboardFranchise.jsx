@@ -5,6 +5,13 @@ import { fetchGetInventory } from '../../../store/inventorySlice'
 import { fetchGetAllFeedback } from '../../../store/feedbackSlice'
 import './DashboardFranchise.css'
 
+function parseUTC(dateStr) {
+  if (!dateStr) return new Date(NaN)
+  let s = String(dateStr)
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += 'Z'
+  return new Date(s)
+}
+
 function DashboardFranchise() {
   const dispatch = useDispatch()
   const orders = useSelector(state => state.ORDER.listOrders) || []
@@ -51,12 +58,12 @@ function DashboardFranchise() {
 
   // Recent orders (last 6)
   const recentOrders = [...myOrders]
-    .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+    .sort((a, b) => parseUTC(b.orderDate) - parseUTC(a.orderDate))
     .slice(0, 6)
 
   // Recent feedbacks (last 5)
   const recentFeedbacks = [...feedbackArr]
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .sort((a, b) => parseUTC(b.createdAt) - parseUTC(a.createdAt))
     .slice(0, 5)
 
   // Order status distribution
@@ -81,7 +88,7 @@ function DashboardFranchise() {
       const nextDate = new Date(date)
       nextDate.setDate(date.getDate() + 1)
       const dayOrders = myOrders.filter(o => {
-        const d = new Date(o.orderDate)
+        const d = parseUTC(o.orderDate)
         return d >= date && d < nextDate
       })
       return {
@@ -118,7 +125,7 @@ function DashboardFranchise() {
 
   const formatDate = (d) => {
     if (!d) return '-'
-    return new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return parseUTC(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
   return (

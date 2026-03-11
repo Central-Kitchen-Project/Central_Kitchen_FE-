@@ -4,6 +4,13 @@ import { fetchGetAll } from '../../store/itemSlice'
 import { fetchGetOrder } from '../../store/orderSlice'
 import './DashboardManager.css'
 
+function parseUTC(dateStr) {
+  if (!dateStr) return new Date(NaN)
+  let s = String(dateStr)
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += 'Z'
+  return new Date(s)
+}
+
 function DashboardManager() {
   const dispatch = useDispatch()
   const items = useSelector(state => state.ITEM.listItems) || []
@@ -36,7 +43,7 @@ function DashboardManager() {
       dayEnd.setDate(dayStart.getDate() + 1)
 
       const dayOrders = orders.filter(o => {
-        const d = new Date(o.orderDate)
+        const d = parseUTC(o.orderDate)
         return d >= dayStart && d < dayEnd
       })
 

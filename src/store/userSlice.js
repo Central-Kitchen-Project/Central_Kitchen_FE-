@@ -1,14 +1,46 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import userService from "../services/userService";
 
+// The .NET API may return { $id, $values: [...] } or a plain array
+const normalizeArray = (data) => {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.$values)) return data.$values;
+  if (data && typeof data === "object") return Object.values(data).find(Array.isArray) || [];
+  return [];
+};
+
 export const fetchAllUsers = createAsyncThunk(
   "user/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
       const res = await userService.getAllUsers();
-      return res.data;
+      return normalizeArray(res.data);
     } catch (err) {
       return rejectWithValue(err.response?.data || "Failed to fetch users");
+    }
+  }
+);
+
+export const fetchUsersByRole = createAsyncThunk(
+  "user/fetchByRole",
+  async (roleId, { rejectWithValue }) => {
+    try {
+      const res = await userService.getUsersByRole(roleId);
+      return normalizeArray(res.data);
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to fetch users by role");
+    }
+  }
+);
+
+export const fetchDashboardCount = createAsyncThunk(
+  "user/fetchDashboardCount",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await userService.getDashboardCount();
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to fetch dashboard count");
     }
   }
 );
@@ -53,6 +85,7 @@ const userSlice = createSlice({
   name: "USER",
   initialState: {
     users: [],
+    dashboardCount: null,
     loading: false,
     error: null,
   },
@@ -76,18 +109,44 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // fetchByRole
+      .addCase(fetchUsersByRole.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUsersByRole.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = action.payload;
+      })
+      .addCase(fetchUsersByRole.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // fetchDashboardCount
+      .addCase(fetchDashboardCount.fulfilled, (state, action) => {
+        state.dashboardCount = action.payload;
+      })
       // create
       .addCase(createUser.fulfilled, (state, action) => {
         state.users.push(action.payload);
+      })
+      .addCase(createUser.rejected, (state, action) => {
+        state.error = action.payload;
       })
       // update
       .addCase(updateUser.fulfilled, (state, action) => {
         const idx = state.users.findIndex((u) => u.id === action.payload.id);
         if (idx !== -1) state.users[idx] = action.payload;
       })
+      .addCase(updateUser.rejected, (state, action) => {
+        state.error = action.payload;
+      })
       // delete
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.users = state.users.filter((u) => u.id !== action.payload);
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });

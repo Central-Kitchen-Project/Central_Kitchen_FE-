@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAllUsers, createUser, updateUser, deleteUser } from "../../../store/userSlice";
+import { fetchAllUsers, createUser, updateUser, deleteUser, clearUserError } from "../../../store/userSlice";
 
 const ROLE_MAP = {
   1: "Admin",
@@ -19,7 +19,7 @@ const ROLE_COLORS = {
   5: "bg-amber-50 text-amber-700",
 };
 
-const EMPTY_FORM = { username: "", email: "", password: "", roleId: 4, phone: "", address: "" };
+const EMPTY_FORM = { username: "", email: "", password: "", roleId: 4 };
 
 function UserManagement() {
   const navigate = useNavigate();
@@ -33,6 +33,7 @@ function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [actionLoading, setActionLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     try {
@@ -49,7 +50,8 @@ function UserManagement() {
   };
 
   /* Filtering */
-  const filtered = users.filter((u) => {
+  const userList = Array.isArray(users) ? users : [];
+  const filtered = userList.filter((u) => {
     const matchSearch =
       (u.username || "").toLowerCase().includes(search.toLowerCase()) ||
       (u.email || "").toLowerCase().includes(search.toLowerCase());
@@ -71,8 +73,6 @@ function UserManagement() {
       email: user.email || "",
       password: "",
       roleId: user.roleId || 4,
-      phone: user.phone || "",
-      address: user.address || "",
     });
     setShowModal(true);
   };
@@ -83,16 +83,33 @@ function UserManagement() {
     setForm(EMPTY_FORM);
   };
 
+  const showSuccess = (msg) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(""), 3000);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
+    dispatch(clearUserError());
     try {
       if (editingUser) {
-        const payload = { ...form };
-        if (!payload.password) delete payload.password;
+        const payload = {
+          username: form.username,
+          email: form.email,
+          roleId: form.roleId,
+          password: form.password || null,
+        };
         await dispatch(updateUser({ id: editingUser.id, data: payload })).unwrap();
+        showSuccess("User updated successfully!");
       } else {
-        await dispatch(createUser(form)).unwrap();
+        await dispatch(createUser({
+          username: form.username,
+          password: form.password,
+          email: form.email,
+          roleId: form.roleId,
+        })).unwrap();
+        showSuccess("User created successfully!");
       }
       closeModal();
       dispatch(fetchAllUsers());
@@ -105,8 +122,10 @@ function UserManagement() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
+    dispatch(clearUserError());
     try {
       await dispatch(deleteUser(id)).unwrap();
+      showSuccess("User deleted successfully!");
     } catch (err) {
       console.error(err);
     }
@@ -206,7 +225,7 @@ function UserManagement() {
                   <span className="material-symbols-outlined text-base">group</span>
                 </div>
               </div>
-              <span className="text-2xl font-bold text-slate-900">{users.length}</span>
+              <span className="text-2xl font-bold text-slate-900">{userList.length}</span>
               <span className="text-[11px] text-slate-500">All accounts</span>
             </div>
             <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
@@ -217,7 +236,7 @@ function UserManagement() {
                 </div>
               </div>
               <span className="text-2xl font-bold text-slate-900">
-                {users.filter((u) => u.status === true || u.status === "Active").length}
+                {userList.filter((u) => u.status === true || u.status === "Active").length}
               </span>
               <span className="text-[11px] text-slate-500">Active accounts</span>
             </div>
@@ -229,7 +248,7 @@ function UserManagement() {
                 </div>
               </div>
               <span className="text-2xl font-bold text-slate-900">
-                {users.filter((u) => u.roleId === 1).length}
+                {userList.filter((u) => u.roleId === 1).length}
               </span>
               <span className="text-[11px] text-slate-500">Admin accounts</span>
             </div>
@@ -241,7 +260,7 @@ function UserManagement() {
                 </div>
               </div>
               <span className="text-2xl font-bold text-slate-900">
-                {users.filter((u) => u.roleId === 4).length}
+                {userList.filter((u) => u.roleId === 4).length}
               </span>
               <span className="text-[11px] text-slate-500">Franchise accounts</span>
             </div>
@@ -280,10 +299,19 @@ function UserManagement() {
             </button>
           </div>
 
+          {/* Success */}
+          {successMsg && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+              {successMsg}
+            </div>
+          )}
+
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
-              {typeof error === "string" ? error : "An error occurred."}
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              {typeof error === "string" ? error : JSON.stringify(error)}
             </div>
           )}
 
@@ -372,7 +400,7 @@ function UserManagement() {
             {/* Footer info */}
             <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
               <span className="text-[11px] text-slate-400">
-                Showing {filtered.length} of {users.length} users
+                Showing {filtered.length} of {userList.length} users
               </span>
             </div>
           </div>
@@ -440,26 +468,7 @@ function UserManagement() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Phone</label>
-                  <input
-                    type="text"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Address</label>
-                  <input
-                    type="text"
-                    value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                </div>
-              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
