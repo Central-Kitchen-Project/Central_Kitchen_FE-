@@ -26,6 +26,8 @@ function UserManagement() {
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -45,6 +47,16 @@ function UserManagement() {
     const matchRole = roleFilter ? String(u.roleId) === roleFilter : true;
     return matchSearch && matchRole;
   });
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedUsers = filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter]);
 
   /* Modal helpers */
   const openCreate = () => {
@@ -237,8 +249,8 @@ function UserManagement() {
           )}
 
           {/* Table */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-0">
+            <div className="overflow-x-auto flex-1 overflow-y-auto">
               <table className="w-full">
                 <thead className="sticky top-0 bg-white z-10">
                   <tr className="border-b border-slate-200">
@@ -264,9 +276,9 @@ function UserManagement() {
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((user, idx) => (
+                    pagedUsers.map((user, idx) => (
                       <tr key={user.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0">
-                        <td className="px-4 py-3 text-xs text-slate-500">{idx + 1}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{(safeCurrentPage - 1) * pageSize + idx + 1}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
@@ -306,12 +318,68 @@ function UserManagement() {
                 </tbody>
               </table>
             </div>
-            {/* Footer info */}
-            <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[11px] text-slate-400">
-                Showing {filtered.length} of {userList.length} users
-              </span>
-            </div>
+            {/* Footer with pagination */}
+            {filtered.length > 0 && (
+              <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between shrink-0">
+                <span className="text-xs text-slate-500">
+                  Showing {(safeCurrentPage - 1) * pageSize + 1}–{Math.min(safeCurrentPage * pageSize, filtered.length)} of {filtered.length} users
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safeCurrentPage === 1}
+                    className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">first_page</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1)
+                    .reduce((acc, p, i, arr) => {
+                      if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === "..." ? (
+                        <span key={`dot-${i}`} className="px-1 text-xs text-slate-400">...</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setCurrentPage(p)}
+                          className={`min-w-[28px] px-2 py-1 rounded text-xs font-bold transition-colors ${
+                            p === safeCurrentPage
+                              ? "bg-blue-600 text-white"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safeCurrentPage === totalPages}
+                    className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safeCurrentPage === totalPages}
+                    className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">last_page</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
