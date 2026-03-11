@@ -69,16 +69,18 @@ body {
 .content-area {
     flex: 1 !important;
     padding: 20px 24px !important;
-    overflow-y: auto !important;
+    overflow: hidden !important;
     display: flex !important;
     gap: 20px !important;
     min-width: 0 !important;
+    min-height: 0 !important;
 }
 
 .products-section {
     flex: 1 !important;
     min-width: 0 !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
 }
 
 /* --- Tabs --- */
@@ -236,10 +238,14 @@ body {
 .order-summary {
     width: 320px;
     background: white;
-    border: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 20px;
-    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .summary-title {
@@ -256,8 +262,6 @@ body {
 }
 
 .summary-items {
-    max-height: 300px;
-    overflow-y: auto;
     margin-bottom: 16px;
     border-bottom: 1px solid #e5e7eb;
     padding-bottom: 16px;
