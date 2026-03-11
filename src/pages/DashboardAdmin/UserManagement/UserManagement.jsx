@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers, createUser, updateUser, deleteUser, clearUserError } from "../../../store/userSlice";
 
 const ROLE_MAP = {
   1: "Admin",
   2: "Manager",
-  3: "Central Kitchen",
-  4: "Franchise",
-  5: "Supplier",
+  3: "Franchise Store",
+  4: "Central Kitchen",
+  5: "Supply Coordinator",
 };
 
 const ROLE_COLORS = {
@@ -22,11 +21,9 @@ const ROLE_COLORS = {
 const EMPTY_FORM = { username: "", email: "", password: "", roleId: 4 };
 
 function UserManagement() {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { users, loading, error } = useSelector((state) => state.USER);
 
-  const [userInfo, setUserInfo] = useState({ username: "Admin User", roleId: 1 });
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -36,18 +33,8 @@ function UserManagement() {
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("USER_INFO"));
-      if (stored) setUserInfo(stored);
-    } catch (e) {}
     dispatch(fetchAllUsers());
   }, [dispatch]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("ACCESS_TOKEN");
-    localStorage.removeItem("USER_INFO");
-    navigate("/SignIn");
-  };
 
   /* Filtering */
   const userList = Array.isArray(users) ? users : [];
@@ -132,75 +119,9 @@ function UserManagement() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* Sidebar — identical to DashboardAdmin */}
-      <aside className="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
-        <div className="p-6 flex flex-col gap-8 h-full">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary size-10 rounded-lg flex items-center justify-center text-white shadow-md">
-              <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">
-                Admin Dashboard
-              </h1>
-              <p className="text-slate-500 text-[10px] font-medium uppercase tracking-tighter">
-                Management System
-              </p>
-            </div>
-          </div>
-          <nav className="flex flex-col gap-1 grow">
-            <Link
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-              to="/DashboardAdmin"
-            >
-              <span className="material-symbols-outlined text-[22px]">dashboard</span>
-              <span className="text-sm font-medium">Dashboard</span>
-            </Link>
-            <Link
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-primary font-semibold"
-              to="/UserManagement"
-            >
-              <span className="material-symbols-outlined text-[22px]">group</span>
-              <span className="text-sm">User Management</span>
-            </Link>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-              <span className="material-symbols-outlined text-[22px]">lock</span>
-              <span className="text-sm font-medium">RBAC Settings</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-              <span className="material-symbols-outlined text-[22px]">tune</span>
-              <span className="text-sm font-medium">System Configuration</span>
-            </a>
-            <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" href="#">
-              <span className="material-symbols-outlined text-[22px]">database</span>
-              <span className="text-sm font-medium">Master Data</span>
-            </a>
-          </nav>
-          <div className="mt-auto border-t border-slate-100 pt-6">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="size-9 rounded-full bg-primary flex items-center justify-center text-white text-xs font-semibold border border-slate-200">
-                {userInfo.username?.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-slate-900 text-xs font-bold truncate">{userInfo.username}</span>
-                <span className="text-slate-500 text-[10px] font-medium">Administrator</span>
-              </div>
-              <span
-                onClick={handleLogout}
-                className="material-symbols-outlined text-slate-400 text-sm cursor-pointer hover:text-red-500 transition-colors"
-                title="Logout"
-              >
-                logout
-              </span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
+    <>
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+      {/* Header */}
         <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
           <h2 className="text-lg font-bold text-slate-900">User Management</h2>
           <div className="flex items-center gap-3">
@@ -230,18 +151,6 @@ function UserManagement() {
             </div>
             <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active</span>
-                <div className="size-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
-                  <span className="material-symbols-outlined text-base">check_circle</span>
-                </div>
-              </div>
-              <span className="text-2xl font-bold text-slate-900">
-                {userList.filter((u) => u.status === true || u.status === "Active").length}
-              </span>
-              <span className="text-[11px] text-slate-500">Active accounts</span>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
-              <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Admins</span>
                 <div className="size-8 rounded-lg bg-red-50 flex items-center justify-center text-red-500">
                   <span className="material-symbols-outlined text-base">shield_person</span>
@@ -260,9 +169,21 @@ function UserManagement() {
                 </div>
               </div>
               <span className="text-2xl font-bold text-slate-900">
-                {userList.filter((u) => u.roleId === 4).length}
+                {userList.filter((u) => u.roleId === 3).length}
               </span>
               <span className="text-[11px] text-slate-500">Franchise accounts</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Supply Coordinator</span>
+                <div className="size-8 rounded-lg bg-violet-50 flex items-center justify-center text-violet-500">
+                  <span className="material-symbols-outlined text-base">local_shipping</span>
+                </div>
+              </div>
+              <span className="text-2xl font-bold text-slate-900">
+                {userList.filter((u) => u.roleId === 5).length}
+              </span>
+              <span className="text-[11px] text-slate-500">Coordinator accounts</span>
             </div>
           </div>
 
@@ -317,29 +238,28 @@ function UserManagement() {
 
           {/* Table */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
               <table className="w-full">
-                <thead>
+                <thead className="sticky top-0 bg-white z-10">
                   <tr className="border-b border-slate-200">
                     <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">#</th>
                     <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Name</th>
                     <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Email</th>
                     <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Phone</th>
                     <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Role</th>
-                    <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Status</th>
                     <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-12 text-slate-400 text-sm">
+                      <td colSpan={6} className="text-center py-12 text-slate-400 text-sm">
                         Loading users...
                       </td>
                     </tr>
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-12 text-slate-400 text-sm">
+                      <td colSpan={6} className="text-center py-12 text-slate-400 text-sm">
                         No users found.
                       </td>
                     </tr>
@@ -360,17 +280,6 @@ function UserManagement() {
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${ROLE_COLORS[user.roleId] || "bg-slate-100 text-slate-600"}`}>
                             {ROLE_MAP[user.roleId] || `Role ${user.roleId}`}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              user.status === true || user.status === "Active"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-slate-100 text-slate-500"
-                            }`}
-                          >
-                            ● {user.status === true || user.status === "Active" ? "Active" : "Inactive"}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -405,7 +314,6 @@ function UserManagement() {
             </div>
           </div>
         </div>
-      </main>
 
       {/* Create/Edit Modal */}
       {showModal && (
@@ -489,7 +397,7 @@ function UserManagement() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
