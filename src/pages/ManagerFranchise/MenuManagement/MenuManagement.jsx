@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchGetAll } from '../../../store/itemSlice'
+import { fetchGetAll, removeItem } from '../../../store/itemSlice'
+import API from '../../../services/api'
 import axios from 'axios'
 
 function MenuManagement() {
@@ -9,12 +10,18 @@ function MenuManagement() {
 
   const [currentFilter, setCurrentFilter] = useState('all')
   const [sortBy, setSortBy] = useState('default')
+
+  // Detail modal
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [currentProduct, setCurrentProduct] = useState(null)
   const [ingredients, setIngredients] = useState([])
   const [loadingDetail, setLoadingDetail] = useState(false)
-  // Cache item details (with ingredients) by id
   const [itemDetails, setItemDetails] = useState({})
+
+  // Expanded rows (show ingredients inline)
+  const [expandedRows, setExpandedRows] = useState({})
+  const [rowIngredients, setRowIngredients] = useState({})
+  const [loadingRow, setLoadingRow] = useState({})
 
   // Add Item modal
   const [showAddModal, setShowAddModal] = useState(false)
@@ -26,19 +33,94 @@ function MenuManagement() {
     description: '',
     price: '',
     category: '',
-    ingredients: []
   })
+
+  // Add Ingredient modal
+  const [showIngredientModal, setShowIngredientModal] = useState(false)
+  const [ingredientTarget, setIngredientTarget] = useState(null)
+  const [ingredientForm, setIngredientForm] = useState([])
+  const [savingIngredients, setSavingIngredients] = useState(false)
+
+  // Delete confirm
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
   const [toast, setToast] = useState(null)
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 8
+
+  // Edit Item modal state and logic
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  const [editForm, setEditForm] = useState({
+    id: '',
+    itemName: '',
+    unit: '',
+    itemType: '',
+    description: '',
+    price: '',
+    category: ''
+  })
+
+  const openEditModal = (item) => {
+    setEditForm({
+      id: item.id,
+      itemName: item.name || '',
+      unit: item.unit || '',
+      itemType: item.type || '',
+      description: item.description || '',
+      price: item.price || '',
+      category: item.category || ''
+    })
+    setShowEditModal(true)
+  }
+
+  const closeEditModal = () => setShowEditModal(false)
+
+  const handleEditChange = (field, value) => {
+    setEditForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const saveEditItem = async () => {
+    if (!editForm.itemName.trim()) {
+      showToast('error', 'Item name is required')
+      return
+    }
+    try {
+      await API.callWithToken().put(`Item/${editForm.id}`, {
+        itemName: editForm.itemName,
+        unit: editForm.unit,
+        itemType: editForm.itemType,
+        description: editForm.description,
+        price: editForm.price ? Number(editForm.price) : null,
+        category: editForm.category || null
+      })
+      showToast('success', 'Item updated successfully!')
+      setShowEditModal(false)
+      dispatch(fetchGetAll({ type: '', category: '' }))
+    } catch (err) {
+      console.error('Failed to update item:', err)
+      showToast('error', 'Failed to update item. Please try again.')
+    }
+  }
 
   useEffect(() => {
     dispatch(fetchGetAll({ type: '', category: '' }))
   }, [dispatch])
 
+  const showToast = (type, message) => {
+    setToast({ type, message })
+    setTimeout(() => setToast(null), 3000)
+  }
+
   // Fetch item detail (with ingredients)
   const fetchItemDetail = async (itemId) => {
     if (itemDetails[itemId]) return itemDetails[itemId]
     try {
-      const res = await axios.get(`http://meinamfpt-001-site1.ltempurl.com/api/Item/${itemId}`)
+      const res = await axios.get(`/api/Item/${itemId}`)
       const detail = res.data?.data
       if (detail) {
         setItemDetails(prev => ({ ...prev, [itemId]: detail }))
@@ -53,13 +135,13 @@ function MenuManagement() {
   // Get unique types for filter tabs
   const itemTypes = [...new Set((data || []).map(item => item.type?.toLowerCase()).filter(Boolean))]
 
-  // Get unique units from nguyen lieu items for dropdown
-  const rawMaterialUnits = [...new Set(
-    (data || [])
-      .filter(item => item.type?.toLowerCase() === 'nguyen lieu')
-      .map(item => item.unit?.toLowerCase())
-      .filter(Boolean)
-  )].sort()
+  // Get raw material items (for ingredient selection)
+  const rawMaterials = (data || []).filter(item => {
+    const t = item.type?.toLowerCase()
+    return t === 'nguyen lieu' || t === 'raw material'
+  })
+
+  const rawMaterialUnits = [...new Set(rawMaterials.map(item => item.unit?.toLowerCase()).filter(Boolean))].sort()
 
   const filteredProducts = (data || []).filter(item => {
     if (currentFilter === 'all') return true
@@ -74,6 +156,33 @@ function MenuManagement() {
     }
   })
 
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE))
+  const safePage = Math.min(currentPage, totalPages)
+  const pagedProducts = filteredProducts.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
+
+  const isFinished = (item) => {
+    const t = item.type?.toLowerCase()
+    return t === 'thanh pham' || t === 'finished'
+  }
+
+  // Toggle expand row to show ingredients
+  const toggleExpand = async (item) => {
+    const id = item.id
+    if (expandedRows[id]) {
+      setExpandedRows(prev => ({ ...prev, [id]: false }))
+      return
+    }
+    setExpandedRows(prev => ({ ...prev, [id]: true }))
+    if (!rowIngredients[id]) {
+      setLoadingRow(prev => ({ ...prev, [id]: true }))
+      const detail = await fetchItemDetail(id)
+      setRowIngredients(prev => ({ ...prev, [id]: detail?.ingredients || [] }))
+      setLoadingRow(prev => ({ ...prev, [id]: false }))
+    }
+  }
+
+  // Open detail modal
   const openDetailModal = async (product) => {
     setCurrentProduct(product)
     setLoadingDetail(true)
@@ -89,25 +198,26 @@ function MenuManagement() {
     setCurrentProduct(null)
   }
 
+    // Hàm cập nhật form thêm mới
+    const handleAddFormChange = (field, value) => {
+      setAddForm(prev => ({ ...prev, [field]: value }))
+    }
   // Add Item
   const openAddModal = () => {
-    setAddForm({ itemName: '', unit: '', itemType: itemTypes[0] || '', description: '', price: '', category: '', ingredients: [] })
+    setAddForm({ itemName: '', unit: '', itemType: itemTypes[0] || '', description: '', price: '', category: '' })
     setShowAddModal(true)
   }
 
-  const closeAddModal = () => {
-    setShowAddModal(false)
-  }
+  const closeAddModal = () => setShowAddModal(false)
 
   const createItem = async () => {
     if (!addForm.itemName.trim() || !addForm.itemType.trim()) {
-      setToast({ type: 'error', message: 'Item name and type are required' })
-      setTimeout(() => setToast(null), 3000)
+      showToast('error', 'Item name and type are required')
       return
     }
     setCreating(true)
     try {
-      await axios.post('http://meinamfpt-001-site1.ltempurl.com/api/Item', {
+      await axios.post('/api/Item', {
         itemName: addForm.itemName,
         unit: addForm.unit,
         itemType: addForm.itemType,
@@ -115,16 +225,126 @@ function MenuManagement() {
         price: addForm.price ? Number(addForm.price) : null,
         category: addForm.category || null
       })
-      setToast({ type: 'success', message: 'Item created successfully!' })
-      setTimeout(() => setToast(null), 3000)
+      showToast('success', 'Item created successfully!')
       setShowAddModal(false)
       dispatch(fetchGetAll({ type: '', category: '' }))
     } catch (err) {
       console.error('Failed to create item:', err)
-      setToast({ type: 'error', message: 'Failed to create item. Please try again.' })
-      setTimeout(() => setToast(null), 3000)
+      showToast('error', 'Failed to create item. Please try again.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  // Add Ingredient Modal
+  const openIngredientModal = async (item) => {
+    setIngredientTarget(item)
+    setShowIngredientModal(true)
+    // Load existing ingredients
+    const detail = await fetchItemDetail(item.id)
+    const existing = (detail?.ingredients || []).map(ing => {
+      // Match ingredient name to raw material ID
+      const matched = rawMaterials.find(rm => rm.name?.toLowerCase() === ing.name?.toLowerCase())
+      return {
+        itemId: ing.ingredientItemId || ing.itemId || (matched ? String(matched.id) : ''),
+        qty: ing.qty || ing.quantity || '',
+        name: ing.name || '',
+      }
+    })
+    setIngredientForm(existing.length > 0 ? existing : [{ itemId: '', qty: '' }])
+  }
+
+  const closeIngredientModal = () => {
+    setShowIngredientModal(false)
+    setIngredientTarget(null)
+    setIngredientForm([])
+  }
+
+  // Delete Item
+  const openDeleteModal = (item) => {
+    setDeleteTarget(item)
+    setShowDeleteModal(true)
+  }
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false)
+    setDeleteTarget(null)
+  }
+
+  const deleteItem = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await API.callWithToken().delete(`Item/${deleteTarget.id}`)
+      dispatch(removeItem(deleteTarget.id))
+      showToast('success', `"${deleteTarget.name}" deleted successfully!`)
+      closeDeleteModal()
+    } catch (err) {
+      console.error('Failed to delete item:', err)
+      showToast('error', err.response?.data?.message || 'Failed to delete item. Please try again.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const addIngredientRow = () => {
+    setIngredientForm(prev => [...prev, { itemId: '', qty: '' }])
+  }
+
+  const removeIngredientRow = (idx) => {
+    setIngredientForm(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const updateIngredientRow = (idx, field, value) => {
+    setIngredientForm(prev => {
+      const updated = [...prev]
+      updated[idx] = { ...updated[idx], [field]: value }
+      return updated
+    })
+  }
+
+  const saveIngredients = async () => {
+    if (!ingredientTarget) return
+    const validItems = ingredientForm.filter(r => r.itemId && r.qty)
+
+    // Check if item already has ingredients (from cache before clearing)
+    const cachedDetail = itemDetails[ingredientTarget.id]
+    const hasExisting = cachedDetail?.ingredients && cachedDetail.ingredients.length > 0
+
+    // If no existing ingredients and no new ones, block
+    if (!hasExisting && validItems.length === 0) {
+      showToast('error', 'Please add at least one ingredient with quantity')
+      return
+    }
+
+    setSavingIngredients(true)
+    try {
+      const payload = {
+        finishedItemId: ingredientTarget.id,
+        ingredients: validItems.map(r => ({
+          ingredientItemId: Number(r.itemId),
+          quantity: Number(r.qty),
+        }))
+      }
+      if (hasExisting) {
+        await axios.put('/api/Item/update-ingredients', payload)
+      } else {
+        await axios.post('/api/Item/create-recipe', payload)
+      }
+      showToast('success', 'Ingredients saved successfully!')
+      // Refresh cached detail
+      setItemDetails(prev => { const copy = { ...prev }; delete copy[ingredientTarget.id]; return copy })
+      setRowIngredients(prev => { const copy = { ...prev }; delete copy[ingredientTarget.id]; return copy })
+      if (expandedRows[ingredientTarget.id]) {
+        const detail = await fetchItemDetail(ingredientTarget.id)
+        setRowIngredients(prev => ({ ...prev, [ingredientTarget.id]: detail?.ingredients || [] }))
+      }
+      closeIngredientModal()
+    } catch (err) {
+      console.error('Failed to save ingredients:', err)
+      showToast('error', 'Failed to save ingredients. API may not be available yet.')
+    } finally {
+      setSavingIngredients(false)
     }
   }
 
@@ -145,15 +365,15 @@ function MenuManagement() {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
         <h1 className="text-xl font-bold text-slate-900">Menu Management</h1>
-        <p className="text-xs text-slate-500 mt-1">Manage items and menu categories</p>
+        <p className="text-xs text-slate-500 mt-1">Manage items, recipes, and ingredients</p>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
-        {/* Category Tabs */}
+        {/* Filter & Actions */}
         <div className="flex gap-2 mb-6 flex-wrap items-center">
           <button
-            onClick={() => setCurrentFilter('all')}
+            onClick={() => { setCurrentFilter('all'); setCurrentPage(1) }}
             className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
               currentFilter === 'all'
                 ? 'bg-slate-800 text-white border-slate-800'
@@ -165,7 +385,7 @@ function MenuManagement() {
           {itemTypes.map(type => (
             <button
               key={type}
-              onClick={() => setCurrentFilter(type)}
+              onClick={() => { setCurrentFilter(type); setCurrentPage(1) }}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors border capitalize ${
                 currentFilter === type
                   ? 'bg-slate-800 text-white border-slate-800'
@@ -202,60 +422,274 @@ function MenuManagement() {
           <div className="text-center text-slate-400 py-20">Loading items from API...</div>
         )}
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProducts.map(product => (
-            <div
-              key={product.id}
-              onClick={() => openDetailModal(product)}
-              className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <h3 className="text-sm font-bold text-slate-900">{product.name}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{product.description}</p>
-              <div className="flex items-center gap-2 mt-3">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium capitalize">{product.type}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{product.unit}</span>
-              </div>
-              <div className="flex items-center justify-between mt-3">
-                <div>
-                  <span className="text-base font-bold text-blue-600">{product.price?.toLocaleString('vi-VN')}đ</span>
-                  <span className="text-xs text-slate-400">/{product.unit}</span>
+        {/* Items Table */}
+        {data && data.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 w-8">#</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Item Name</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Type</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Unit</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Price</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Ingredients</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pagedProducts.map((product, idx) => {
+                  const finished = isFinished(product)
+                  const expanded = expandedRows[product.id]
+                  const ings = rowIngredients[product.id] || []
+                  const isLoadingIng = loadingRow[product.id]
+                  return (
+                    <>
+                      <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-3 text-xs text-slate-400">{(safePage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
+                        <td className="px-5 py-3">
+                          <div>
+                            <span className="text-sm font-semibold text-slate-900">{product.name}</span>
+                            {product.description && (
+                              <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{product.description}</p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${
+                            finished ? 'bg-blue-50 text-blue-600' : 'bg-blue-50 text-blue-600'
+                          }`}>
+                            {product.type}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-slate-600 text-center">{product.unit}</td>
+                        <td className="px-5 py-3 text-sm font-bold text-blue-600 text-right">
+                          {product.price?.toLocaleString('vi-VN')}đ
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          {isFinished(product) && (
+                            <button
+                              onClick={() => toggleExpand(product)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                                expanded
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-xs">
+                                {expanded ? 'expand_less' : 'expand_more'}
+                              </span>
+                              {expanded ? 'Hide' : 'View'}
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {isFinished(product) && (
+                              <button
+                                onClick={() => openIngredientModal(product)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[11px] font-semibold rounded-md transition-colors"
+                                title="Manage ingredients"
+                              >
+                                <span className="material-symbols-outlined text-xs">science</span>
+                                Ingredients
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openEditModal(product)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 text-[11px] font-semibold rounded-md transition-colors"
+                              title="Edit item"
+                            >
+                              <span className="material-symbols-outlined text-xs">edit</span>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => openDetailModal(product)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold rounded-md transition-colors"
+                              title="View details"
+                            >
+                              <span className="material-symbols-outlined text-xs">visibility</span>
+                              Detail
+                            </button>
+                            <button
+                              onClick={() => openDeleteModal(product)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-semibold rounded-md transition-colors"
+                              title="Delete item"
+                            >
+                              <span className="material-symbols-outlined text-xs">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                            {/* Edit Item Modal */}
+                            {showEditModal && (
+                              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                                <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
+                                  <h2 className="text-lg font-bold mb-4 text-yellow-700">Edit Item</h2>
+                                  <div className="mb-3">
+                                    <label className="block text-xs font-semibold mb-1">Name</label>
+                                    <input
+                                      type="text"
+                                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                                      value={editForm.itemName}
+                                      onChange={e => handleEditChange('itemName', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="mb-3">
+                                    <label className="block text-xs font-semibold mb-1">Description</label>
+                                    <textarea
+                                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                                      value={editForm.description}
+                                      onChange={e => handleEditChange('description', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="mb-3">
+                                    <label className="block text-xs font-semibold mb-1">Unit</label>
+                                    <input
+                                      type="text"
+                                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                                      value={editForm.unit}
+                                      onChange={e => handleEditChange('unit', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="mb-3">
+                                    <label className="block text-xs font-semibold mb-1">Type</label>
+                                    <input
+                                      type="text"
+                                      className="w-full border border-slate-200 bg-slate-100 text-slate-400 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                                      value={editForm.itemType}
+                                      disabled
+                                      readOnly
+                                    />
+                                  </div>
+                                  <div className="mb-3">
+                                    <label className="block text-xs font-semibold mb-1">Category</label>
+                                    <input
+                                      type="text"
+                                      className="w-full border border-slate-200 bg-slate-100 text-slate-400 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                                      value={editForm.category}
+                                      disabled
+                                      readOnly
+                                    />
+                                  </div>
+                                  <div className="mb-5">
+                                    <label className="block text-xs font-semibold mb-1">Price</label>
+                                    <input
+                                      type="number"
+                                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                                      value={editForm.price}
+                                      onChange={e => handleEditChange('price', e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={closeEditModal}
+                                      className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={saveEditItem}
+                                      className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-semibold hover:bg-yellow-600"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                      </tr>
+                      {/* Expanded Ingredients Row */}
+                      {finished && expanded && (
+                        <tr key={`${product.id}-ing`} className="bg-blue-50/30">
+                          <td></td>
+                          <td colSpan={6} className="px-5 py-3">
+                            {isLoadingIng ? (
+                              <p className="text-xs text-slate-400 italic">Loading ingredients...</p>
+                            ) : ings.length === 0 ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-400 italic">No ingredients added yet.</span>
+                                <button
+                                  onClick={() => openIngredientModal(product)}
+                                  className="text-xs text-blue-600 hover:text-blue-700 font-semibold underline"
+                                >
+                                  Add now
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {ings.map((ing, i) => (
+                                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 rounded-lg text-xs text-slate-700">
+                                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
+                                    <span className="font-medium">{ing.name}</span>
+                                    <span className="text-slate-400">·</span>
+                                    <span className="font-bold text-blue-600">{ing.qty} {ing.unit}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            {filteredProducts.length > ITEMS_PER_PAGE && (
+              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-xs text-slate-400">
+                  Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filteredProducts.length)} of {filteredProducts.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={safePage <= 1}
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <span className="material-symbols-outlined text-base">chevron_left</span>
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
+                        p === safePage ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={safePage >= totalPages}
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <span className="material-symbols-outlined text-base">chevron_right</span>
+                  </button>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); openDetailModal(product); }}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-500 text-[10px] font-semibold rounded-md transition-colors"
-                  title="View details"
-                >
-                  <span className="material-symbols-outlined text-xs">edit</span>
-                  Edit
-                </button>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Detail Modal */}
       {showDetailModal && currentProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeModal}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-900">Item Details</h3>
               <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-
-            {/* Modal Body */}
             <div className="p-6 space-y-5">
-              {/* Item name */}
               <div>
                 <h4 className="text-base font-bold text-slate-900">{currentProduct.name}</h4>
                 <p className="text-xs text-slate-500 mt-0.5">{currentProduct.description}</p>
               </div>
-
-              {/* Info Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-50 rounded-lg p-3">
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Type</p>
@@ -274,46 +708,41 @@ function MenuManagement() {
                   <p className="text-sm font-bold text-slate-800 mt-1 capitalize">{currentProduct.category || '—'}</p>
                 </div>
               </div>
-
-              {/* Ingredients */}
-              <div>
-                <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">
-                  <span className="material-symbols-outlined text-sm align-middle mr-1">science</span>
-                  Ingredients
-                </h5>
-                {loadingDetail ? (
-                  <p className="text-sm text-slate-400 italic">Loading ingredients...</p>
-                ) : ingredients.length === 0 ? (
-                  <p className="text-sm text-slate-400">No ingredients data</p>
-                ) : (
-                  <div className="bg-slate-50 rounded-lg divide-y divide-slate-200">
-                    {ingredients.map((ing, idx) => (
-                      <div key={idx} className="flex items-center justify-between px-4 py-2.5">
-                        <span className="text-sm text-slate-700">{ing.name}</span>
-                        <span className="text-sm font-semibold text-slate-900">
-                          {ing.qty} {ing.unit}
-                        </span>
-                      </div>
-                    ))}
+              {isFinished(currentProduct) && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                      <span className="material-symbols-outlined text-sm align-middle mr-1">science</span>
+                      Ingredients
+                    </h5>
+                    <button
+                      onClick={() => { closeModal(); openIngredientModal(currentProduct) }}
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                    >
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                      Manage
+                    </button>
                   </div>
-                )}
-              </div>
+                  {loadingDetail ? (
+                    <p className="text-sm text-slate-400 italic">Loading ingredients...</p>
+                  ) : ingredients.length === 0 ? (
+                    <p className="text-sm text-slate-400">No ingredients added yet.</p>
+                  ) : (
+                    <div className="bg-slate-50 rounded-lg divide-y divide-slate-200">
+                      {ingredients.map((ing, idx) => (
+                        <div key={idx} className="flex items-center justify-between px-4 py-2.5">
+                          <span className="text-sm text-slate-700">{ing.name}</span>
+                          <span className="text-sm font-semibold text-slate-900">{ing.qty} {ing.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* Modal Footer */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
-              <button
-                onClick={closeModal}
-                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold text-slate-700 transition-colors"
-              >
+              <button onClick={closeModal} className="px-5 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold text-slate-700 transition-colors">
                 Close
-              </button>
-              <button
-                disabled
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold opacity-50 cursor-not-allowed"
-                title="Waiting for backend PUT API"
-              >
-                Save Changes
               </button>
             </div>
           </div>
@@ -324,27 +753,23 @@ function MenuManagement() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeAddModal}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-bold text-slate-900">Add New Item</h3>
               <button onClick={closeAddModal} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-
-            {/* Modal Body */}
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Item Name *</label>
                 <input
                   type="text"
                   value={addForm.itemName}
-                  onChange={e => setAddForm({ ...addForm, itemName: e.target.value })}
+                  onChange={e => handleAddFormChange('itemName', e.target.value)}
                   placeholder="Enter item name"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Type *</label>
@@ -352,8 +777,14 @@ function MenuManagement() {
                     value={addForm.itemType}
                     onChange={e => {
                       const newType = e.target.value
-                      const isThanhPham = newType.toLowerCase() === 'thanh pham'
-                      setAddForm({ ...addForm, itemType: newType, unit: isThanhPham ? 'pcs' : '' })
+                      const isTP = newType.toLowerCase() === 'thanh pham'
+                      const isNL = newType.toLowerCase() === 'nguyen lieu' || newType.toLowerCase() === 'raw material'
+                      handleAddFormChange('itemType', newType)
+                      setAddForm(prev => ({
+                        ...prev,
+                        unit: isTP ? 'pcs' : prev.unit,
+                        category: isNL ? 'nguyen lieu' : prev.category
+                      }))
                     }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -366,16 +797,11 @@ function MenuManagement() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Unit</label>
                   {addForm.itemType?.toLowerCase() === 'thanh pham' ? (
-                    <input
-                      type="text"
-                      value="pcs"
-                      disabled
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed"
-                    />
+                    <input type="text" value="pcs" disabled className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed" />
                   ) : (
                     <select
                       value={addForm.unit}
-                      onChange={e => setAddForm({ ...addForm, unit: e.target.value })}
+                      onChange={e => handleAddFormChange('unit', e.target.value)}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select unit</option>
@@ -386,25 +812,23 @@ function MenuManagement() {
                   )}
                 </div>
               </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
                 <textarea
                   value={addForm.description}
-                  onChange={e => setAddForm({ ...addForm, description: e.target.value })}
+                  onChange={e => handleAddFormChange('description', e.target.value)}
                   rows={2}
                   placeholder="Brief description"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Price (VND)</label>
                   <input
                     type="number"
                     value={addForm.price}
-                    onChange={e => setAddForm({ ...addForm, price: e.target.value })}
+                    onChange={e => handleAddFormChange('price', e.target.value)}
                     placeholder="0"
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -414,91 +838,24 @@ function MenuManagement() {
                   <input
                     type="text"
                     value={addForm.category}
-                    onChange={e => setAddForm({ ...addForm, category: e.target.value })}
+                    onChange={e => handleAddFormChange('category', e.target.value)}
                     placeholder="Optional category"
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+
                 </div>
               </div>
-
-              {/* Ingredients section — only for thanh pham */}
               {addForm.itemType?.toLowerCase() === 'thanh pham' && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold text-slate-700">Ingredients</label>
-                    <button
-                      type="button"
-                      onClick={() => setAddForm({ ...addForm, ingredients: [...addForm.ingredients, { itemId: '', qty: '' }] })}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-semibold"
-                    >
-                      <span className="material-symbols-outlined text-sm">add_circle</span>
-                      Add Ingredient
-                    </button>
-                  </div>
-                  {addForm.ingredients.length === 0 && (
-                    <p className="text-xs text-slate-400 italic">No ingredients added yet. Click "Add Ingredient" to start.</p>
-                  )}
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {addForm.ingredients.map((ing, idx) => {
-                      const selectedItem = (data || []).find(i => String(i.id) === String(ing.itemId))
-                      return (
-                        <div key={idx} className="flex items-center gap-2">
-                          <select
-                            value={ing.itemId}
-                            onChange={e => {
-                              const updated = [...addForm.ingredients]
-                              updated[idx] = { ...updated[idx], itemId: e.target.value }
-                              setAddForm({ ...addForm, ingredients: updated })
-                            }}
-                            className="flex-1 px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">Select ingredient</option>
-                            {(data || []).filter(i => i.type?.toLowerCase() === 'nguyen lieu').map(i => (
-                              <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            value={ing.qty}
-                            onChange={e => {
-                              const updated = [...addForm.ingredients]
-                              updated[idx] = { ...updated[idx], qty: e.target.value }
-                              setAddForm({ ...addForm, ingredients: updated })
-                            }}
-                            placeholder="Qty"
-                            className="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <span className="text-xs text-slate-400 w-8">{selectedItem?.unit || ''}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = addForm.ingredients.filter((_, i) => i !== idx)
-                              setAddForm({ ...addForm, ingredients: updated })
-                            }}
-                            className="text-red-400 hover:text-red-600 transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-base">close</span>
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 mt-3">
-                    <p className="text-[11px] text-amber-600">
-                      <span className="material-symbols-outlined text-xs align-middle mr-1">info</span>
-                      Ingredients are saved separately by the backend after item creation.
-                    </p>
-                  </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-600">
+                    <span className="material-symbols-outlined text-xs align-middle mr-1">info</span>
+                    After creating, use the <strong>"Ingredients"</strong> button in the item list to add recipe ingredients.
+                  </p>
                 </div>
               )}
             </div>
-
-            {/* Modal Footer */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
-              <button
-                onClick={closeAddModal}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
+              <button onClick={closeAddModal} className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
                 Cancel
               </button>
               <button
@@ -507,6 +864,118 @@ function MenuManagement() {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {creating ? 'Creating...' : 'Create Item'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeDeleteModal}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-2xl text-red-600">delete_forever</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Item</h3>
+              <p className="text-sm text-slate-500">
+                Are you sure you want to delete <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-200">
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteItem}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Manage Ingredients Modal */}
+      {showIngredientModal && ingredientTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeIngredientModal}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Manage Ingredients</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  For: <span className="font-semibold text-blue-600">{ingredientTarget.name}</span>
+                </p>
+              </div>
+              <button onClick={closeIngredientModal} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Ingredients List</label>
+                <button
+                  onClick={addIngredientRow}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  Add Row
+                </button>
+              </div>
+              {ingredientForm.length === 0 && (
+                <p className="text-xs text-slate-400 italic">No ingredients. Click "Add Row" to start.</p>
+              )}
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {ingredientForm.map((row, idx) => {
+                  const selectedItem = rawMaterials.find(i => String(i.id) === String(row.itemId))
+                  return (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg">
+                      <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold shrink-0">{idx + 1}</span>
+                      <select
+                        value={row.itemId}
+                        onChange={e => updateIngredientRow(idx, 'itemId', e.target.value)}
+                        className="flex-1 px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option value="">Select raw material</option>
+                        {rawMaterials.map(i => (
+                          <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        value={row.qty}
+                        onChange={e => updateIngredientRow(idx, 'qty', e.target.value)}
+                        placeholder="Qty"
+                        className="w-20 px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <span className="text-[11px] text-slate-400 w-8 shrink-0">{selectedItem?.unit || ''}</span>
+                      <button
+                        onClick={() => removeIngredientRow(idx)}
+                        className="text-red-400 hover:text-red-600 transition-colors shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-base">close</span>
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200">
+              <button onClick={closeIngredientModal} className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={saveIngredients}
+                disabled={savingIngredients}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {savingIngredients ? 'Saving...' : 'Save Ingredients'}
               </button>
             </div>
           </div>

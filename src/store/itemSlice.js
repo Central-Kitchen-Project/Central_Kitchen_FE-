@@ -3,7 +3,8 @@ import itemService from "../services/itemService";
 
 
 const initialState = {
-  listItems: []
+  listItems: [],
+  deletedIds: []
 };
 
 const name = "item";
@@ -25,12 +26,21 @@ export const fetchGetAll = createAsyncThunk(
 const itemSlice = createSlice({
   name,
   initialState,
-  reducers: {},
+  reducers: {
+    removeItem: (state, action) => {
+      state.listItems = (state.listItems || []).filter(item => item.id !== action.payload);
+      if (!state.deletedIds.includes(action.payload)) {
+        state.deletedIds.push(action.payload);
+      }
+    }
+  },
   extraReducers: (builder) => {
     builder.addCase(fetchGetAll.fulfilled, (state, action) => {
-      state.listItems = action.payload;
+      const all = action.payload || [];
+      state.listItems = all.filter(item => !state.deletedIds.includes(item.id));
     });
   }
 });
 
+export const { removeItem } = itemSlice.actions;
 export default itemSlice.reducer;
