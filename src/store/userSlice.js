@@ -38,7 +38,8 @@ export const fetchDashboardCount = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await userService.getDashboardCount();
-      return res.data;
+      // API returns { status: "Success", data: { totalUsers, roleCounts: [...] } }
+      return res.data?.data ?? res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || "Failed to fetch dashboard count");
     }

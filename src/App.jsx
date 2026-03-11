@@ -3,7 +3,6 @@ import SignIn from "../src/pages/SignInPage/SignIn";
 import SignUp from "./pages/SignUpPage";
 import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
 import NotFound from "./pages/NotFound";
-import MasterAdmin from "./pages/MasterAdminPage/MasterAdmin";
 import HomepageFranchise from "./pages/Franchise/HomepageFranchise/HomepageFranchise";
 import HomepageCentral from "./pages/CentralKitchen/HomepageCentral/HomepageCentral";
 import HomepageSupply from "./pages/SupplyCoordinator/HomepageSupply/HomepageSupply";
@@ -22,6 +21,7 @@ import CentralLayout from "./layouts/CentralLayout";
 import SupplierLayout from "./layouts/SupplierLayout";
 import FranchiseLayout from "./layouts/FranchiseLayout";
 import ManagerLayout from "./layouts/ManagerLayout";
+import AdminLayout from "./layouts/AdminLayout";
 import OrderTracking from "./pages/Franchise/OrderTracking";
 import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
 import FeedbackFranchise from "./pages/Franchise/FeedbackFranchise/FeedbackFranchise";
@@ -32,6 +32,10 @@ import PurchaseOrderManager from "./pages/ManagerFranchise/PurchaseOrderManager/
 import MenuManagement from "./pages/ManagerFranchise/MenuManagement/MenuManagement";
 import ReportAnalyticsManager from "./pages/ManagerFranchise/ReportAnalyticsManager/ReportAnalyticsManager";  
 import UserManagement from "./pages/DashboardAdmin/UserManagement/UserManagement";
+import RBACSettings from "./pages/DashboardAdmin/RBACSettings/RBACSettings";
+import SystemConfiguration from "./pages/DashboardAdmin/SystemConfiguration/SystemConfiguration";
+import MasterAdmin from "./pages/MasterAdminPage/MasterAdmin";
+import OrderManagement from "./pages/DashboardAdmin/OrderManagement/OrderManagement";
 function App() {
   return (
     <Routes>
@@ -77,16 +81,19 @@ function App() {
       </Route>
       {/* <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} /> Không dùng nữa */}
       {/* Dashboard */}
-      <Route path="/DashboardAdmin" element={<DashboardAdmin />} /> 
+      <Route element={<AdminLayout />}>
+        <Route path="/DashboardAdmin" element={<DashboardAdmin />} />
+        <Route path="/UserManagement" element={<UserManagement />} />
+        <Route path="/OrderManagement" element={<OrderManagement />} />
+        <Route path="/RBACSettings" element={<RBACSettings />} />
+        <Route path="/SystemConfiguration" element={<SystemConfiguration />} />
+        <Route path="/MasterAdmin" element={<MasterAdmin />} />
+      </Route>
 
       {/* Homepage */}
       <Route path="/HomepageFranchise" element={<HomepageFranchise />} />
       <Route path="/HomepageCentral" element={<HomepageCentral />} />
       <Route path="/HomepageSupply" element={<HomepageSupply />} /> 
-
-      {/* Admin */}
-      <Route path="/MasterAdmin" element={<MasterAdmin />} />
-      <Route path="/UserManagement" element={<UserManagement />} />
 
       {/* Not found */}
       <Route path="/NotFound" element={<NotFound />} />
