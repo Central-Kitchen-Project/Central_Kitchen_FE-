@@ -241,6 +241,13 @@ function OrderAggregation() {
 
   const handleAccept = async (id) => {
     try {
+      let token;
+      try {
+        const stored = JSON.parse(localStorage.getItem('ACCESS_TOKEN'));
+        token = stored?.token || stored;
+      } catch {
+        token = localStorage.getItem('ACCESS_TOKEN');
+      }
       const response = await fetch(
         `http://meinamfpt-001-site1.ltempurl.com/api/MaterialRequest/${id}/status`,
         {
@@ -248,6 +255,7 @@ function OrderAggregation() {
           headers: {
             accept: "*/*",
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status: "Fulfilled" }),
         },
@@ -333,34 +341,38 @@ function OrderAggregation() {
                       </td>
                     </tr>
                   ) : (
-                    pendingItems.map((request) =>
-                      request.items.map((item) => (
+                    pendingItems.map((request) => (
                         <tr
-                          key={`${request.id}-${item.id}`}
+                          key={request.id}
                           className="hover:bg-slate-50 transition-colors"
                         >
                           <td className="px-6 py-4 text-sm font-bold text-slate-500">
                             #{request.id}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="size-8 rounded bg-slate-100 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-slate-400 text-lg">
-                                  restaurant
-                                </span>
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm text-slate-900">
-                                  {item.materialName}
-                                </p>
-                                {/* <p className="text-xs text-slate-400">
-                                  Stock: {item.currentStock} {item.unit}
-                                </p> */}
-                              </div>
+                            <div className="flex flex-col gap-2">
+                              {request.items.map((item) => (
+                                <div key={item.id} className="flex items-center gap-3">
+                                  <div className="size-8 rounded bg-slate-100 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-slate-400 text-lg">
+                                      restaurant
+                                    </span>
+                                  </div>
+                                  <p className="font-bold text-sm text-slate-900">
+                                    {item.materialName}
+                                  </p>
+                                </div>
+                              ))}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm font-medium text-slate-700">
-                            {item.requestedQuantity} {item.unit}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-2">
+                              {request.items.map((item) => (
+                                <div key={item.id} className="h-8 flex items-center text-sm font-medium text-slate-700">
+                                  {item.requestedQuantity} {item.unit}
+                                </div>
+                              ))}
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm font-medium text-slate-700">
                             {request.requestedByUsername}
@@ -399,8 +411,7 @@ function OrderAggregation() {
                             </div>
                           </td>
                         </tr>
-                      )),
-                    )
+                      ))
                   )}
                 </tbody>
               </table>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = '/api/';
+const BASE_URL = 'http://meinamfpt-001-site1.ltempurl.com/api';
 
 const API = {
     call: function () {
@@ -9,7 +9,14 @@ const API = {
     });
 },
     callWithToken: function (token) {
-        if (!token) token = localStorage.getItem('ACCESS_TOKEN');
+        if (!token) {
+            try {
+                const stored = JSON.parse(localStorage.getItem('ACCESS_TOKEN'));
+                token = stored?.token || stored;
+            } catch {
+                token = localStorage.getItem('ACCESS_TOKEN');
+            }
+        }
 
         return axios.create({
             baseURL: BASE_URL,
