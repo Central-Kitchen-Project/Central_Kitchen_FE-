@@ -29,7 +29,6 @@ function getStatusBadge(status) {
   switch (status) {
     case "Pending":   return { label: "Pending",   cls: "bg-amber-50 text-amber-600 border-amber-200",  dot: "bg-amber-500" };
     case "Fulfilled": return { label: "Fulfilled", cls: "bg-green-50 text-green-600 border-green-200",  dot: "bg-green-500" };
-    case "Rejected":  return { label: "Rejected",  cls: "bg-red-50 text-red-600 border-red-200",        dot: "bg-red-500" };
     default:          return { label: status || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
   }
 }
@@ -47,7 +46,7 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_TABS = ["All", "Pending", "Fulfilled", "Rejected"];
+const STATUS_TABS = ["All", "Pending", "Fulfilled"];
 
 function MaterialTracking() {
   const [requests, setRequests] = useState([]);
@@ -91,7 +90,6 @@ function MaterialTracking() {
     total: requests.length,
     pending: requests.filter((r) => r.status === "Pending").length,
     fulfilled: requests.filter((r) => r.status === "Fulfilled").length,
-    rejected: requests.filter((r) => r.status === "Rejected").length,
   }), [requests]);
 
   const filteredRequests = useMemo(() => {
@@ -117,21 +115,8 @@ function MaterialTracking() {
 
   const handleFulfill = async () => {
     if (!fulfillModal) return;
-    setLoadingFulfill(true);
-    try {
-      await axios.put(
-        `${BASE_URL}/MaterialRequest/${fulfillModal.id}/status`,
-        { status: "Fulfilled" },
-        { headers: { accept: "*/*", "Content-Type": "application/json" } }
-      );
-      showToast("success", `Yêu cầu #${fulfillModal.id} đã được xử lý thành công!`);
-      setFulfillModal(null);
-      fetchRequests();
-    } catch (err) {
-      showToast("error", `Lỗi: ${err?.response?.data?.message || err.message}`);
-    } finally {
-      setLoadingFulfill(false);
-    }
+    // Fulfill action has been disabled; this function is kept to avoid runtime errors.
+    setFulfillModal(null);
   };
 
   return (
@@ -189,10 +174,9 @@ function MaterialTracking() {
             {/* Stats Cards */}
             <div className="grid grid-cols-4 gap-4">
               {[
-                { label: "Total Requests", value: stats.total,     icon: "assignment",       color: "text-slate-700",   bg: "bg-slate-100"  },
-                { label: "Pending",        value: stats.pending,   icon: "hourglass_empty",  color: "text-amber-600",   bg: "bg-amber-50"   },
-                { label: "Fulfilled",      value: stats.fulfilled, icon: "task_alt",          color: "text-green-600",   bg: "bg-green-50"   },
-                { label: "Rejected",       value: stats.rejected,  icon: "cancel",            color: "text-red-600",     bg: "bg-red-50"     },
+                { label: "Total Requests", value: stats.total,     icon: "assignment",      color: "text-slate-700",   bg: "bg-slate-100"  },
+                { label: "Pending",        value: stats.pending,   icon: "hourglass_empty", color: "text-amber-600",   bg: "bg-amber-50"   },
+                { label: "Fulfilled",      value: stats.fulfilled, icon: "task_alt",        color: "text-green-600",   bg: "bg-green-50"   },
               ].map((card) => (
                 <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
                   <div className={`w-11 h-11 rounded-lg ${card.bg} flex items-center justify-center ${card.color}`}>
@@ -381,13 +365,6 @@ function MaterialTracking() {
                               >
                                 View
                               </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setFulfillModal(req); }}
-                                disabled={isFulfilled || isRejected}
-                                className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed"
-                              >
-                                Fulfill
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -544,81 +521,16 @@ function MaterialTracking() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-100 flex items-center justify-between">
-              <span />
-              <div className="flex gap-3">
-                <button onClick={() => setDetailModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
-                  Close
-                </button>
-                {detailModal.status === "Pending" && (
-                  <button
-                    onClick={() => { setDetailModal(null); setFulfillModal(detailModal); }}
-                    className="px-4 py-2 rounded-lg bg-primary text-white text-sm flex items-center gap-2 hover:bg-primary/90"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                    Fulfill Request
-                  </button>
-                )}
-              </div>
+            <div className="p-4 border-t border-slate-100 flex items-center justify-end">
+              <button onClick={() => setDetailModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ===== Fulfill Confirm Modal ===== */}
-      {fulfillModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setFulfillModal(null)} />
-          <div className="bg-white rounded-2xl shadow-2xl z-10 w-96 p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
-                <span className="material-symbols-outlined">task_alt</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold">Fulfill Request</h3>
-                <p className="text-sm text-slate-500 mt-1">
-                  Xác nhận xử lý yêu cầu{" "}
-                  <span className="font-mono font-bold text-slate-800">#REQ-{fulfillModal.id}</span>{" "}
-                  cho đơn hàng{" "}
-                  <span className="font-mono font-bold text-slate-800">#ORD-{fulfillModal.orderId}</span>?
-                </p>
-                {(fulfillModal.items || []).length > 0 && (
-                  <div className="mt-3 bg-slate-50 rounded-lg p-3 border border-slate-200">
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1.5">Materials</p>
-                    {fulfillModal.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between text-xs text-slate-600 py-0.5">
-                        <span>{item.materialName}</span>
-                        <span className="font-semibold">{item.requestedQuantity} {item.unit}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button onClick={() => setFulfillModal(null)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setFulfillModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
-                Cancel
-              </button>
-              <button
-                onClick={handleFulfill}
-                disabled={loadingFulfill}
-                className="px-4 py-2 rounded-lg bg-green-500 text-white text-sm flex items-center gap-2 hover:bg-green-600 disabled:opacity-60"
-              >
-                {loadingFulfill ? (
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                ) : (
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                )}
-                Confirm Fulfill
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Fulfill modal has been removed as per latest requirements */}
     </>
   );
 }

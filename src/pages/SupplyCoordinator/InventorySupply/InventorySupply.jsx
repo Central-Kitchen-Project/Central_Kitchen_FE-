@@ -83,7 +83,7 @@ function InventorySupply() {
   };
 
   return (
-    <main className="flex-1">
+  <main className="flex-1 flex flex-col overflow-hidden">
     <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4">
       <div className="flex flex-col">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -103,7 +103,7 @@ function InventorySupply() {
         </div>
       </div>
     </header>
-    <div className="p-8 space-y-6">
+    <div className="flex-1 overflow-y-auto p-8 space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex flex-1 min-w-[300px] items-center gap-3 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg border border-transparent focus-within:border-primary/50 transition-all">
