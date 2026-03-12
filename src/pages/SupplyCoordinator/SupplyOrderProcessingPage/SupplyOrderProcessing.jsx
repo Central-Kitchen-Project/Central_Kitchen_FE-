@@ -3,7 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import "./SupplyOrderProcessing.css";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
-import { fetchGetOrder } from "../../../store/orderSlice";
+import { fetchGetOrder, updateOrderStatus, deleteOrder } from "../../../store/orderSlice";
+import orderService from "../../../services/orderService";
+import API from "../../../services/api";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
@@ -114,19 +116,103 @@ function SupplyOrderProcessing() {
   };
 
   const confirmAccept = async () => {
-    if (!selectedOrder) return;
+    if (!selectedOrder) {
+      showToast("error", "Không tìm thấy đơn hàng được chọn");
+      return;
+    }
+    
+    if (!selectedOrder.id) {
+      showToast("error", "ID đơn hàng không hợp lệ");
+      return;
+    }
+    
+    // Get current user info for approvedBy field  
+    const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
+    const approvedBy = userInfo?.id || 1;
+    
     setLoadingAccept(true);
     try {
-      await axios.put(
-        `${BASE_URL}/Order/${selectedOrder.id}/status`,
-        { status: "Approved" },
-        { headers: { accept: "*/*", "Content-Type": "application/json" } }
-      );
-      showToast("success", `Đơn hàng #${selectedOrder.id} đã được chấp nhận thành công!`);
-      setAcceptModalOpen(false);
-      dispatch(fetchGetOrder());
+      // Determine next valid status based on current status
+      let nextStatus;
+      let needsMultipleSteps = false;
+      
+      switch (selectedOrder.status) {
+        case "Pending":    nextStatus = "Approved"; break;
+        case "Approved":   nextStatus = "Processing"; break;
+        case "Processing": 
+          // For Processing orders (after request), we need to ensure proper inventory flow
+          // Reset to Approved and go through full flow to trigger inventory deduction
+          needsMultipleSteps = true;
+          nextStatus = "Approved"; 
+          break;
+        default:           nextStatus = "Approved"; break;
+      }
+      
+      console.log(`Attempting to update Order #${selectedOrder.id}: ${selectedOrder.status} → ${nextStatus}`);
+      console.log('Selected Order Details:', { id: selectedOrder.id, status: selectedOrder.status, nextStatus, approvedBy, needsMultipleSteps });
+      
+      // Debug: Check if we have authentication token
+      const token = JSON.parse(localStorage.getItem('ACCESS_TOKEN'))?.token || localStorage.getItem('ACCESS_TOKEN');
+      console.log('Auth token available:', !!token);
+      console.log('API URL will be:', `http://meinamfpt-001-site1.ltempurl.com/api/Order/${selectedOrder.id}/status`);
+      console.log('Request payload:', { status: nextStatus, approvedBy });
+      
+      // Use direct API call for better debugging first
+      try {
+        const directResult = await orderService.UpdateStatus(selectedOrder.id, nextStatus, approvedBy);
+        console.log('Direct API call succeeded:', directResult);
+        
+        // If this was a Processing order, we need to do the full flow: Approved → Processing → Completed
+        if (needsMultipleSteps) {
+          console.log('Processing multi-step flow for proper inventory handling...');
+          
+          // Step 2: Processing
+          await orderService.UpdateStatus(selectedOrder.id, "Processing", approvedBy);
+          console.log('Updated to Processing');
+          
+          // Step 3: Completed  
+          await orderService.UpdateStatus(selectedOrder.id, "Completed", approvedBy);
+          console.log('Updated to Completed');
+          
+          showToast("success", `Đơn hàng #${selectedOrder.id} đã được xử lý hoàn tất với đầy đủ luồng kho!`);
+        } else {
+          showToast("success", `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${nextStatus}!`);
+        }
+        
+        setAcceptModalOpen(false);
+        dispatch(fetchGetOrder());
+        return;
+      } catch (directError) {
+        console.log('Direct API call failed, error details:', directError);
+        console.log('Error response:', directError?.response);
+        console.log('Error data:', directError?.response?.data);
+        console.log('Error status:', directError?.response?.status);
+        
+        // If it's a case sensitivity issue, try lowercase
+        if (directError?.response?.data?.error === 'OR40003') {
+          console.log('Trying with lowercase status...');
+          const lowerNextStatus = nextStatus.toLowerCase();
+          
+          try {
+            const lowerResult = await orderService.UpdateStatus(selectedOrder.id, lowerNextStatus, approvedBy);
+            console.log('Lowercase API call succeeded:', lowerResult);
+            
+            showToast("success", `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${nextStatus}!`);
+            setAcceptModalOpen(false);
+            dispatch(fetchGetOrder());
+            return;
+          } catch (lowerError) {
+            console.log('Lowercase API call also failed:', lowerError);
+          }
+        }
+        
+        // If direct calls failed, throw to outer catch
+        throw directError;
+      }
     } catch (err) {
-      showToast("error", `Lỗi khi chấp nhận đơn: ${err?.response?.data?.message || err.message}`);
+      console.error("Accept error:", err?.response?.data || err);
+      const errorMessage = err?.response?.data?.message || err.message || 'Lỗi không xác định';
+      showToast("error", `Lỗi khi chấp nhận đơn: ${errorMessage}`);
     } finally {
       setLoadingAccept(false);
     }
@@ -140,17 +226,37 @@ function SupplyOrderProcessing() {
   };
 
   const confirmReject = async () => {
-    if (!selectedOrder) return;
+    if (!selectedOrder) {
+      showToast("error", "Không tìm thấy đơn hàng được chọn");
+      return;
+    }
+    
+    if (!selectedOrder.id) {
+      showToast("error", "ID đơn hàng không hợp lệ");
+      return;
+    }
+    
     setLoadingReject(true);
     try {
-      await axios.delete(`${BASE_URL}/Order/${selectedOrder.id}`, {
-        headers: { accept: "*/*" },
-      });
-      showToast("success", `Đơn hàng #${selectedOrder.id} đã bị từ chối và xóa khỏi hệ thống!`);
-      setRejectModalOpen(false);
-      dispatch(fetchGetOrder());
+      console.log(`Attempting to delete Order #${selectedOrder.id}`);
+      
+      // Use Redux thunk for better state management
+      const result = await dispatch(deleteOrder(selectedOrder.id));
+      
+      if (result.type === 'item/deleteOrder/fulfilled') {
+        showToast("success", `Đơn hàng #${selectedOrder.id} đã bị từ chối và xóa khỏi hệ thống!`);
+        setRejectModalOpen(false);
+        dispatch(fetchGetOrder());
+      } else {
+        // Handle rejected case
+        const error = result.payload || result.error;
+        console.error("DeleteOrder rejected:", error);
+        showToast("error", `Lỗi khi từ chối đơn: ${error?.message || error || 'Unknown error'}`);
+      }
     } catch (err) {
-      showToast("error", `Lỗi khi từ chối đơn: ${err?.response?.data?.message || err.message}`);
+      console.error("Reject error:", err?.response?.data || err);
+      const errorMessage = err?.response?.data?.message || err.message || 'Lỗi không xác định';
+      showToast("error", `Lỗi khi từ chối đơn: ${errorMessage}`);
     } finally {
       setLoadingReject(false);
     }
@@ -195,14 +301,14 @@ function SupplyOrderProcessing() {
           requestedQuantity: parseInt(i.requestedQuantity) || 0,
         })),
       };
-      await axios.post(`${BASE_URL}/MaterialRequest`, payload, {
-        headers: { accept: "*/*", "Content-Type": "application/json" },
-      });
-      await axios.put(
-        `${BASE_URL}/Order/${selectedOrder.id}/status`,
-        { status: "Processing" },
-        { headers: { accept: "*/*", "Content-Type": "application/json" } }
-      );
+      
+      // First create the material request
+      await API.callWithToken().post(`MaterialRequest`, payload);
+      
+      // Then update order status to "Processing" with approvedBy field
+      const approvedBy = userInfo?.id || 1;
+      await orderService.UpdateStatus(selectedOrder.id, "Processing", approvedBy);
+      
       showToast("success", `Yêu cầu vật liệu cho đơn #${selectedOrder.id} đã được gửi!`);
       setRequestModalOpen(false);
       dispatch(fetchGetOrder());

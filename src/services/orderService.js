@@ -10,8 +10,8 @@ const orderService = {
   Create: function (data) {
     return API.callWithToken().post("Order", data);
   },
-  UpdateStatus: function (id, status) {
-    return API.callWithToken().put(`Order/${id}/status`, { status });
+  UpdateStatus: function (id, status, approvedBy) {
+    return API.callWithToken().put(`Order/${id}/status`, { status, approvedBy });
   },
   Delete: function (id) {
     return API.callWithToken().delete(`Order/${id}`);
