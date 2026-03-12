@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useSearchParams } from 'react-router-dom'
 import { fetchGetAllFeedback, fetchCreateFeedback } from '../../../store/feedbackSlice'
 import { fetchGetOrder } from '../../../store/orderSlice'
 import './FeedbackFranchise.css'
 
 function FeedbackFranchise() {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
   const feedbacks = useSelector((state) => state.FEEDBACK.listFeedbacks);
   const loading = useSelector((state) => state.FEEDBACK.loading);
   const orders = useSelector((state) => state.ORDER.listOrders);
@@ -14,16 +16,24 @@ function FeedbackFranchise() {
   const [orderId, setOrderId] = useState('');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
+  const [rating, setRating] = useState(null); // 1-5 or null
   // Tạm thời ẩn filter status
   // const [filterStatus, setFilterStatus] = useState('All');
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 8;
+  const lockedOrderId = searchParams.get('orderId');
+  const isLockedToOrder = Boolean(lockedOrderId);
 
   useEffect(() => {
     dispatch(fetchGetAllFeedback());
     dispatch(fetchGetOrder());
   }, [dispatch]);
+
+  // Preselect orderId from OrderTracking navigation (?orderId=123)
+  useEffect(() => {
+    if (lockedOrderId) setOrderId(String(lockedOrderId));
+  }, [lockedOrderId]);
 
   // Reset to page 1 when feedbacks change
   useEffect(() => {
@@ -39,8 +49,12 @@ function FeedbackFranchise() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!subject.trim() || !description.trim()) {
-      alert('Vui lòng nhập Subject và Description');
+    if (!orderId) {
+      alert('Thiếu Order ID. Vui lòng quay lại trang Order Tracking và bấm Feedback từ đơn hàng Completed.');
+      return;
+    }
+    if (!subject.trim()) {
+      alert('Vui lòng nhập Subject');
       return;
     }
     setSubmitting(true);
@@ -50,16 +64,17 @@ function FeedbackFranchise() {
         userId: uid,
         category,
         orderId: orderId ? Number(orderId) : null,
-        subject,
-        description,
+        subject: subject.trim(),
+        description: description.trim() ? description.trim() : null,
+        rating: typeof rating === 'number' ? rating : null,
       };
       console.log('POST /api/Feedback body:', body);
       await dispatch(fetchCreateFeedback(body)).unwrap();
       alert('Feedback đã được gửi thành công!');
       setCategory('Quality');
-      setOrderId('');
       setSubject('');
       setDescription('');
+      setRating(null);
       dispatch(fetchGetAllFeedback());
     } catch {
       alert('Gửi feedback thất bại, vui lòng thử lại.');
@@ -161,22 +176,32 @@ function FeedbackFranchise() {
               className="text-sm font-semibold text-slate-700"
               htmlFor="order-id"
             >
-              Order Reference ID{" "}
-              <span className="text-slate-400 font-normal">(Optional)</span>
+              Order Reference ID <span className="text-red-500">*</span>
             </label>
-            <select
-              className="rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
-              id="order-id"
-              value={orderId}
-              onChange={(e) => setOrderId(e.target.value)}
-            >
-              <option value="">-- No order --</option>
-              {orders?.filter((o) => o.status === 'Completed').map((order) => (
-                <option key={order.id} value={order.id}>
-                  #ORD-{order.id} — {order.status}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-3">
+              <input
+                id="order-id"
+                className="flex-1 rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary disabled:bg-slate-50 disabled:text-slate-500"
+                value={orderId ? `#ORD-${orderId}` : ''}
+                readOnly
+                disabled={!orderId || isLockedToOrder}
+                placeholder="Order ID will be filled from Order Tracking"
+              />
+              {!isLockedToOrder && (
+                <input
+                  className="w-40 rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
+                  inputMode="numeric"
+                  placeholder="Enter ID"
+                  value={orderId}
+                  onChange={(e) => setOrderId(e.target.value.replace(/[^\d]/g, ''))}
+                />
+              )}
+            </div>
+            {isLockedToOrder && (
+              <p className="text-xs text-slate-400">
+                Order ID được gán từ Order Tracking (không thể thay đổi).
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-2 md:col-span-2">
             <label
@@ -199,7 +224,7 @@ function FeedbackFranchise() {
               className="text-sm font-semibold text-slate-700"
               htmlFor="description"
             >
-              Detailed Description
+              Detailed Description <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <textarea
               className="rounded-lg border-slate-200 text-sm focus:ring-primary focus:border-primary"
@@ -210,11 +235,49 @@ function FeedbackFranchise() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label className="text-sm font-semibold text-slate-700">
+              Rating <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((v) => {
+                  const active = (rating || 0) >= v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setRating(v)}
+                      className={`p-2 rounded transition-colors ${
+                        active ? 'text-amber-500' : 'text-slate-300 hover:text-slate-400'
+                      }`}
+                      aria-label={`Rate ${v} star${v > 1 ? 's' : ''}`}
+                      title={`${v}/5`}
+                    >
+                      <span className="material-symbols-outlined text-[36px]">star</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-xs text-slate-500">
+                {typeof rating === 'number' ? `${rating}/5` : 'No rating'}
+              </span>
+              {typeof rating === 'number' && (
+                <button
+                  type="button"
+                  onClick={() => setRating(null)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
           <div className="md:col-span-2 flex justify-end gap-3">
             <button
               className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               type="button"
-              onClick={() => { setCategory('Quality'); setOrderId(''); setSubject(''); setDescription(''); }}
+              onClick={() => { setCategory('Quality'); setSubject(''); setDescription(''); setRating(null); if (!isLockedToOrder) setOrderId(''); }}
             >
               Cancel
             </button>
@@ -256,6 +319,9 @@ function FeedbackFranchise() {
                   Date
                 </th>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Rating
+                </th>
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Category
                 </th>
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -273,13 +339,13 @@ function FeedbackFranchise() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm">
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm">
                     Loading...
                   </td>
                 </tr>
               ) : !filteredFeedbacks || filteredFeedbacks.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm">
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm">
                     No feedback found.
                   </td>
                 </tr>
@@ -291,6 +357,16 @@ function FeedbackFranchise() {
                     <tr key={fb.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {fb.feedbackDate ? new Date(fb.feedbackDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                      </td>
+                      <td className="px-6 py-4">
+                        {typeof fb.rating === 'number' ? (
+                          <div className="flex items-center gap-1 text-amber-500">
+                            <span className="text-sm font-bold">{fb.rating}</span>
+                            <span className="text-xs text-slate-400">/5</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${categoryColor(fb.category)}`}>
