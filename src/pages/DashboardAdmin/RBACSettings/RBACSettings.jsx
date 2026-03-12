@@ -1,33 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAllUsers, fetchDashboardCount } from "../../../store/userSlice";
-
-const PERMISSIONS = [
-  "Dashboard",
-  "User Management",
-  "Order Management",
-  "Inventory Management",
-  "Production Management",
-  "Reports & Analytics",
-  "System Configuration",
-  "Master Data",
-];
-
-const ROLE_DESCRIPTIONS = {
-  Admin: "System administrator with full access to all modules and settings.",
-  Manager: "Can manage inventory, production schedules, and view reports & analytics.",
-  "Central Kitchen": "Receives and processes orders from franchise stores, manages materials and production.",
-  Franchise: "Can create orders, track deliveries, view inventory and submit feedback.",
-  "Supply Coordinator": "Aggregates orders, coordinates production and distribution, manages delivery schedules.",
-};
-
-const DEFAULT_ROLE_PERMISSIONS = {
-  1: PERMISSIONS,
-  2: ["Dashboard", "Inventory Management", "Production Management", "Reports & Analytics"],
-  3: ["Dashboard", "Order Management", "Inventory Management"],
-  4: ["Dashboard", "Order Management", "Inventory Management", "Production Management"],
-  5: ["Dashboard", "Order Management", "Inventory Management", "Production Management"],
-};
+import { fetchAllRoles, createRole, updateRole, deleteRole } from "../../../store/roleSlice";
+import { fetchDashboardCount } from "../../../store/userSlice";
 
 const normalizeArray = (data) => {
   if (Array.isArray(data)) return data;
@@ -36,58 +10,62 @@ const normalizeArray = (data) => {
   return [];
 };
 
-const EMPTY_FORM = { name: "", description: "", permissions: [] };
+const EMPTY_FORM = { roleName: "", description: "" };
 
 function RBACSettings() {
   const dispatch = useDispatch();
-  const { users, dashboardCount, loading } = useSelector((state) => state.USER || { users: [], dashboardCount: null, loading: false });
+  const { roles: roleList, loading: rolesLoading, error: roleError } = useSelector(
+    (state) => state.ROLE || { roles: [], loading: false, error: null }
+  );
+  const { dashboardCount } = useSelector(
+    (state) => state.USER || { dashboardCount: null }
+  );
 
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [rolePermissions, setRolePermissions] = useState(DEFAULT_ROLE_PERMISSIONS);
-  const [expandedRole, setExpandedRole] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
-    dispatch(fetchAllUsers());
+    dispatch(fetchAllRoles());
     dispatch(fetchDashboardCount());
   }, [dispatch]);
 
-  const userList = Array.isArray(users) ? users : normalizeArray(users);
-
-  // Derive roles from real user data
   const roles = useMemo(() => {
     const roleCounts = dashboardCount?.roleCounts
       ? normalizeArray(dashboardCount.roleCounts)
       : [];
-
-    // Build a map of roleId -> { name, count } from users
-    const roleMap = {};
-    userList.forEach((u) => {
-      if (u.roleId && !roleMap[u.roleId]) {
-        roleMap[u.roleId] = { id: u.roleId, name: u.roleName || `Role ${u.roleId}`, usersCount: 0 };
-      }
-      if (u.roleId) roleMap[u.roleId].usersCount++;
-    });
-
-    // Merge with dashboard count data (more accurate)
+    const countMap = {};
     roleCounts.forEach((rc) => {
-      if (roleMap[rc.roleId]) {
-        roleMap[rc.roleId].usersCount = rc.count;
-      } else {
-        roleMap[rc.roleId] = { id: rc.roleId, name: rc.roleName || `Role ${rc.roleId}`, usersCount: rc.count };
-      }
+      countMap[rc.roleId] = rc.count;
     });
 
-    return Object.values(roleMap)
-      .sort((a, b) => a.id - b.id)
-      .map((r) => ({
-        ...r,
-        description: ROLE_DESCRIPTIONS[r.name] || "",
-        editable: false,
-      }));
-  }, [userList, dashboardCount]);
+    return roleList.map((r) => ({
+      ...r,
+      usersCount: countMap[r.id] ?? 0,
+    }));
+  }, [roleList, dashboardCount]);
+
+  // Filtering
+  const filtered = roles.filter((r) => {
+    const name = (r.roleName ?? r.name ?? "").toLowerCase();
+    const desc = (r.description ?? "").toLowerCase();
+    return name.includes(search.toLowerCase()) || desc.includes(search.toLowerCase());
+  });
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedRoles = filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
@@ -103,9 +81,8 @@ function RBACSettings() {
   const openEdit = (role) => {
     setEditingRole(role);
     setForm({
-      name: role.name,
-      description: role.description,
-      permissions: rolePermissions[role.id] || [],
+      roleName: role.roleName ?? role.name ?? "",
+      description: role.description ?? "",
     });
     setShowModal(true);
   };
@@ -116,37 +93,39 @@ function RBACSettings() {
     setForm(EMPTY_FORM);
   };
 
-  const togglePermission = (perm) => {
-    setForm((prev) => ({
-      ...prev,
-      permissions: prev.permissions.includes(perm)
-        ? prev.permissions.filter((p) => p !== perm)
-        : [...prev.permissions, perm],
-    }));
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingRole) {
-      setRolePermissions((prev) => ({ ...prev, [editingRole.id]: form.permissions }));
-      showSuccess("Role permissions updated successfully!");
-    } else {
-      showSuccess("Role created successfully!");
+    setSubmitting(true);
+    try {
+      if (editingRole) {
+        await dispatch(updateRole({ id: editingRole.id, data: form })).unwrap();
+        showSuccess("Role updated successfully!");
+      } else {
+        await dispatch(createRole(form)).unwrap();
+        showSuccess("Role created successfully!");
+      }
+      dispatch(fetchAllRoles());
+      closeModal();
+    } catch {
+      showSuccess("Operation failed. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    closeModal();
   };
 
-  const handleDelete = (id) => {
-    const role = roles.find((r) => r.id === id);
-    if (role && !role.editable) return;
+  const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this role?")) return;
-    const updated = { ...rolePermissions };
-    delete updated[id];
-    setRolePermissions(updated);
-    showSuccess("Role deleted successfully!");
+    try {
+      await dispatch(deleteRole(id)).unwrap();
+      showSuccess("Role deleted successfully!");
+    } catch {
+      showSuccess("Failed to delete role.");
+    }
   };
 
-  const totalUsersAssigned = dashboardCount?.totalUsers ?? roles.reduce((a, r) => a + r.usersCount, 0);
+  const totalUsersAssigned = dashboardCount?.totalUsers ?? roles.reduce((a, r) => a + (r.usersCount || 0), 0);
+
+  const displayName = (role) => role.roleName ?? role.name ?? "";
 
   return (
     <>
@@ -176,23 +155,23 @@ function RBACSettings() {
           </div>
           <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Permissions</span>
-              <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
-                <span className="material-symbols-outlined text-base">key</span>
-              </div>
-            </div>
-            <span className="text-2xl font-bold text-slate-900">{PERMISSIONS.length}</span>
-            <span className="text-[11px] text-slate-500">Module permissions</span>
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Users Assigned</span>
-              <div className="size-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+              <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
                 <span className="material-symbols-outlined text-base">group</span>
               </div>
             </div>
             <span className="text-2xl font-bold text-slate-900">{totalUsersAssigned}</span>
             <span className="text-[11px] text-slate-500">Across all roles</span>
+          </div>
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</span>
+              <div className="size-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+                <span className="material-symbols-outlined text-base">verified</span>
+              </div>
+            </div>
+            <span className="text-2xl font-bold text-slate-900">{roleError ? "Error" : "Active"}</span>
+            <span className="text-[11px] text-slate-500">{roleError ? String(roleError) : "System operational"}</span>
           </div>
         </div>
 
@@ -206,9 +185,21 @@ function RBACSettings() {
 
         {/* Toolbar */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">Role Management</h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Configure roles and their permissions</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Role Management</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Configure roles and their permissions</p>
+            </div>
+            <div className="relative">
+              <span className="material-symbols-outlined text-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+              <input
+                type="text"
+                placeholder="Search roles..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-52"
+              />
+            </div>
           </div>
           <button
             onClick={openCreate}
@@ -220,103 +211,128 @@ function RBACSettings() {
         </div>
 
         {/* Roles Table */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-xl border border-slate-200 flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-x-auto overflow-y-auto flex-1">
             <table className="w-full">
-              <thead>
+              <thead className="sticky top-0 bg-white z-10">
                 <tr className="border-b border-slate-200">
+                  <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">#</th>
                   <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Role Name</th>
                   <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Description</th>
                   <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Users</th>
-                  <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Permissions</th>
                   <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {loading && roles.length === 0 ? (
+                {rolesLoading && roles.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-12 text-slate-400 text-sm">Loading roles...</td>
                   </tr>
-                ) : roles.length === 0 ? (
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="text-center py-12 text-slate-400 text-sm">No roles found.</td>
                   </tr>
                 ) : (
-                roles.map((role) => (
-                  <React.Fragment key={role.id}>
-                    <tr className="hover:bg-slate-50 border-b border-slate-100 last:border-0">
-                      <td className="px-4 py-3">
-                        <span className="text-xs font-semibold text-slate-800">{role.name}</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600 max-w-xs">{role.description}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700">
-                          {role.usersCount} users
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
+                pagedRoles.map((role, idx) => (
+                  <tr key={role.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0">
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-mono text-slate-500">{(safeCurrentPage - 1) * pageSize + idx + 1}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-semibold text-slate-800">{displayName(role)}</span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600 max-w-xs">{role.description || "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700">
+                        {role.usersCount} users
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setExpandedRole(expandedRole === role.id ? null : role.id)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                          onClick={() => openEdit(role)}
+                          className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-colors"
+                          title="Edit"
                         >
-                          {(rolePermissions[role.id] || []).length} permissions
-                          <span className="material-symbols-outlined text-[14px]">
-                            {expandedRole === role.id ? "expand_less" : "expand_more"}
-                          </span>
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
                         </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEdit(role)}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-500 transition-colors"
-                            title="Edit"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                          </button>
-                          {role.editable !== false && (
-                            <button
-                              onClick={() => handleDelete(role.id)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
-                              title="Delete"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedRole === role.id && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 bg-slate-50">
-                          <div className="flex flex-wrap gap-2">
-                            {(rolePermissions[role.id] || []).map((perm) => (
-                              <span
-                                key={perm}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700"
-                              >
-                                <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                                {perm}
-                              </span>
-                            ))}
-                            {(rolePermissions[role.id] || []).length === 0 && (
-                              <span className="text-xs text-slate-400">No permissions assigned</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                        <button
+                          onClick={() => handleDelete(role.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                          title="Delete"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))
                 )}
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">
-              Showing {roles.length} roles
-            </span>
-          </div>
+          {/* Footer with pagination */}
+          {filtered.length > 0 && (
+            <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500">
+                Showing {(safeCurrentPage - 1) * pageSize + 1}–{Math.min(safeCurrentPage * pageSize, filtered.length)} of {filtered.length} roles
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={safeCurrentPage === 1}
+                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">first_page</span>
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safeCurrentPage === 1}
+                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1)
+                  .reduce((acc, p, i, arr) => {
+                    if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <span key={`dot-${i}`} className="px-1 text-xs text-slate-400">...</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        className={`min-w-[28px] px-2 py-1 rounded text-xs font-bold transition-colors ${
+                          p === safeCurrentPage
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-600 hover:bg-slate-100"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={safeCurrentPage === totalPages}
+                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">last_page</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -338,8 +354,8 @@ function RBACSettings() {
                 <input
                   type="text"
                   required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  value={form.roleName}
+                  onChange={(e) => setForm({ ...form, roleName: e.target.value })}
                   className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                   placeholder="e.g. Warehouse Staff"
                 />
@@ -347,39 +363,12 @@ function RBACSettings() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Description</label>
                 <textarea
-                  required
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={2}
                   className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
                   placeholder="Describe the role responsibilities..."
                 />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Permissions</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PERMISSIONS.map((perm) => (
-                    <label
-                      key={perm}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                        form.permissions.includes(perm)
-                          ? "border-primary bg-blue-50 text-primary"
-                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={form.permissions.includes(perm)}
-                        onChange={() => togglePermission(perm)}
-                        className="sr-only"
-                      />
-                      <span className="material-symbols-outlined text-[16px]">
-                        {form.permissions.includes(perm) ? "check_box" : "check_box_outline_blank"}
-                      </span>
-                      <span className="text-xs font-medium">{perm}</span>
-                    </label>
-                  ))}
-                </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -391,9 +380,10 @@ function RBACSettings() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-blue-600 transition-colors"
+                  disabled={submitting}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
                 >
-                  {editingRole ? "Update Role" : "Create Role"}
+                  {submitting ? "Saving..." : editingRole ? "Update Role" : "Create Role"}
                 </button>
               </div>
             </form>
