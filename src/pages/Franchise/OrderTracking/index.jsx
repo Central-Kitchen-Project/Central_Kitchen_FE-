@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { fetchGetOrder } from "../../../store/orderSlice";
 
@@ -54,6 +55,7 @@ const STATUS_FILTERS = ["All", "Pending", "Approved", "Processing", "Completed"]
 function OrderTracking() {
   const data = useSelector((state) => state.ORDER.listOrders);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     dispatch(fetchGetOrder());
@@ -337,27 +339,32 @@ function OrderTracking() {
 
                           {/* Actions */}
                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={(e) => openCompleteModal(e, order)}
-                              disabled={isCompleted || loadingId === order.id}
-                              className={`px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all ${
-                                isCompleted
-                                  ? "bg-green-50 text-green-600 border border-green-200 cursor-not-allowed opacity-60"
-                                  : "bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                              }`}
-                            >
-                              {loadingId === order.id ? (
-                                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                </svg>
-                              ) : (
-                                <span className="material-symbols-outlined text-[14px]">
-                                  {isCompleted ? "task_alt" : "check_circle"}
-                                </span>
-                              )}
-                              {isCompleted ? "Completed" : "Complete"}
-                            </button>
+                            {!isCompleted ? (
+                              <button
+                                onClick={(e) => openCompleteModal(e, order)}
+                                disabled={loadingId === order.id}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {loadingId === order.id ? (
+                                  <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                  </svg>
+                                ) : (
+                                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                )}
+                                Complete
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => navigate(`/FeedbackFranchise?orderId=${order.id}`)}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-green-600 text-white hover:bg-green-700"
+                                title="Gửi feedback cho đơn đã hoàn thành"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">rate_review</span>
+                                Feedback
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
