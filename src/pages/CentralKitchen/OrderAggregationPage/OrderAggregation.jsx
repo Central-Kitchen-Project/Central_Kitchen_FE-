@@ -278,30 +278,9 @@ function OrderAggregation() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">
-              Order Aggregation
-            </h2>
-            <p className="text-slate-500 text-xs font-medium">
-              Consolidate franchise orders into production batches
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-slate-50 rounded-lg px-3 py-2 gap-2 text-sm border border-slate-200 text-slate-700">
-              <span className="material-symbols-outlined text-sm text-slate-500">
-                schedule
-              </span>
-              <span className="font-medium">
-                Shift: Morning (06:00 - 14:00)
-              </span>
-            </div>
-            <button className="p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">
-              <span className="material-symbols-outlined text-[22px]">
-                notifications
-              </span>
-            </button>
-          </div>
+        <header className="flex flex-col justify-center border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Order Aggregation</h2>
+          <span className="text-sm text-slate-500 font-medium mt-1">Consolidate franchise orders into batches</span>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
