@@ -134,22 +134,16 @@ function SupplyOrderProcessing() {
     try {
       // Determine next valid status based on current status
       let nextStatus;
-      let needsMultipleSteps = false;
       
       switch (selectedOrder.status) {
         case "Pending":    nextStatus = "Approved"; break;
         case "Approved":   nextStatus = "Processing"; break;
-        case "Processing": 
-          // For Processing orders (after request), we need to ensure proper inventory flow
-          // Reset to Approved and go through full flow to trigger inventory deduction
-          needsMultipleSteps = true;
-          nextStatus = "Approved"; 
-          break;
+        case "Processing": nextStatus = "Approved"; break;
         default:           nextStatus = "Approved"; break;
       }
       
       console.log(`Attempting to update Order #${selectedOrder.id}: ${selectedOrder.status} → ${nextStatus}`);
-      console.log('Selected Order Details:', { id: selectedOrder.id, status: selectedOrder.status, nextStatus, approvedBy, needsMultipleSteps });
+      console.log('Selected Order Details:', { id: selectedOrder.id, status: selectedOrder.status, nextStatus, approvedBy });
       
       // Debug: Check if we have authentication token
       const token = JSON.parse(localStorage.getItem('ACCESS_TOKEN'))?.token || localStorage.getItem('ACCESS_TOKEN');
@@ -162,22 +156,7 @@ function SupplyOrderProcessing() {
         const directResult = await orderService.UpdateStatus(selectedOrder.id, nextStatus, approvedBy);
         console.log('Direct API call succeeded:', directResult);
         
-        // If this was a Processing order, we need to do the full flow: Approved → Processing → Completed
-        if (needsMultipleSteps) {
-          console.log('Processing multi-step flow for proper inventory handling...');
-          
-          // Step 2: Processing
-          await orderService.UpdateStatus(selectedOrder.id, "Processing", approvedBy);
-          console.log('Updated to Processing');
-          
-          // Step 3: Completed  
-          await orderService.UpdateStatus(selectedOrder.id, "Completed", approvedBy);
-          console.log('Updated to Completed');
-          
-          showToast("success", `Đơn hàng #${selectedOrder.id} đã được xử lý hoàn tất với đầy đủ luồng kho!`);
-        } else {
-          showToast("success", `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${nextStatus}!`);
-        }
+        showToast("success", `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${nextStatus}!`);
         
         setAcceptModalOpen(false);
         dispatch(fetchGetOrder());
