@@ -241,6 +241,13 @@ function OrderAggregation() {
 
   const handleAccept = async (id) => {
     try {
+      let token;
+      try {
+        const stored = JSON.parse(localStorage.getItem('ACCESS_TOKEN'));
+        token = stored?.token || stored;
+      } catch {
+        token = localStorage.getItem('ACCESS_TOKEN');
+      }
       const response = await fetch(
         `http://meinamfpt-001-site1.ltempurl.com/api/MaterialRequest/${id}/status`,
         {
@@ -248,6 +255,7 @@ function OrderAggregation() {
           headers: {
             accept: "*/*",
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status: "Fulfilled" }),
         },
@@ -278,30 +286,9 @@ function OrderAggregation() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">
-              Order Aggregation
-            </h2>
-            <p className="text-slate-500 text-xs font-medium">
-              Consolidate franchise orders into production batches
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center bg-slate-50 rounded-lg px-3 py-2 gap-2 text-sm border border-slate-200 text-slate-700">
-              <span className="material-symbols-outlined text-sm text-slate-500">
-                schedule
-              </span>
-              <span className="font-medium">
-                Shift: Morning (06:00 - 14:00)
-              </span>
-            </div>
-            <button className="p-2 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">
-              <span className="material-symbols-outlined text-[22px]">
-                notifications
-              </span>
-            </button>
-          </div>
+        <header className="flex flex-col justify-center border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Order Aggregation</h2>
+          <span className="text-sm text-slate-500 font-medium mt-1">Consolidate franchise orders into batches</span>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -354,34 +341,38 @@ function OrderAggregation() {
                       </td>
                     </tr>
                   ) : (
-                    pendingItems.map((request) =>
-                      request.items.map((item) => (
+                    pendingItems.map((request) => (
                         <tr
-                          key={`${request.id}-${item.id}`}
+                          key={request.id}
                           className="hover:bg-slate-50 transition-colors"
                         >
                           <td className="px-6 py-4 text-sm font-bold text-slate-500">
                             #{request.id}
                           </td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="size-8 rounded bg-slate-100 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-slate-400 text-lg">
-                                  restaurant
-                                </span>
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm text-slate-900">
-                                  {item.materialName}
-                                </p>
-                                {/* <p className="text-xs text-slate-400">
-                                  Stock: {item.currentStock} {item.unit}
-                                </p> */}
-                              </div>
+                            <div className="flex flex-col gap-2">
+                              {request.items.map((item) => (
+                                <div key={item.id} className="flex items-center gap-3">
+                                  <div className="size-8 rounded bg-slate-100 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-slate-400 text-lg">
+                                      restaurant
+                                    </span>
+                                  </div>
+                                  <p className="font-bold text-sm text-slate-900">
+                                    {item.materialName}
+                                  </p>
+                                </div>
+                              ))}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-sm font-medium text-slate-700">
-                            {item.requestedQuantity} {item.unit}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-2">
+                              {request.items.map((item) => (
+                                <div key={item.id} className="h-8 flex items-center text-sm font-medium text-slate-700">
+                                  {item.requestedQuantity} {item.unit}
+                                </div>
+                              ))}
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-sm font-medium text-slate-700">
                             {request.requestedByUsername}
@@ -420,8 +411,7 @@ function OrderAggregation() {
                             </div>
                           </td>
                         </tr>
-                      )),
-                    )
+                      ))
                   )}
                 </tbody>
               </table>

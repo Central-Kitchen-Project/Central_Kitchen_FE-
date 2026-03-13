@@ -140,33 +140,9 @@ function MaterialTracking() {
         <main className="flex-1 flex flex-col overflow-hidden bg-white">
 
           {/* Header */}
-          <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
-            <div className="flex items-center gap-4">
-              <h2 className="text-lg font-bold text-slate-900">Material Tracking</h2>
-              <span className="h-4 w-px bg-slate-200" />
-              <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-                <span className="material-symbols-outlined text-[18px]">inventory</span>
-                <span>{filteredRequests.length} Material Requests</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={fetchRequests}
-                className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600"
-                title="Refresh"
-              >
-                <span className={`material-symbols-outlined text-[20px] ${loading ? "animate-spin" : ""}`}>refresh</span>
-              </button>
-              <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-                <span className="material-symbols-outlined text-[20px]">notifications</span>
-                {stats.pending > 0 && (
-                  <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-                )}
-              </button>
-              <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600">
-                <span className="material-symbols-outlined text-[20px]">settings</span>
-              </button>
-            </div>
+          <header className="h-20 flex flex-col justify-center px-8 border-b border-slate-200 bg-white shrink-0">
+            <h2 className="text-2xl font-bold text-slate-900 leading-tight">Material Tracking</h2>
+            <span className="text-sm text-slate-500 font-medium mt-1">Manage and track material requests</span>
           </header>
 
           <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-slate-50/50">
