@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { fetchGetMaterialRequest } from "../../../store/materialSlice";
+import { extractApiMessage } from "../../../services/api";
 
 function parseUTC(dateStr) {
   if (!dateStr) return new Date(NaN);
@@ -229,17 +230,24 @@ function OrderAggregation() {
   const data = useSelector((state) => state.MATERIAL.listMaterials);
   const dispatch = useDispatch();
   const [selectedRequestId, setSelectedRequestId] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     dispatch(fetchGetMaterialRequest());
   }, []);
+
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const handleUrgentClick = (batchId) => {
     const id = batchId.replace("#", "");
     navigate(`/MaterialFulfillmentPlan?id=${id}`);
   };
 
-  const handleAccept = async (id) => {
+  const handleAccept = async (request) => {
+    const id = request?.id;
     try {
       let token;
       try {
@@ -260,22 +268,38 @@ function OrderAggregation() {
           body: JSON.stringify({ status: "Fulfilled" }),
         },
       );
+      const json = await response.json().catch(() => null);
       if (response.ok) {
-        alert(`Request #${id} đã được Accepted thành công!`);
+        showToast("success", `Yêu cầu vật tư #${id} đã được cập nhật thành công.`);
         dispatch(fetchGetMaterialRequest());
       } else {
-        alert("Có lỗi xảy ra, vui lòng thử lại.");
+        showToast("error", extractApiMessage(json, "Không thể cập nhật trạng thái yêu cầu vật tư."));
       }
     } catch (error) {
       console.error("Error accepting request:", error);
-      alert("Không thể kết nối đến server.");
+      showToast("error", error?.message || "Không thể kết nối đến server.");
     }
   };
 
-  const pendingItems = data?.filter((item) => item.status === "Pending") || [];
+  const pendingItems =
+    data?.filter((item) => ["Pending", "Processing"].includes(item.status)) || [];
 
   return (
     <>
+      {toast && (
+        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl text-white text-sm font-medium transition-all duration-300 ${
+          toast.type === "success" ? "bg-green-500" : "bg-red-500"
+        }`}>
+          <span className="material-symbols-outlined text-lg">
+            {toast.type === "success" ? "check_circle" : "error"}
+          </span>
+          {toast.message}
+          <button onClick={() => setToast(null)} className="ml-2 opacity-75 hover:opacity-100">
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      )}
+
       {/* MODAL */}
       {selectedRequestId && (
         <DetailModal
@@ -311,6 +335,9 @@ function OrderAggregation() {
                       #ID
                     </th>
                     <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
+                      Order
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
                       Material Name
                     </th>
                     <th className="px-6 py-4 text-xs font-bold uppercase text-slate-500 tracking-wider">
@@ -334,7 +361,7 @@ function OrderAggregation() {
                   {pendingItems.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-6 py-10 text-center text-slate-400 text-sm"
                       >
                         No pending requests found.
@@ -348,6 +375,15 @@ function OrderAggregation() {
                         >
                           <td className="px-6 py-4 text-sm font-bold text-slate-500">
                             #{request.id}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-mono text-xs font-bold text-slate-700">#ORD-{request.orderId}</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200 w-fit">
+                                <span className="size-1.5 rounded-full bg-blue-500" />
+                                Processing
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-col gap-2">
@@ -378,8 +414,9 @@ function OrderAggregation() {
                             {request.requestedByUsername}
                           </td>
                           <td className="px-6 py-4">
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700 border border-amber-200">
-                              {request.status}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200">
+                              <span className="size-1.5 rounded-full bg-blue-500" />
+                              Processing
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-500 italic max-w-[160px] truncate">
@@ -400,7 +437,7 @@ function OrderAggregation() {
 
                               {/* Accept Button */}
                               <button
-                                onClick={() => handleAccept(request.id)}
+                                onClick={() => handleAccept(request)}
                                 className="text-green-600 border border-green-200 text-xs px-4 py-2 rounded-lg font-bold hover:bg-green-600 hover:text-white transition-all flex items-center gap-1"
                               >
                                 <span className="material-symbols-outlined text-sm">

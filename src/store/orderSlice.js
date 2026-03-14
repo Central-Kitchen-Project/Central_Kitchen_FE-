@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import orderService from "../services/orderService";
+import { extractApiMessage } from "../services/api";
 
 const normalizeArray = (data) => {
   if (Array.isArray(data)) return data;
@@ -57,8 +58,8 @@ export const deleteOrder = createAsyncThunk(
   `${name}/deleteOrder`,
   async (id, { rejectWithValue }) => {
     try {
-      await orderService.Delete(id);
-      return id;
+      const response = await orderService.Delete(id);
+      return { id, message: extractApiMessage(response.data) };
     } catch (error) {
       return rejectWithValue(error?.response?.data || error.message);
     }
@@ -92,7 +93,7 @@ const itemSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(deleteOrder.fulfilled, (state, action) => {
-        state.listOrders = state.listOrders.filter(o => o.id !== action.payload);
+        state.listOrders = state.listOrders.filter(o => o.id !== action.payload.id);
       })
       .addCase(deleteOrder.rejected, (state, action) => {
         state.error = action.payload;

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { fetchGetOrder } from "../../../store/orderSlice";
+import { extractApiErrorMessage, extractApiMessage } from "../../../services/api";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
@@ -16,6 +17,60 @@ function parseUTC(dateStr) {
 function formatDate(dateStr) {
   if (!dateStr) return "";
   return parseUTC(dateStr).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function normalizeCollection(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.$values)) return data.$values;
+  if (data && typeof data === "object") {
+    const arrayValue = Object.values(data).find(Array.isArray);
+    if (arrayValue) return arrayValue;
+
+    const wrappedArrayValue = Object.values(data).find((value) => Array.isArray(value?.$values));
+    if (wrappedArrayValue?.$values) return wrappedArrayValue.$values;
+  }
+  return [];
+}
+
+function getLineIngredients(line) {
+  return normalizeCollection(
+    line?.ingredients ||
+      line?.ingredient ||
+      line?.recipeIngredients ||
+      line?.itemIngredients ||
+      line?.materials ||
+      line?.materialsUsed ||
+      line?.item?.ingredients
+  );
+}
+
+function getIngredientName(ingredient, index) {
+  return (
+    ingredient?.name ||
+    ingredient?.materialName ||
+    ingredient?.ingredientName ||
+    ingredient?.itemName ||
+    `Ingredient ${index + 1}`
+  );
+}
+
+function formatIngredientQuantity(ingredient) {
+  const rawQuantity =
+    ingredient?.qty ??
+    ingredient?.quantity ??
+    ingredient?.requiredQuantity ??
+    ingredient?.amount ??
+    ingredient?.requestedQuantity;
+
+  if (rawQuantity === undefined || rawQuantity === null || rawQuantity === "") return "";
+
+  const numericQuantity = Number(rawQuantity);
+  const quantity = Number.isFinite(numericQuantity)
+    ? (Number.isInteger(numericQuantity) ? numericQuantity : parseFloat(numericQuantity.toFixed(3)))
+    : rawQuantity;
+  const unit = ingredient?.unit || ingredient?.materialUnit || ingredient?.measurementUnit || "";
+
+  return [quantity, unit].filter(Boolean).join(" ");
 }
 
 function getTimeDiff(dateStr) {
@@ -33,6 +88,9 @@ function getStatusBadge(status) {
     case "Approved":   return { label: "Approved",   cls: "bg-amber-50 text-amber-600 border-amber-200", dot: "bg-amber-500" };
     case "Processing": return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200",    dot: "bg-blue-500" };
     case "Completed":  return { label: "Completed",  cls: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500" };
+    case "Cancelled by Franchise":
+    case "Cancelled":
+      return { label: "Cancelled", cls: "bg-slate-100 text-slate-600 border-slate-300", dot: "bg-slate-500" };
     default:           return { label: status || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
   }
 }
@@ -64,7 +122,9 @@ function OrderTracking() {
   const [toast, setToast] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null); // order object
+  const [cancelModal, setCancelModal] = useState(null);   // order object
   const [detailModal, setDetailModal] = useState(null);   // order object
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,25 +136,79 @@ function OrderTracking() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const openDetailModal = async (order) => {
+    setDetailModal(order);
+    setLoadingDetail(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/Order/${order.id}`);
+      setDetailModal(res.data?.data || order);
+    } catch {
+      setDetailModal(order);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
   const openCompleteModal = (e, order) => {
     e.stopPropagation();
     setConfirmModal(order);
+  };
+
+  const openCancelModal = (e, order) => {
+    e.stopPropagation();
+    setCancelModal(order);
   };
 
   const confirmComplete = async () => {
     if (!confirmModal) return;
     setLoadingId(confirmModal.id);
     try {
-      await axios.put(
+      const response = await axios.put(
         `${BASE_URL}/Order/${confirmModal.id}/status`,
         { status: "Completed" },
         { headers: { accept: "*/*", "Content-Type": "application/json" } }
       );
-      showToast("success", `Đơn hàng #${confirmModal.id} đã hoàn thành!`);
+      showToast("success", extractApiMessage(response.data, `Đơn hàng #${confirmModal.id} đã hoàn thành!`));
       setConfirmModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi: ${err?.response?.data?.message || err.message}`);
+      showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelModal) return;
+    setLoadingId(cancelModal.id);
+    try {
+      const payload = { status: "Cancelled by Franchise" };
+      const response = await axios.put(
+        `${BASE_URL}/Order/${cancelModal.id}/status`,
+        payload,
+        { headers: { accept: "*/*", "Content-Type": "application/json" } }
+      );
+      showToast("success", extractApiMessage(response.data, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
+      setCancelModal(null);
+      dispatch(fetchGetOrder());
+    } catch (err) {
+      if (err?.response?.data?.error === "OR40003") {
+        try {
+          const fallbackResponse = await axios.put(
+            `${BASE_URL}/Order/${cancelModal.id}/status`,
+            { status: "Cancelled" },
+            { headers: { accept: "*/*", "Content-Type": "application/json" } }
+          );
+          showToast("success", extractApiMessage(fallbackResponse.data, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
+          setCancelModal(null);
+          dispatch(fetchGetOrder());
+          return;
+        } catch (fallbackErr) {
+          showToast("error", `Lỗi: ${extractApiErrorMessage(fallbackErr)}`);
+        }
+      } else {
+        showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
+      }
     } finally {
       setLoadingId(null);
     }
@@ -127,6 +241,8 @@ function OrderTracking() {
       return statusMatch && searchMatch && dateMatch;
     });
   }, [orders, filterStatus, searchTerm, filterDate]);
+
+  const detailLines = useMemo(() => normalizeCollection(detailModal?.orderLines), [detailModal]);
 
   return (
     <>
@@ -269,17 +385,21 @@ function OrderTracking() {
                       </tr>
                     )}
                     {filteredOrders.map((order, idx) => {
-                      const badge = getStatusBadge(order.status);
                       const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const lines = order.orderLines || [];
                       const total = lines.reduce((s, l) => s + (l.price || 0) * l.quantity, 0);
+                      const badge = getStatusBadge(order.status);
                       const isCompleted = order.status === "Completed";
+                      const isApproved = order.status === "Approved";
+                      const isPending = order.status === "Pending";
+                      const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
+                      const isRejected = String(order.status || "").toLowerCase().includes("reject");
 
                       return (
                         <tr
                           key={order.id}
                           className="hover:bg-slate-50/80 transition-colors cursor-pointer"
-                          onClick={() => setDetailModal(order)}
+                          onClick={() => openDetailModal(order)}
                         >
                           {/* Order ID */}
                           <td className="px-6 py-4">
@@ -339,7 +459,7 @@ function OrderTracking() {
 
                           {/* Actions */}
                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            {!isCompleted ? (
+                            {isApproved ? (
                               <button
                                 onClick={(e) => openCompleteModal(e, order)}
                                 disabled={loadingId === order.id}
@@ -355,7 +475,7 @@ function OrderTracking() {
                                 )}
                                 Complete
                               </button>
-                            ) : (
+                            ) : isCompleted ? (
                               <button
                                 onClick={() => navigate(`/FeedbackFranchise?orderId=${order.id}`)}
                                 className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-green-600 text-white hover:bg-green-700"
@@ -363,6 +483,26 @@ function OrderTracking() {
                               >
                                 <span className="material-symbols-outlined text-[14px]">rate_review</span>
                                 Feedback
+                              </button>
+                            ) : isCancelled || isRejected ? (
+                              <span className="text-xs font-semibold text-slate-400">Cancelled</span>
+                            ) : !isPending ? (
+                              <span className="text-xs font-medium text-slate-400">In progress</span>
+                            ) : (
+                              <button
+                                onClick={(e) => openCancelModal(e, order)}
+                                disabled={loadingId === order.id}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {loadingId === order.id ? (
+                                  <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                  </svg>
+                                ) : (
+                                  <span className="material-symbols-outlined text-[14px]">cancel</span>
+                                )}
+                                Cancel
                               </button>
                             )}
                           </td>
@@ -415,68 +555,102 @@ function OrderTracking() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="flex items-center gap-3 mb-5">
-                {(() => {
-                  const b = getStatusBadge(detailModal.status);
-                  return (
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 border rounded-full text-xs font-black uppercase tracking-tight ${b.cls}`}>
-                      <span className={`size-1.5 rounded-full ${b.dot}`} />
-                      {b.label}
-                    </span>
-                  );
-                })()}
-                <span className="text-xs text-slate-400">Order Date: {formatDate(detailModal.orderDate)}</span>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-xs text-slate-500 border-b border-slate-200">
-                      <th className="px-4 py-3">Item</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3 text-right">Price</th>
-                      <th className="px-4 py-3 text-right">Qty</th>
-                      <th className="px-4 py-3 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(detailModal.orderLines || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center text-slate-400 py-6 text-sm">Không có sản phẩm</td>
-                      </tr>
-                    ) : (
-                      (detailModal.orderLines || []).map((line) => (
-                        <tr key={line.id} className="border-t border-slate-100">
-                          <td className="px-4 py-3">
-                            <p className="text-sm font-semibold text-slate-800">{line.name}</p>
-                            <p className="text-xs text-slate-400">{line.description}</p>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium capitalize">{line.type}</span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-slate-600 text-right">{(line.price || 0).toLocaleString("vi-VN")}đ</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-slate-700 text-right">{line.quantity}</td>
-                          <td className="px-4 py-3 text-sm font-bold text-slate-800 text-right">
-                            {((line.price || 0) * line.quantity).toLocaleString("vi-VN")}đ
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {(detailModal.orderLines || []).length > 0 && (
-                <div className="mt-4 flex justify-end">
-                  <div className="text-right">
-                    <p className="text-xs text-slate-400 mb-1">Total Amount</p>
-                    <p className="text-xl font-bold text-primary">
-                      {(detailModal.orderLines || [])
-                        .reduce((s, l) => s + (l.price || 0) * l.quantity, 0)
-                        .toLocaleString("vi-VN")}đ
-                    </p>
-                  </div>
+              {loadingDetail ? (
+                <div className="flex items-center justify-center py-12 text-slate-400 gap-3">
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  <span className="text-sm">Đang tải chi tiết đơn...</span>
                 </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 mb-5">
+                    {(() => {
+                      const b = getStatusBadge(detailModal.status);
+                      return (
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 border rounded-full text-xs font-black uppercase tracking-tight ${b.cls}`}>
+                          <span className={`size-1.5 rounded-full ${b.dot}`} />
+                          {b.label}
+                        </span>
+                      );
+                    })()}
+                    <span className="text-xs text-slate-400">Order Date: {formatDate(detailModal.orderDate)}</span>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-xs text-slate-500 border-b border-slate-200">
+                          <th className="px-4 py-3">Item</th>
+                          <th className="px-4 py-3">Type</th>
+                          <th className="px-4 py-3 text-right">Price</th>
+                          <th className="px-4 py-3 text-right">Qty</th>
+                          <th className="px-4 py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="text-center text-slate-400 py-6 text-sm">Không có sản phẩm</td>
+                          </tr>
+                        ) : (
+                          detailLines.map((line, index) => {
+                            const ingredients = getLineIngredients(line);
+
+                            return (
+                              <tr key={line.id || index} className="border-t border-slate-100">
+                                <td className="px-4 py-3">
+                                  <p className="text-sm font-semibold text-slate-800">{line.name}</p>
+                                  <p className="text-xs text-slate-400">{line.description}</p>
+                                  {ingredients.length > 0 && (
+                                    <div className="mt-2 space-y-1 border-l-2 border-amber-200 pl-3">
+                                      <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Ingredients</p>
+                                      {ingredients.map((ingredient, ingredientIndex) => {
+                                        const quantity = formatIngredientQuantity(ingredient);
+
+                                        return (
+                                          <div
+                                            key={`${line.id || index}-ingredient-${ingredientIndex}`}
+                                            className="flex items-center justify-between gap-3 text-xs text-slate-500"
+                                          >
+                                            <span>{getIngredientName(ingredient, ingredientIndex)}</span>
+                                            {quantity && <span className="font-medium text-slate-600">{quantity}</span>}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium capitalize">{line.type}</span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-slate-600 text-right">{(line.price || 0).toLocaleString("vi-VN")}đ</td>
+                                <td className="px-4 py-3 text-sm font-semibold text-slate-700 text-right">{line.quantity}</td>
+                                <td className="px-4 py-3 text-sm font-bold text-slate-800 text-right">
+                                  {((line.price || 0) * line.quantity).toLocaleString("vi-VN")}đ
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {detailLines.length > 0 && (
+                    <div className="mt-4 flex justify-end">
+                      <div className="text-right">
+                        <p className="text-xs text-slate-400 mb-1">Total Amount</p>
+                        <p className="text-xl font-bold text-primary">
+                          {detailLines
+                            .reduce((s, l) => s + (l.price || 0) * l.quantity, 0)
+                            .toLocaleString("vi-VN")}đ
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -486,7 +660,7 @@ function OrderTracking() {
                 <button onClick={() => setDetailModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
                   Close
                 </button>
-                {detailModal.status !== "Completed" && (
+                {detailModal.status === "Approved" && (
                   <button
                     onClick={(e) => { setDetailModal(null); openCompleteModal(e, detailModal); }}
                     className="px-4 py-2 rounded-lg bg-primary text-white text-sm flex items-center gap-2 hover:bg-primary/90"
@@ -538,6 +712,49 @@ function OrderTracking() {
                   <span className="material-symbols-outlined text-[16px]">check_circle</span>
                 )}
                 Confirm Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Confirm Cancel Modal ===== */}
+      {cancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setCancelModal(null)} />
+          <div className="bg-white rounded-2xl shadow-2xl z-10 w-96 p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
+                <span className="material-symbols-outlined">cancel</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">Cancel Order</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Bạn có chắc muốn hủy đơn hàng{" "}
+                  <span className="font-mono font-bold text-slate-800">#ORD-{cancelModal.id}</span>?
+                  Trạng thái sẽ chuyển thành "Cancelled by Franchise".
+                </p>
+              </div>
+              <button onClick={() => setCancelModal(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setCancelModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
+                Keep Order
+              </button>
+              <button
+                onClick={confirmCancel}
+                disabled={loadingId === cancelModal.id}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm shadow flex items-center gap-2 hover:bg-red-600 disabled:opacity-60"
+              >
+                {loadingId === cancelModal.id ? (
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                ) : (
+                  <span className="material-symbols-outlined text-[16px]">cancel</span>
+                )}
+                Confirm Cancel
               </button>
             </div>
           </div>
