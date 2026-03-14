@@ -281,9 +281,17 @@ function MaterialTracking() {
 
                           {/* Order Ref */}
                           <td className="px-6 py-4">
-                            <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                              #ORD-{req.orderId}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                                #ORD-{req.orderId}
+                              </span>
+                              {req.status === "Pending" && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200 w-fit">
+                                  <span className="size-1.5 rounded-full bg-blue-500" />
+                                  Processing
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Requested By */}
