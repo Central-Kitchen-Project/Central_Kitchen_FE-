@@ -35,15 +35,52 @@ function formatDate(dateStr) {
 }
 
 function getStatusBadge(status) {
-  if (status === "Pending")
+  const normalizedStatus = normalizeOrderStatus(status);
+
+  if (normalizedStatus === "Pending")
     return { label: "Pending", cls: "bg-red-50 text-red-600 border-red-100" };
-  if (status === "Approved")
-    return { label: "Approved", cls: "bg-amber-50 text-amber-600 border-amber-100" };
-  if (status === "Processing")
+  if (normalizedStatus === "Processing")
     return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-100" };
-  if (status === "Completed")
+  if (normalizedStatus === "Confirmed")
+    return { label: "Confirmed", cls: "bg-emerald-50 text-emerald-600 border-emerald-100" };
+  if (normalizedStatus === "Delivering")
+    return { label: "Delivering", cls: "bg-violet-50 text-violet-600 border-violet-100" };
+  if (normalizedStatus === "Completed")
     return { label: "Completed", cls: "bg-green-50 text-green-600 border-green-100" };
-  return { label: status || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-100" };
+  return { label: normalizedStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-100" };
+}
+
+function normalizeOrderStatus(status) {
+  switch (status) {
+    case "Approved":
+    case "Confirmed":
+      return "Confirmed";
+    case "Delivering":
+      return "Delivering";
+    case "Completed":
+      return "Completed";
+    case "Processing":
+      return "Processing";
+    case "Pending":
+      return "Pending";
+    default:
+      return status || "Unknown";
+  }
+}
+
+async function updateOrderStatusWithFallback(orderId, nextStatuses, approvedBy) {
+  let lastError;
+
+  for (const nextStatus of nextStatuses) {
+    try {
+      await orderService.UpdateStatus(orderId, nextStatus, approvedBy);
+      return nextStatus;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 }
 
 function getInitial(name) {
@@ -81,12 +118,13 @@ function SupplyOrderProcessing() {
   const [loadingAccept, setLoadingAccept] = useState(false);
   const [loadingRequest, setLoadingRequest] = useState(false);
   const [loadingReject, setLoadingReject] = useState(false);
+  const [loadingDeliveryId, setLoadingDeliveryId] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const STATUS_TABS = ["All", "Pending", "Approved", "Processing", "Completed"];
+  const STATUS_TABS = ["All", "Pending", "Processing", "Confirmed", "Delivering", "Completed"];
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -132,62 +170,19 @@ function SupplyOrderProcessing() {
     
     setLoadingAccept(true);
     try {
-      // Determine next valid status based on current status
-      let nextStatus;
-      
-      switch (selectedOrder.status) {
-        case "Pending":    nextStatus = "Approved"; break;
-        case "Approved":   nextStatus = "Processing"; break;
-        case "Processing": nextStatus = "Approved"; break;
-        default:           nextStatus = "Approved"; break;
-      }
-      
-      console.log(`Attempting to update Order #${selectedOrder.id}: ${selectedOrder.status} → ${nextStatus}`);
-      console.log('Selected Order Details:', { id: selectedOrder.id, status: selectedOrder.status, nextStatus, approvedBy });
-      
-      // Debug: Check if we have authentication token
-      const token = JSON.parse(localStorage.getItem('ACCESS_TOKEN'))?.token || localStorage.getItem('ACCESS_TOKEN');
-      console.log('Auth token available:', !!token);
-      console.log('API URL will be:', `http://meinamfpt-001-site1.ltempurl.com/api/Order/${selectedOrder.id}/status`);
-      console.log('Request payload:', { status: nextStatus, approvedBy });
-      
-      // Use direct API call for better debugging first
-      try {
-        const directResult = await orderService.UpdateStatus(selectedOrder.id, nextStatus, approvedBy);
-        console.log('Direct API call succeeded:', directResult);
-        
-        showToast("success", `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${nextStatus}!`);
-        
-        setAcceptModalOpen(false);
-        dispatch(fetchGetOrder());
-        return;
-      } catch (directError) {
-        console.log('Direct API call failed, error details:', directError);
-        console.log('Error response:', directError?.response);
-        console.log('Error data:', directError?.response?.data);
-        console.log('Error status:', directError?.response?.status);
-        
-        // If it's a case sensitivity issue, try lowercase
-        if (directError?.response?.data?.error === 'OR40003') {
-          console.log('Trying with lowercase status...');
-          const lowerNextStatus = nextStatus.toLowerCase();
-          
-          try {
-            const lowerResult = await orderService.UpdateStatus(selectedOrder.id, lowerNextStatus, approvedBy);
-            console.log('Lowercase API call succeeded:', lowerResult);
-            
-            showToast("success", `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${nextStatus}!`);
-            setAcceptModalOpen(false);
-            dispatch(fetchGetOrder());
-            return;
-          } catch (lowerError) {
-            console.log('Lowercase API call also failed:', lowerError);
-          }
-        }
-        
-        // If direct calls failed, throw to outer catch
-        throw directError;
-      }
+      const savedStatus = await updateOrderStatusWithFallback(
+        selectedOrder.id,
+        ["Approved"],
+        approvedBy
+      );
+
+      showToast(
+        "success",
+        `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${normalizeOrderStatus(savedStatus)}!`
+      );
+
+      setAcceptModalOpen(false);
+      dispatch(fetchGetOrder());
     } catch (err) {
       console.error("Accept error:", err?.response?.data || err);
       const errorMessage = err?.response?.data?.message || err.message || 'Lỗi không xác định';
@@ -281,12 +276,18 @@ function SupplyOrderProcessing() {
         })),
       };
       
-      // First create the material request
-      await API.callWithToken().post(`MaterialRequest`, payload);
-      
+      // First create the material request, then move it into the CK processing queue.
+      const createResponse = await API.callWithToken().post(`MaterialRequest`, payload);
+      const createdRequestId = createResponse?.data?.data?.id || createResponse?.data?.id;
+      if (createdRequestId) {
+        await API.callWithToken().put(`MaterialRequest/${createdRequestId}/status`, {
+          status: "Processing",
+        });
+      }
+
       // Then update order status to "Processing" with approvedBy field
       const approvedBy = userInfo?.id || 1;
-      await orderService.UpdateStatus(selectedOrder.id, "Processing", approvedBy);
+      await updateOrderStatusWithFallback(selectedOrder.id, ["Processing"], approvedBy);
       
       showToast("success", `Yêu cầu vật liệu cho đơn #${selectedOrder.id} đã được gửi!`);
       setRequestModalOpen(false);
@@ -301,9 +302,27 @@ function SupplyOrderProcessing() {
   const orders = data || [];
   const incomingOrders = orders;
 
+  const handleDeliver = async (e, order) => {
+    e.stopPropagation();
+    const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
+    const approvedBy = userInfo?.id || 1;
+
+    setLoadingDeliveryId(order.id);
+    try {
+      await updateOrderStatusWithFallback(order.id, ["Delivering"], approvedBy);
+      showToast("success", `Đơn hàng #${order.id} đã được chuyển sang Delivering!`);
+      dispatch(fetchGetOrder());
+    } catch (err) {
+      showToast("error", `Lỗi khi chuyển giao đơn: ${err?.response?.data?.message || err.message}`);
+    } finally {
+      setLoadingDeliveryId(null);
+    }
+  };
+
   const filteredOrders = useMemo(() => {
     return incomingOrders.filter((order) => {
-      const statusMatch = filterStatus === "All" || order.status === filterStatus;
+      const statusMatch =
+        filterStatus === "All" || normalizeOrderStatus(order.status) === filterStatus;
       const itemMatch =
         searchTerm === "" ||
         (order.orderLines || []).some((line) =>
@@ -435,9 +454,12 @@ function SupplyOrderProcessing() {
                       const lines = order.orderLines || [];
                       const firstLine = lines[0];
                       const restLines = lines.slice(1);
-                      const isProcessing = order.status === "Processing";
-                      const isApproved = order.status === "Approved";
-                      const isCompleted = order.status === "Completed";
+                      const normalizedStatus = normalizeOrderStatus(order.status);
+                      const isPending = normalizedStatus === "Pending";
+                      const isProcessing = normalizedStatus === "Processing";
+                      const isConfirmed = normalizedStatus === "Confirmed";
+                      const isCompleted = normalizedStatus === "Completed";
+                      const isDelivering = normalizedStatus === "Delivering";
 
                       return (
                         <tr
@@ -486,44 +508,63 @@ function SupplyOrderProcessing() {
                           </td>
                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end items-center gap-2">
-                              <button
-                                onClick={(e) => openAcceptModal(e, order)}
-                                disabled={isApproved || isCompleted}
-                                className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={(e) => openRequestModal(e, order)}
-                                disabled={isProcessing || isCompleted}
-                                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                              >
-                                Request
-                              </button>
-                              {/* More actions dropdown */}
-                              <div className="relative">
+                              {(isPending || isProcessing) && (
+                                <>
+                                  <button
+                                    onClick={(e) => openAcceptModal(e, order)}
+                                    disabled={!isPending}
+                                    className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={(e) => openRequestModal(e, order)}
+                                    disabled={!isPending}
+                                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    {isProcessing ? "Requested" : "Request"}
+                                  </button>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => isPending && setOpenDropdown(openDropdown === order.id ? null : order.id)}
+                                      disabled={!isPending}
+                                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                      <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                                    </button>
+                                    {openDropdown === order.id && isPending && (
+                                      <>
+                                        <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />
+                                        <div className="absolute right-0 top-full mt-1 z-40 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40">
+                                          <button
+                                            onClick={() => openRejectModal(order)}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                          >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                            Reject Order
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+
+                              {isConfirmed && (
                                 <button
-                                  onClick={() => setOpenDropdown(openDropdown === order.id ? null : order.id)}
-                                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                                  onClick={(e) => handleDeliver(e, order)}
+                                  disabled={loadingDeliveryId === order.id}
+                                  className="px-3 py-1.5 bg-violet-600 text-white text-xs font-bold rounded-lg hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
-                                  <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                                  {loadingDeliveryId === order.id ? "Delivering..." : "Delivery"}
                                 </button>
-                                {openDropdown === order.id && (
-                                  <>
-                                    <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />
-                                    <div className="absolute right-0 top-full mt-1 z-40 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-40">
-                                      <button
-                                        onClick={() => openRejectModal(order)}
-                                        disabled={isApproved || isProcessing || isCompleted}
-                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                      >
-                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                        Reject Order
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
+                              )}
+
+                              {(isDelivering || isCompleted) && (
+                                <span className="text-xs font-semibold text-slate-400">
+                                  {isCompleted ? "Completed" : "On delivery"}
+                                </span>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -677,7 +718,7 @@ function SupplyOrderProcessing() {
                 <p className="text-sm text-slate-500 mt-1">
                   Are you sure you want to accept{" "}
                   <span className="font-mono font-bold">#ORD-{selectedOrder?.id}</span>?
-                  This will move the order to the Processing queue.
+                  This will move the order to Confirmed.
                 </p>
               </div>
               <button onClick={() => setAcceptModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>

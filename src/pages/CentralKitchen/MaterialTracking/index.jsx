@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import API from "../../../services/api";
+import orderService from "../../../services/orderService";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
@@ -26,11 +28,63 @@ function getTimeDiff(dateStr) {
 }
 
 function getStatusBadge(status) {
-  switch (status) {
-    case "Pending":   return { label: "Pending",   cls: "bg-amber-50 text-amber-600 border-amber-200",  dot: "bg-amber-500" };
-    case "Fulfilled": return { label: "Fulfilled", cls: "bg-green-50 text-green-600 border-green-200",  dot: "bg-green-500" };
-    default:          return { label: status || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
+  const normalizedStatus = normalizeMaterialRequestStatus(status);
+
+  switch (normalizedStatus) {
+    case "Pending":
+      return { label: "Pending", cls: "bg-amber-50 text-amber-600 border-amber-200", dot: "bg-amber-500" };
+    case "Processing":
+      return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200", dot: "bg-blue-500" };
+    case "Confirmed":
+      return { label: "Confirmed", cls: "bg-emerald-50 text-emerald-600 border-emerald-200", dot: "bg-emerald-500" };
+    default:
+      return { label: normalizedStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
   }
+}
+
+function normalizeMaterialRequestStatus(status) {
+  switch (status) {
+    case "Fulfilled":
+    case "Confirmed":
+    case "Approved":
+      return "Confirmed";
+    case "Processing":
+      return "Processing";
+    case "Pending":
+      return "Pending";
+    default:
+      return status || "Unknown";
+  }
+}
+
+async function updateOrderStatusWithFallback(orderId, nextStatuses, approvedBy) {
+  let lastError;
+
+  for (const nextStatus of nextStatuses) {
+    try {
+      await orderService.UpdateStatus(orderId, nextStatus, approvedBy);
+      return nextStatus;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
+async function updateMaterialRequestStatusWithFallback(requestId, nextStatuses) {
+  let lastError;
+
+  for (const nextStatus of nextStatuses) {
+    try {
+      await API.callWithToken().put(`MaterialRequest/${requestId}/status`, { status: nextStatus });
+      return nextStatus;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 }
 
 function getInitial(name) {
@@ -46,7 +100,7 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_TABS = ["All", "Pending", "Fulfilled"];
+const STATUS_TABS = ["All", "Pending", "Processing", "Confirmed"];
 
 function MaterialTracking() {
   const [requests, setRequests] = useState([]);
@@ -62,6 +116,7 @@ function MaterialTracking() {
   const [detailModal, setDetailModal] = useState(null);
   const [fulfillModal, setFulfillModal] = useState(null);
   const [loadingFulfill, setLoadingFulfill] = useState(false);
+  const [loadingActionId, setLoadingActionId] = useState(null);
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -88,13 +143,14 @@ function MaterialTracking() {
 
   const stats = useMemo(() => ({
     total: requests.length,
-    pending: requests.filter((r) => r.status === "Pending").length,
-    fulfilled: requests.filter((r) => r.status === "Fulfilled").length,
+    processing: requests.filter((r) => normalizeMaterialRequestStatus(r.status) === "Processing").length,
+    confirmed: requests.filter((r) => normalizeMaterialRequestStatus(r.status) === "Confirmed").length,
   }), [requests]);
 
   const filteredRequests = useMemo(() => {
     return requests.filter((req) => {
-      const statusMatch = filterStatus === "All" || req.status === filterStatus;
+      const statusMatch =
+        filterStatus === "All" || normalizeMaterialRequestStatus(req.status) === filterStatus;
       const searchMatch =
         searchTerm === "" ||
         String(req.id).includes(searchTerm) ||
@@ -112,6 +168,35 @@ function MaterialTracking() {
       return statusMatch && searchMatch && dateMatch;
     });
   }, [requests, filterStatus, searchTerm, filterDate]);
+
+  const handleAcceptRequest = async (request) => {
+    if (!request?.id) return;
+
+    setLoadingActionId(request.id);
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
+      const approvedBy = userInfo?.id || 1;
+
+      await updateMaterialRequestStatusWithFallback(request.id, ["Fulfilled"]);
+
+      if (request.orderId) {
+        await updateOrderStatusWithFallback(request.orderId, ["Approved"], approvedBy);
+      }
+
+      if (detailModal?.id === request.id) {
+        setDetailModal((prev) =>
+          prev ? { ...prev, status: "Confirmed" } : prev
+        );
+      }
+
+      showToast("success", `Yêu cầu #${request.id} đã được xác nhận.`);
+      fetchRequests();
+    } catch (err) {
+      showToast("error", `Lỗi cập nhật trạng thái: ${err?.response?.data?.message || err.message}`);
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
 
   const handleFulfill = async () => {
     if (!fulfillModal) return;
@@ -151,8 +236,8 @@ function MaterialTracking() {
             <div className="grid grid-cols-4 gap-4">
               {[
                 { label: "Total Requests", value: stats.total,     icon: "assignment",      color: "text-slate-700",   bg: "bg-slate-100"  },
-                { label: "Pending",        value: stats.pending,   icon: "hourglass_empty", color: "text-amber-600",   bg: "bg-amber-50"   },
-                { label: "Fulfilled",      value: stats.fulfilled, icon: "task_alt",        color: "text-green-600",   bg: "bg-green-50"   },
+                { label: "Processing",     value: stats.processing, icon: "autorenew",       color: "text-blue-600",    bg: "bg-blue-50"    },
+                { label: "Confirmed",      value: stats.confirmed,  icon: "task_alt",        color: "text-emerald-600", bg: "bg-emerald-50" },
               ].map((card) => (
                 <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
                   <div className={`w-11 h-11 rounded-lg ${card.bg} flex items-center justify-center ${card.color}`}>
@@ -212,9 +297,9 @@ function MaterialTracking() {
                       }`}
                     >
                       {s}
-                      {s === "Pending" && stats.pending > 0 && (
+                      {s === "Processing" && stats.processing > 0 && (
                         <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500 text-white text-[9px] rounded-full font-black">
-                          {stats.pending}
+                          {stats.processing}
                         </span>
                       )}
                     </button>
@@ -260,8 +345,8 @@ function MaterialTracking() {
                       const badge = getStatusBadge(req.status);
                       const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const items = req.items || [];
-                      const isFulfilled = req.status === "Fulfilled";
-                      const isRejected = req.status === "Rejected";
+                      const normalizedStatus = normalizeMaterialRequestStatus(req.status);
+                      const canAccept = normalizedStatus === "Processing" || normalizedStatus === "Pending";
 
                       return (
                         <tr
@@ -335,6 +420,15 @@ function MaterialTracking() {
                           {/* Actions */}
                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-2">
+                              {canAccept && (
+                                <button
+                                  onClick={() => handleAcceptRequest(req)}
+                                  disabled={loadingActionId === req.id}
+                                  className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  {loadingActionId === req.id ? "Accepting..." : "Accept"}
+                                </button>
+                              )}
                               <button
                                 onClick={() => setDetailModal(req)}
                                 className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50"
@@ -498,6 +592,16 @@ function MaterialTracking() {
 
             {/* Footer */}
             <div className="p-4 border-t border-slate-100 flex items-center justify-end">
+              {(normalizeMaterialRequestStatus(detailModal.status) === "Processing" ||
+                normalizeMaterialRequestStatus(detailModal.status) === "Pending") && (
+                <button
+                  onClick={() => handleAcceptRequest(detailModal)}
+                  disabled={loadingActionId === detailModal.id}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed mr-3"
+                >
+                  {loadingActionId === detailModal.id ? "Accepting..." : "Accept"}
+                </button>
+              )}
               <button onClick={() => setDetailModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
                 Close
               </button>

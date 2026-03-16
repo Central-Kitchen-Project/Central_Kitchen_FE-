@@ -28,12 +28,39 @@ function getTimeDiff(dateStr) {
 }
 
 function getStatusBadge(status) {
+  const normalizedStatus = normalizeOrderStatus(status);
+
+  switch (normalizedStatus) {
+    case "Pending":
+      return { label: "Pending", cls: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500" };
+    case "Processing":
+      return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200", dot: "bg-blue-500" };
+    case "Confirmed":
+      return { label: "Confirmed", cls: "bg-emerald-50 text-emerald-600 border-emerald-200", dot: "bg-emerald-500" };
+    case "Delivering":
+      return { label: "Delivering", cls: "bg-violet-50 text-violet-600 border-violet-200", dot: "bg-violet-500" };
+    case "Completed":
+      return { label: "Completed", cls: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500" };
+    default:
+      return { label: normalizedStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
+  }
+}
+
+function normalizeOrderStatus(status) {
   switch (status) {
-    case "Pending":    return { label: "Pending",    cls: "bg-red-50 text-red-600 border-red-200",       dot: "bg-red-500" };
-    case "Approved":   return { label: "Approved",   cls: "bg-amber-50 text-amber-600 border-amber-200", dot: "bg-amber-500" };
-    case "Processing": return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200",    dot: "bg-blue-500" };
-    case "Completed":  return { label: "Completed",  cls: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500" };
-    default:           return { label: status || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
+    case "Approved":
+    case "Confirmed":
+      return "Confirmed";
+    case "Delivering":
+      return "Delivering";
+    case "Completed":
+      return "Completed";
+    case "Processing":
+      return "Processing";
+    case "Pending":
+      return "Pending";
+    default:
+      return status || "Unknown";
   }
 }
 
@@ -50,7 +77,7 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_FILTERS = ["All", "Pending", "Approved", "Processing", "Completed"];
+const STATUS_FILTERS = ["All", "Pending", "Processing", "Confirmed", "Delivering", "Completed"];
 
 function OrderTracking() {
   const data = useSelector((state) => state.ORDER.listOrders);
@@ -104,14 +131,16 @@ function OrderTracking() {
 
   const stats = useMemo(() => ({
     total: orders.length,
-    pending: orders.filter((o) => o.status === "Pending").length,
-    processing: orders.filter((o) => o.status === "Processing").length,
-    completed: orders.filter((o) => o.status === "Completed").length,
+    active: orders.filter((o) => normalizeOrderStatus(o.status) !== "Completed").length,
+    processing: orders.filter((o) => normalizeOrderStatus(o.status) === "Processing").length,
+    delivering: orders.filter((o) => normalizeOrderStatus(o.status) === "Delivering").length,
+    completed: orders.filter((o) => normalizeOrderStatus(o.status) === "Completed").length,
   }), [orders]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const statusMatch = filterStatus === "All" || order.status === filterStatus;
+      const statusMatch =
+        filterStatus === "All" || normalizeOrderStatus(order.status) === filterStatus;
       const searchMatch =
         searchTerm === "" ||
         String(order.id).includes(searchTerm) ||
@@ -165,7 +194,7 @@ function OrderTracking() {
               </button>
               <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
                 <span className="material-symbols-outlined text-[20px]">notifications</span>
-                {stats.pending > 0 && (
+                {stats.active > 0 && (
                   <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
                 )}
               </button>
@@ -175,11 +204,12 @@ function OrderTracking() {
           <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-slate-50/50">
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               {[
                 { label: "Total Orders", value: stats.total, icon: "receipt_long", color: "text-slate-700", bg: "bg-slate-100" },
-                { label: "Pending", value: stats.pending, icon: "hourglass_empty", color: "text-red-600", bg: "bg-red-50" },
+                { label: "Active", value: stats.active, icon: "hourglass_empty", color: "text-red-600", bg: "bg-red-50" },
                 { label: "Processing", value: stats.processing, icon: "autorenew", color: "text-blue-600", bg: "bg-blue-50" },
+                { label: "Delivering", value: stats.delivering, icon: "local_shipping", color: "text-violet-600", bg: "bg-violet-50" },
                 { label: "Completed", value: stats.completed, icon: "task_alt", color: "text-green-600", bg: "bg-green-50" },
               ].map((card) => (
                 <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
@@ -273,7 +303,9 @@ function OrderTracking() {
                       const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const lines = order.orderLines || [];
                       const total = lines.reduce((s, l) => s + (l.price || 0) * l.quantity, 0);
-                      const isCompleted = order.status === "Completed";
+                      const normalizedStatus = normalizeOrderStatus(order.status);
+                      const isDelivering = normalizedStatus === "Delivering";
+                      const isCompleted = normalizedStatus === "Completed";
 
                       return (
                         <tr
@@ -339,7 +371,7 @@ function OrderTracking() {
 
                           {/* Actions */}
                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            {!isCompleted ? (
+                            {isDelivering ? (
                               <button
                                 onClick={(e) => openCompleteModal(e, order)}
                                 disabled={loadingId === order.id}
@@ -355,7 +387,7 @@ function OrderTracking() {
                                 )}
                                 Complete
                               </button>
-                            ) : (
+                            ) : isCompleted ? (
                               <button
                                 onClick={() => navigate(`/FeedbackFranchise?orderId=${order.id}`)}
                                 className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-green-600 text-white hover:bg-green-700"
@@ -364,6 +396,8 @@ function OrderTracking() {
                                 <span className="material-symbols-outlined text-[14px]">rate_review</span>
                                 Feedback
                               </button>
+                            ) : (
+                              <span className="text-xs font-semibold text-slate-400">Waiting for delivery</span>
                             )}
                           </td>
                         </tr>
@@ -486,7 +520,7 @@ function OrderTracking() {
                 <button onClick={() => setDetailModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
                   Close
                 </button>
-                {detailModal.status !== "Completed" && (
+                {normalizeOrderStatus(detailModal.status) === "Delivering" && (
                   <button
                     onClick={(e) => { setDetailModal(null); openCompleteModal(e, detailModal); }}
                     className="px-4 py-2 rounded-lg bg-primary text-white text-sm flex items-center gap-2 hover:bg-primary/90"
