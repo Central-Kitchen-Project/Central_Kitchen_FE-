@@ -1,4 +1,7 @@
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { HIDDEN_ITEM_IDS_STORAGE_KEY, syncHiddenItems } from "./store/itemSlice";
 import SignIn from "../src/pages/SignInPage/SignIn";
 import SignUp from "./pages/SignUpPage";
 import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
@@ -37,6 +40,19 @@ import SystemConfiguration from "./pages/DashboardAdmin/SystemConfiguration/Syst
 import MasterAdmin from "./pages/MasterAdminPage/MasterAdmin";
 import OrderManagement from "./pages/DashboardAdmin/OrderManagement/OrderManagement";
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key === HIDDEN_ITEM_IDS_STORAGE_KEY) {
+        dispatch(syncHiddenItems());
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [dispatch]);
+
   return (
     <Routes>
       {/* Manager role — shared sidebar layout */}

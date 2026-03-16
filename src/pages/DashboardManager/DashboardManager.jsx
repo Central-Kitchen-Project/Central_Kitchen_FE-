@@ -3,12 +3,22 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetAll } from '../../store/itemSlice'
 import { fetchGetOrder } from '../../store/orderSlice'
 import './DashboardManager.css'
+import PageHeader from '../../components/common/PageHeader'
 
 function parseUTC(dateStr) {
   if (!dateStr) return new Date(NaN)
   let s = String(dateStr)
   if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += 'Z'
   return new Date(s)
+}
+
+function getOrderDisplayStatus(status) {
+  const normalizedStatus = String(status || '').toLowerCase()
+
+  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering') return 'delivery'
+  if (normalizedStatus === 'cancelled by franchise') return 'cancelled'
+
+  return normalizedStatus
 }
 
 function DashboardManager() {
@@ -23,7 +33,8 @@ function DashboardManager() {
 
   // Stats
   const totalItems = items.length
-  const pendingOrders = orders.filter(o => o.status?.toLowerCase() === 'pending').length
+  const pendingOrders = orders.filter(o => getOrderDisplayStatus(o.status) === 'pending').length
+  const deliveryOrders = orders.filter(o => getOrderDisplayStatus(o.status) === 'delivery').length
   // "Low stock" = Nguyen Lieu items (raw materials) — simple heuristic
   const lowStockItems = items.filter(i => i.type?.toLowerCase() === 'nguyen lieu').length
 
@@ -47,13 +58,18 @@ function DashboardManager() {
         return d >= dayStart && d < dayEnd
       })
 
+      const countByStatus = (status) =>
+        dayOrders.filter(o => getOrderDisplayStatus(o.status) === status).length
+
       return {
         label,
         total: dayOrders.length,
-        completed: dayOrders.filter(o => o.status?.toLowerCase() === 'completed').length,
-        pending: dayOrders.filter(o => o.status?.toLowerCase() === 'pending').length,
-        approved: dayOrders.filter(o => o.status?.toLowerCase() === 'approved').length,
-        processing: dayOrders.filter(o => o.status?.toLowerCase() === 'processing').length,
+        completed: countByStatus('completed'),
+        pending: countByStatus('pending'),
+        delivery: countByStatus('delivery'),
+        processing: countByStatus('processing'),
+        rejected: countByStatus('rejected'),
+        cancelled: countByStatus('cancelled'),
       }
     })
     return weekOrders
@@ -63,29 +79,30 @@ function DashboardManager() {
 
   // Key Metrics derived from orders
   const metrics = useMemo(() => {
-    if (orders.length === 0) return { completionRate: 0, pendingRate: 0, avgItems: 0, totalRevenue: 0 }
-    const completed = orders.filter(o => o.status?.toLowerCase() === 'completed').length
+    if (orders.length === 0) return { completionRate: 0, deliveryRate: 0, avgItems: 0, totalRevenue: 0 }
+    const completed = orders.filter(o => getOrderDisplayStatus(o.status) === 'completed').length
+    const delivery = orders.filter(o => getOrderDisplayStatus(o.status) === 'delivery').length
     const completionRate = ((completed / orders.length) * 100).toFixed(1)
-    const pendingRate = ((orders.filter(o => o.status?.toLowerCase() === 'pending').length / orders.length) * 100).toFixed(1)
+    const deliveryRate = ((delivery / orders.length) * 100).toFixed(1)
     const totalLines = orders.reduce((sum, o) => sum + (o.orderLines?.length || 0), 0)
     const avgItems = (totalLines / orders.length).toFixed(1)
     const totalRevenue = orders.reduce((sum, o) => {
       return sum + (o.orderLines || []).reduce((s, line) => s + (line.price || 0) * (line.quantity || 0), 0)
     }, 0)
-    return { completionRate, pendingRate, avgItems, totalRevenue }
+    return { completionRate, deliveryRate, avgItems, totalRevenue }
   }, [orders])
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
-        <h1 className="text-xl font-bold text-slate-900">Dashboard Overview</h1>
-        <p className="text-xs text-slate-500 mt-1">Monitor key metrics and order activity</p>
-      </div>
+      <PageHeader
+        title="Dashboard Overview"
+        subtitle="Monitor key metrics and order activity across the operation."
+      />
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
     {/* Stats Row */}
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-4 gap-4">
       <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
         <div className="flex justify-between items-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Inventory</span>
@@ -104,7 +121,17 @@ function DashboardManager() {
           </div>
         </div>
         <span className="text-2xl font-bold text-slate-900">{pendingOrders}</span>
-        <span className="text-[11px] text-slate-500">Awaiting approval</span>
+        <span className="text-[11px] text-slate-500">Awaiting action</span>
+      </div>
+      <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Delivery Orders</span>
+          <div className="size-8 rounded-lg bg-violet-50 flex items-center justify-center text-violet-500">
+            <span className="material-symbols-outlined text-lg">local_shipping</span>
+          </div>
+        </div>
+        <span className="text-2xl font-bold text-slate-900">{deliveryOrders}</span>
+        <span className="text-[11px] text-slate-500">Ready for franchise receipt</span>
       </div>
       <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
         <div className="flex justify-between items-center">
@@ -122,13 +149,15 @@ function DashboardManager() {
     <div className="grid grid-cols-2 gap-4">
       {/* Chart - Weekly Orders by Status */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-slate-200">
+        <div className="dashboard-chart-header flex justify-between items-center px-4 py-3 border-b border-slate-200">
           <span className="text-sm font-semibold text-slate-900">Orders This Week</span>
-          <div className="flex items-center gap-3 text-[10px]">
-            <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-green-500 inline-block" /> Completed</span>
-            <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-red-400 inline-block" /> Pending</span>
-            <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-purple-400 inline-block" /> Approved</span>
-            <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-blue-400 inline-block" /> Processing</span>
+          <div className="dashboard-chart-legend flex items-center gap-3 text-[10px] flex-wrap justify-end">
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-green-500 inline-block" /> Completed</span>
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-red-400 inline-block" /> Pending</span>
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-blue-400 inline-block" /> Processing</span>
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-violet-400 inline-block" /> Delivery</span>
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-slate-500 inline-block" /> Rejected</span>
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-rose-400 inline-block" /> Cancelled</span>
           </div>
         </div>
         <div className="chart-container">
@@ -138,8 +167,10 @@ function DashboardManager() {
                 {day.total > 0 ? (
                   <div className="flex flex-col-reverse w-full rounded-t-md overflow-hidden" style={{ height: `${(day.total / maxOrders) * 100}%` }}>
                     {day.completed > 0 && <div className="bg-green-500 w-full" style={{ height: `${(day.completed / day.total) * 100}%` }} title={`Completed: ${day.completed}`} />}
+                    {day.cancelled > 0 && <div className="bg-rose-400 w-full" style={{ height: `${(day.cancelled / day.total) * 100}%` }} title={`Cancelled: ${day.cancelled}`} />}
+                    {day.rejected > 0 && <div className="bg-slate-500 w-full" style={{ height: `${(day.rejected / day.total) * 100}%` }} title={`Rejected: ${day.rejected}`} />}
+                    {day.delivery > 0 && <div className="bg-violet-400 w-full" style={{ height: `${(day.delivery / day.total) * 100}%` }} title={`Delivery: ${day.delivery}`} />}
                     {day.processing > 0 && <div className="bg-blue-400 w-full" style={{ height: `${(day.processing / day.total) * 100}%` }} title={`Processing: ${day.processing}`} />}
-                    {day.approved > 0 && <div className="bg-purple-400 w-full" style={{ height: `${(day.approved / day.total) * 100}%` }} title={`Approved: ${day.approved}`} />}
                     {day.pending > 0 && <div className="bg-red-400 w-full" style={{ height: `${(day.pending / day.total) * 100}%` }} title={`Pending: ${day.pending}`} />}
                   </div>
                 ) : (
@@ -165,8 +196,8 @@ function DashboardManager() {
             <span className="text-sm font-bold text-green-600">{metrics.completionRate}%</span>
           </div>
           <div className="flex justify-between items-center py-3 border-b border-slate-100">
-            <span className="text-xs text-slate-600 font-medium">Pending Rate</span>
-            <span className="text-sm font-bold text-red-600">{metrics.pendingRate}%</span>
+            <span className="text-xs text-slate-600 font-medium">Delivery Rate</span>
+            <span className="text-sm font-bold text-violet-600">{metrics.deliveryRate}%</span>
           </div>
           <div className="flex justify-between items-center py-3 border-b border-slate-100">
             <span className="text-xs text-slate-600 font-medium">Avg Items per Order</span>

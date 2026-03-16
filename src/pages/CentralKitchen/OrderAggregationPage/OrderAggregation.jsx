@@ -1,14 +1,40 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
-import { fetchGetMaterialRequest } from "../../../store/materialSlice";
+import { fetchGetMaterialRequest, updateMaterialRequestStatus } from "../../../store/materialSlice";
 import { extractApiMessage } from "../../../services/api";
+import PageHeader from "../../../components/common/PageHeader";
 
 function parseUTC(dateStr) {
   if (!dateStr) return new Date(NaN);
   let s = String(dateStr);
   if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += "Z";
   return new Date(s);
+}
+
+function getMaterialRequestDisplayStatus(status) {
+  switch (status) {
+    case "Fulfilled":
+      return "Confirmed";
+    case "Pending":
+    case "Processing":
+      return "Processing";
+    default:
+      return status || "Unknown";
+  }
+}
+
+function getStatusBadge(status) {
+  const displayStatus = getMaterialRequestDisplayStatus(status);
+
+  switch (displayStatus) {
+    case "Processing":
+      return { label: "Processing", cls: "bg-blue-50 text-blue-600 border border-blue-200", dot: "bg-blue-500" };
+    case "Confirmed":
+      return { label: "Confirmed", cls: "bg-emerald-50 text-emerald-600 border border-emerald-200", dot: "bg-emerald-500" };
+    default:
+      return { label: displayStatus, cls: "bg-slate-50 text-slate-500 border border-slate-200", dot: "bg-slate-400" };
+  }
 }
 
 function DetailModal({ requestId, onClose }) {
@@ -249,35 +275,14 @@ function OrderAggregation() {
   const handleAccept = async (request) => {
     const id = request?.id;
     try {
-      let token;
-      try {
-        const stored = JSON.parse(localStorage.getItem('ACCESS_TOKEN'));
-        token = stored?.token || stored;
-      } catch {
-        token = localStorage.getItem('ACCESS_TOKEN');
-      }
-      const response = await fetch(
-        `http://meinamfpt-001-site1.ltempurl.com/api/MaterialRequest/${id}/status`,
-        {
-          method: "PUT",
-          headers: {
-            accept: "*/*",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: "Fulfilled" }),
-        },
-      );
-      const json = await response.json().catch(() => null);
-      if (response.ok) {
-        showToast("success", `Yêu cầu vật tư #${id} đã được cập nhật thành công.`);
-        dispatch(fetchGetMaterialRequest());
-      } else {
-        showToast("error", extractApiMessage(json, "Không thể cập nhật trạng thái yêu cầu vật tư."));
-      }
+      const response = await dispatch(
+        updateMaterialRequestStatus({ id, status: "Fulfilled" })
+      ).unwrap();
+      showToast("success", extractApiMessage(response?.payload, `Yêu cầu vật tư #${id} đã được cập nhật thành công.`));
+      dispatch(fetchGetMaterialRequest());
     } catch (error) {
       console.error("Error accepting request:", error);
-      showToast("error", error?.message || "Không thể kết nối đến server.");
+      showToast("error", extractApiMessage(error, "Không thể cập nhật trạng thái yêu cầu vật tư."));
     }
   };
 
@@ -310,10 +315,12 @@ function OrderAggregation() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex flex-col justify-center border-b border-slate-200 px-8 py-4 bg-white sticky top-0 z-10">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">Order Aggregation</h2>
-          <span className="text-sm text-slate-500 font-medium mt-1">Consolidate franchise orders into batches</span>
-        </header>
+        <PageHeader
+          as="h2"
+          title="Order Aggregation"
+          subtitle="Consolidate franchise orders into batches for kitchen preparation."
+          className="sticky top-0 z-10"
+        />
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {/* Table Section */}
@@ -368,7 +375,10 @@ function OrderAggregation() {
                       </td>
                     </tr>
                   ) : (
-                    pendingItems.map((request) => (
+                    pendingItems.map((request) => {
+                      const statusBadge = getStatusBadge(request.status);
+
+                      return (
                         <tr
                           key={request.id}
                           className="hover:bg-slate-50 transition-colors"
@@ -379,9 +389,9 @@ function OrderAggregation() {
                           <td className="px-6 py-4">
                             <div className="flex flex-col gap-1">
                               <span className="font-mono text-xs font-bold text-slate-700">#ORD-{request.orderId}</span>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200 w-fit">
-                                <span className="size-1.5 rounded-full bg-blue-500" />
-                                Processing
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase w-fit ${statusBadge.cls}`}>
+                                <span className={`size-1.5 rounded-full ${statusBadge.dot}`} />
+                                {statusBadge.label}
                               </span>
                             </div>
                           </td>
@@ -414,9 +424,9 @@ function OrderAggregation() {
                             {request.requestedByUsername}
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200">
-                              <span className="size-1.5 rounded-full bg-blue-500" />
-                              Processing
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${statusBadge.cls}`}>
+                              <span className={`size-1.5 rounded-full ${statusBadge.dot}`} />
+                              {statusBadge.label}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-500 italic max-w-[160px] truncate">
@@ -448,7 +458,8 @@ function OrderAggregation() {
                             </div>
                           </td>
                         </tr>
-                      ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>

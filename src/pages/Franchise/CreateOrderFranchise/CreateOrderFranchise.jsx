@@ -159,7 +159,6 @@ function CreateOrderFranchise() {
         showToast('error', 'User session not found. Please login again.');
         return;
       }
-
       // Ensure details (with ingredients) are available for selected items.
       const missingDetailIds = selectedList
         .map(({ itemId, detail }) => (detail ? null : itemId))

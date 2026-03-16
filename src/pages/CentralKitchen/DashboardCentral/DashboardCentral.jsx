@@ -6,6 +6,7 @@ import { fetchGetOrder } from '../../../store/orderSlice';
 import { fetchGetInventory } from '../../../store/inventorySlice';
 import { fetchGetMaterialRequest } from '../../../store/materialSlice';
 import './DashboardCentral.css';
+import PageHeader from '../../../components/common/PageHeader';
 
 
 function DashboardCentral() {
@@ -65,10 +66,11 @@ function DashboardCentral() {
 
   return (
     <>
-    <header className="h-20 flex flex-col justify-center px-8 border-b border-slate-200 bg-white shrink-0">
-      <h2 className="text-2xl font-bold text-slate-900 leading-tight">Dashboard</h2>
-      <span className="text-sm text-slate-500 font-medium mt-1">Central kitchen dashboard overview</span>
-    </header>
+    <PageHeader
+      as="h2"
+      title="Dashboard"
+      subtitle="Central kitchen dashboard overview."
+    />
     <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 bg-slate-50/50">
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
         {/* Total Requests */}
