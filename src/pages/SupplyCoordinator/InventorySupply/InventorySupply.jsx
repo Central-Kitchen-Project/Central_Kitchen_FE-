@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetInventory, fetchUpdateInventory } from '../../../store/inventorySlice'
+import PageHeader from '../../../components/common/PageHeader'
 
 function InventorySupply() {
   const dispatch = useDispatch();
@@ -84,25 +85,14 @@ function InventorySupply() {
 
   return (
   <main className="flex-1 flex flex-col overflow-hidden">
-    <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4">
-      <div className="flex flex-col">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-          Inventory Management
-        </h2>
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-          <span className="material-symbols-outlined text-sm">store</span>
-          <span className="text-xs font-medium">Supply Coordinator Stock</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <button className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
-          </button>
-        </div>
-      </div>
-    </header>
+    <PageHeader
+      as="h2"
+      title="Inventory Management"
+      subtitle="Monitor supply stock levels and ingredient availability in one place."
+      className="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md dark:border-slate-800"
+      titleClassName="dark:text-white"
+      subtitleClassName="dark:text-slate-400"
+    />
     <div className="flex-1 overflow-y-auto p-8 space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">

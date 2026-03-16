@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetAll } from '../../../store/itemSlice'
 import { fetchGetInventory } from '../../../store/inventorySlice'
 import { fetchGetTransactions } from '../../../store/inventoryTransactionSlice'
+import PageHeader from '../../../components/common/PageHeader'
 
 function ReportAnalyticsManager() {
   const { userInfo } = useOutletContext()
@@ -125,10 +126,10 @@ function ReportAnalyticsManager() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
-        <h1 className="text-xl font-bold text-slate-900">Reports & Analytics</h1>
-        <p className="text-xs text-slate-500 mt-1">View cost analysis and waste reports</p>
-      </div>
+      <PageHeader
+        title="Reports & Analytics"
+        subtitle="View cost analysis and waste reports."
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">

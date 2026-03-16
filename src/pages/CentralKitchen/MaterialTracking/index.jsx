@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import axios from "axios";
-import API from "../../../services/api";
-import orderService from "../../../services/orderService";
+import { updateMaterialRequestStatus } from "../../../store/materialSlice";
+import PageHeader from "../../../components/common/PageHeader";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
@@ -28,63 +28,35 @@ function getTimeDiff(dateStr) {
 }
 
 function getStatusBadge(status) {
-  const normalizedStatus = normalizeMaterialRequestStatus(status);
+  const normalizedStatus = getMaterialRequestDisplayStatus(status);
 
   switch (normalizedStatus) {
-    case "Pending":
-      return { label: "Pending", cls: "bg-amber-50 text-amber-600 border-amber-200", dot: "bg-amber-500" };
     case "Processing":
       return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200", dot: "bg-blue-500" };
     case "Confirmed":
       return { label: "Confirmed", cls: "bg-emerald-50 text-emerald-600 border-emerald-200", dot: "bg-emerald-500" };
+    case "Rejected":
+      return { label: "Rejected", cls: "bg-slate-100 text-slate-600 border-slate-200", dot: "bg-slate-500" };
     default:
       return { label: normalizedStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
   }
 }
 
-function normalizeMaterialRequestStatus(status) {
+function getMaterialRequestDisplayStatus(status) {
   switch (status) {
     case "Fulfilled":
     case "Confirmed":
     case "Approved":
       return "Confirmed";
+    case "Pending":
     case "Processing":
       return "Processing";
-    case "Pending":
-      return "Pending";
+    case "Rejected":
+    case "Cancelled":
+      return "Rejected";
     default:
       return status || "Unknown";
   }
-}
-
-async function updateOrderStatusWithFallback(orderId, nextStatuses, approvedBy) {
-  let lastError;
-
-  for (const nextStatus of nextStatuses) {
-    try {
-      await orderService.UpdateStatus(orderId, nextStatus, approvedBy);
-      return nextStatus;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError;
-}
-
-async function updateMaterialRequestStatusWithFallback(requestId, nextStatuses) {
-  let lastError;
-
-  for (const nextStatus of nextStatuses) {
-    try {
-      await API.callWithToken().put(`MaterialRequest/${requestId}/status`, { status: nextStatus });
-      return nextStatus;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError;
 }
 
 function getInitial(name) {
@@ -100,9 +72,10 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_TABS = ["All", "Pending", "Processing", "Confirmed"];
+const STATUS_TABS = ["All", "Processing", "Confirmed"];
 
 function MaterialTracking() {
+  const dispatch = useDispatch();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -143,14 +116,14 @@ function MaterialTracking() {
 
   const stats = useMemo(() => ({
     total: requests.length,
-    processing: requests.filter((r) => normalizeMaterialRequestStatus(r.status) === "Processing").length,
-    confirmed: requests.filter((r) => normalizeMaterialRequestStatus(r.status) === "Confirmed").length,
+    processing: requests.filter((r) => getMaterialRequestDisplayStatus(r.status) === "Processing").length,
+    confirmed: requests.filter((r) => getMaterialRequestDisplayStatus(r.status) === "Confirmed").length,
   }), [requests]);
 
   const filteredRequests = useMemo(() => {
     return requests.filter((req) => {
       const statusMatch =
-        filterStatus === "All" || normalizeMaterialRequestStatus(req.status) === filterStatus;
+        filterStatus === "All" || getMaterialRequestDisplayStatus(req.status) === filterStatus;
       const searchMatch =
         searchTerm === "" ||
         String(req.id).includes(searchTerm) ||
@@ -174,23 +147,16 @@ function MaterialTracking() {
 
     setLoadingActionId(request.id);
     try {
-      const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
-      const approvedBy = userInfo?.id || 1;
-
-      const savedRequestStatus = await updateMaterialRequestStatusWithFallback(request.id, ["Fulfilled"]);
-
-      if (request.orderId) {
-        await updateOrderStatusWithFallback(request.orderId, ["Approved"], approvedBy);
-      }
+      await dispatch(
+        updateMaterialRequestStatus({ id: request.id, status: "Fulfilled" })
+      ).unwrap();
 
       if (detailModal?.id === request.id) {
-        setDetailModal((prev) =>
-          prev ? { ...prev, status: savedRequestStatus } : prev
-        );
+        setDetailModal((prev) => (prev ? { ...prev, status: "Fulfilled" } : prev));
       }
 
       showToast("success", `Yêu cầu #${request.id} đã được xác nhận.`);
-      fetchRequests();
+      await fetchRequests();
     } catch (err) {
       showToast("error", `Lỗi cập nhật trạng thái: ${err?.response?.data?.message || err.message}`);
     } finally {
@@ -225,10 +191,11 @@ function MaterialTracking() {
         <main className="flex-1 flex flex-col overflow-hidden bg-white">
 
           {/* Header */}
-          <header className="h-20 flex flex-col justify-center px-8 border-b border-slate-200 bg-white shrink-0">
-            <h2 className="text-2xl font-bold text-slate-900 leading-tight">Material Tracking</h2>
-            <span className="text-sm text-slate-500 font-medium mt-1">Manage and track material requests</span>
-          </header>
+          <PageHeader
+            as="h2"
+            title="Material Tracking"
+            subtitle="Manage and track material requests from incoming supply orders."
+          />
 
           <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-slate-50/50">
 
@@ -345,7 +312,7 @@ function MaterialTracking() {
                       const badge = getStatusBadge(req.status);
                       const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const items = req.items || [];
-                      const normalizedStatus = normalizeMaterialRequestStatus(req.status);
+                      const normalizedStatus = getMaterialRequestDisplayStatus(req.status);
                       const canAccept = normalizedStatus === "Processing" || normalizedStatus === "Pending";
 
                       return (
@@ -366,17 +333,9 @@ function MaterialTracking() {
 
                           {/* Order Ref */}
                           <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                              <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                                #ORD-{req.orderId}
-                              </span>
-                              {req.status === "Pending" && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-200 w-fit">
-                                  <span className="size-1.5 rounded-full bg-blue-500" />
-                                  Processing
-                                </span>
-                              )}
-                            </div>
+                            <span className="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                              #ORD-{req.orderId}
+                            </span>
                           </td>
 
                           {/* Requested By */}
@@ -600,8 +559,7 @@ function MaterialTracking() {
 
             {/* Footer */}
             <div className="p-4 border-t border-slate-100 flex items-center justify-end">
-              {(normalizeMaterialRequestStatus(detailModal.status) === "Processing" ||
-                normalizeMaterialRequestStatus(detailModal.status) === "Pending") && (
+              {getMaterialRequestDisplayStatus(detailModal.status) === "Processing" && (
                 <button
                   onClick={() => handleAcceptRequest(detailModal)}
                   disabled={loadingActionId === detailModal.id}
