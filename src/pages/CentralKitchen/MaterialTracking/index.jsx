@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch } from "react-redux";
 import axios from "axios";
 import { updateMaterialRequestStatus } from "../../../store/materialSlice";
+import { updateOrderStatus } from "../../../store/orderSlice";
 import PageHeader from "../../../components/common/PageHeader";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
@@ -73,6 +74,17 @@ const AVATAR_COLORS = [
 ];
 
 const STATUS_TABS = ["All", "Processing", "Confirmed"];
+
+function DetailStat({ label, value, valueClass = "text-slate-800" }) {
+  return (
+    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+        {label}
+      </p>
+      <p className={`text-sm font-semibold truncate ${valueClass}`}>{value}</p>
+    </div>
+  );
+}
 
 function MaterialTracking() {
   const dispatch = useDispatch();
@@ -147,9 +159,22 @@ function MaterialTracking() {
 
     setLoadingActionId(request.id);
     try {
+      let approvedBy;
+      try {
+        approvedBy = JSON.parse(localStorage.getItem("USER_INFO"))?.id;
+      } catch {
+        approvedBy = undefined;
+      }
+
       await dispatch(
         updateMaterialRequestStatus({ id: request.id, status: "Fulfilled" })
       ).unwrap();
+
+      if (request.orderId) {
+        await dispatch(
+          updateOrderStatus({ id: request.orderId, status: "Confirmed", approvedBy })
+        ).unwrap();
+      }
 
       if (detailModal?.id === request.id) {
         setDetailModal((prev) => (prev ? { ...prev, status: "Fulfilled" } : prev));
@@ -313,7 +338,7 @@ function MaterialTracking() {
                       const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const items = req.items || [];
                       const normalizedStatus = getMaterialRequestDisplayStatus(req.status);
-                      const canAccept = normalizedStatus === "Processing" || normalizedStatus === "Pending";
+                      const canAccept = normalizedStatus === "Processing";
 
                       return (
                         <tr
@@ -458,22 +483,35 @@ function MaterialTracking() {
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
               {/* Status + Note */}
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="w-48 shrink-0">
                   {(() => {
-                    const b = getStatusBadge(detailModal.status);
+                    const displayStatus = getMaterialRequestDisplayStatus(detailModal.status);
+                    let valueClass = "text-slate-800";
+
+                    if (displayStatus === "Processing") {
+                      valueClass = "text-blue-600 font-black uppercase";
+                    } else if (displayStatus === "Confirmed") {
+                      valueClass = "text-emerald-600 font-black uppercase";
+                    } else if (displayStatus === "Rejected") {
+                      valueClass = "text-slate-600 font-black uppercase";
+                    }
+
                     return (
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 border rounded-full text-xs font-black uppercase tracking-tight ${b.cls}`}>
-                        <span className={`size-1.5 rounded-full ${b.dot}`} />
-                        {b.label}
-                      </span>
+                      <DetailStat
+                        label="Status"
+                        value={displayStatus}
+                        valueClass={valueClass}
+                      />
                     );
                   })()}
-                  <span className="text-xs text-slate-400">{getTimeDiff(detailModal.createdAt)}</span>
                 </div>
+
                 {detailModal.note && (
-                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 max-w-xs">
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-0.5">Note</p>
-                    <p className="text-sm text-slate-700 italic">{detailModal.note}</p>
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-0.5">
+                      Note
+                    </p>
+                    <p className="text-sm text-slate-700 italic break-words">{detailModal.note}</p>
                   </div>
                 )}
               </div>
@@ -488,71 +526,35 @@ function MaterialTracking() {
                         <th className="px-4 py-3">Material</th>
                         <th className="px-4 py-3 text-right">Current Stock</th>
                         <th className="px-4 py-3 text-right">Requested Qty</th>
-                        <th className="px-4 py-3 text-right">Stock Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(detailModal.items || []).length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="text-center text-slate-400 py-6 text-sm">Không có vật liệu</td>
+                          <td colSpan={3} className="text-center text-slate-400 py-6 text-sm">Không có vật liệu</td>
                         </tr>
                       ) : (
-                        (detailModal.items || []).map((item) => {
-                          const sufficient = item.currentStock >= item.requestedQuantity;
-                          return (
-                            <tr key={item.id} className="border-t border-slate-100">
-                              <td className="px-4 py-3">
-                                <p className="text-sm font-semibold text-slate-800">{item.materialName}</p>
-                                <p className="text-xs text-slate-400">Item #{item.itemId}</p>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <span className="text-sm font-medium text-slate-700">
-                                  {item.currentStock.toLocaleString()} {item.unit}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <span className="text-sm font-bold text-slate-800">
-                                  {item.requestedQuantity.toLocaleString()} {item.unit}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                                  sufficient
-                                    ? "bg-green-50 text-green-600 border-green-200"
-                                    : "bg-red-50 text-red-600 border-red-200"
-                                }`}>
-                                  <span className="material-symbols-outlined text-[11px]">
-                                    {sufficient ? "check_circle" : "warning"}
-                                  </span>
-                                  {sufficient ? "Sufficient" : "Low Stock"}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
+                        (detailModal.items || []).map((item) => (
+                          <tr key={item.id} className="border-t border-slate-100">
+                            <td className="px-4 py-3">
+                              <p className="text-sm font-semibold text-slate-800">{item.materialName}</p>
+                              <p className="text-xs text-slate-400">Item #{item.itemId}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="text-sm font-medium text-slate-700">
+                                {item.currentStock.toLocaleString()} {item.unit}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="text-sm font-bold text-slate-800">
+                                {item.requestedQuantity.toLocaleString()} {item.unit}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
                       )}
                     </tbody>
                   </table>
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Total Items</p>
-                  <p className="text-xl font-bold text-slate-800 mt-1">{(detailModal.items || []).length}</p>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">In Stock</p>
-                  <p className="text-xl font-bold text-green-600 mt-1">
-                    {(detailModal.items || []).filter((i) => i.currentStock >= i.requestedQuantity).length}
-                  </p>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">Low Stock</p>
-                  <p className="text-xl font-bold text-red-500 mt-1">
-                    {(detailModal.items || []).filter((i) => i.currentStock < i.requestedQuantity).length}
-                  </p>
                 </div>
               </div>
             </div>

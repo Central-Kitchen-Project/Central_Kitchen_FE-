@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import "../SignInPage/SignIn.css";
 import { useNavigate } from "react-router-dom";
+import authService from "../../services/authService";
+import { extractApiErrorMessage, extractApiMessage } from "../../services/api";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -10,19 +12,20 @@ function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus(null);
+
     try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) setStatus("Email sent. Check your inbox.");
-      else {
-        const data = await res.json().catch(() => ({}));
-        setStatus(data.message || "Failed to send email.");
-      }
+      const res = await authService.forgotPassword({ email });
+      const message = extractApiMessage(
+        res?.data,
+        "Reset email sent. Please check your inbox."
+      );
+      setStatus(message);
     } catch (err) {
-      setStatus("Network error. Please try again.");
+      const message = extractApiErrorMessage(
+        err,
+        "Failed to send reset email. Please try again."
+      );
+      setStatus(message);
     }
   };
 

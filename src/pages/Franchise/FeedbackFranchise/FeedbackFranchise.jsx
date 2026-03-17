@@ -121,7 +121,7 @@ function FeedbackFranchise() {
   };
   return (
     <>
-    <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
       <div className="flex flex-col">
         <h2 className="text-xl font-bold text-slate-900">
           Feedback &amp; Support
@@ -129,14 +129,6 @@ function FeedbackFranchise() {
         <div className="flex items-center gap-2 text-slate-500">
           <span className="material-symbols-outlined text-sm">location_on</span>
           <span className="text-xs font-medium">Downtown Branch</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <button className="p-2 rounded-lg bg-slate-100 text-slate-600 relative">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-          </button>
         </div>
       </div>
     </header>

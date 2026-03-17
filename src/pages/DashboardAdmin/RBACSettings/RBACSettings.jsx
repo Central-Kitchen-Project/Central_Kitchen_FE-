@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllRoles, createRole, updateRole, deleteRole } from "../../../store/roleSlice";
 import { fetchDashboardCount } from "../../../store/userSlice";
+import PageHeader from "../../../components/common/PageHeader";
 
 const normalizeArray = (data) => {
   if (Array.isArray(data)) return data;
@@ -130,15 +131,11 @@ function RBACSettings() {
   return (
     <>
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
-        <h2 className="text-lg font-bold text-slate-900">RBAC Settings</h2>
-        <div className="flex items-center gap-3">
-          <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        as="h2"
+        title="RBAC Settings"
+        subtitle="Manage system roles and control access permissions by responsibility."
+      />
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
         {/* Stats Row */}

@@ -106,10 +106,50 @@ function getLineQuantity(line) {
 }
 
 function getOrderDisplayStatus(status, hasInventoryReady = false) {
-  if (status === "Approved" || status === "Delivering") return "Delivery";
-  if (status === "Processing" && hasInventoryReady) return "Confirmed";
-  if (status === "Confirmed" || status === "Filled") return "Confirmed";
-  if (status === "Cancelled") return "Rejected";
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (normalizedStatus === "approved" || normalizedStatus === "delivery" || normalizedStatus === "delivering") {
+    return "Delivery";
+  }
+
+  if (normalizedStatus === "processing" && hasInventoryReady) {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus === "confirmed" || normalizedStatus === "filled") {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus.includes("cancel")) {
+    return "Cancelled";
+  }
+
+  if (normalizedStatus.includes("reject")) {
+    return "Rejected";
+  }
+
+  if (normalizedStatus === "pending") return "Pending";
+  if (normalizedStatus === "processing") return "Processing";
+  if (normalizedStatus === "completed") return "Completed";
+
+  return status || "Unknown";
+}
+
+function getMaterialRequestDisplayStatus(status) {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (normalizedStatus === "fulfilled" || normalizedStatus === "confirmed" || normalizedStatus === "approved") {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus === "pending" || normalizedStatus === "processing") {
+    return "Processing";
+  }
+
+  if (normalizedStatus.includes("cancel") || normalizedStatus.includes("reject")) {
+    return "Rejected";
+  }
+
   return status || "Unknown";
 }
 
@@ -126,6 +166,8 @@ function getStatusBadge(status) {
     return { label: "Delivery", cls: "bg-violet-50 text-violet-600 border-violet-100" };
   if (displayStatus === "Completed")
     return { label: "Completed", cls: "bg-green-50 text-green-600 border-green-100" };
+  if (displayStatus === "Cancelled")
+    return { label: "Cancelled", cls: "bg-rose-50 text-rose-600 border-rose-200" };
   if (displayStatus === "Rejected")
     return { label: "Rejected", cls: "bg-slate-100 text-slate-600 border-slate-200" };
   return { label: displayStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-100" };
@@ -417,6 +459,7 @@ function getNeededQuantity(material) {
     material?.quanityNeeded ??
     material?.requiredQuantity ??
     material?.quantity ??
+    material?.qty ??
     0;
 
   const parsed = Number(rawQuantity);
@@ -528,7 +571,7 @@ function SupplyOrderProcessing() {
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected"];
+  const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
   const inventoryLookup = useMemo(() => buildInventoryLookup(userInventory), [userInventory]);
 
   useEffect(() => {
@@ -691,7 +734,7 @@ function SupplyOrderProcessing() {
     };
   }, [data, orderInventoryStatus, readyOrders, inventoryLookup, itemDetailsById]);
 
-  // Poll for fulfilled material requests on Processing orders
+  // Poll for confirmed material requests on Processing orders
   useEffect(() => {
     const checkFulfillments = async () => {
       const processingOrderIds = new Set(
@@ -702,7 +745,9 @@ function SupplyOrderProcessing() {
         const res = await API.callWithToken().get("MaterialRequest");
         const requests = normalizeCollection(res.data?.data ?? res.data);
         const fulfilledForProcessing = requests.filter(
-          (req) => processingOrderIds.has(req.orderId) && req.status === "Fulfilled"
+          (req) =>
+            processingOrderIds.has(req.orderId) &&
+            getMaterialRequestDisplayStatus(req.status) === "Confirmed"
         );
 
         // Keep the row badge state in sync with current fulfilled requests.
@@ -714,6 +759,7 @@ function SupplyOrderProcessing() {
             });
             return next;
           });
+          dispatch(fetchGetOrder());
         }
 
         // First run only seeds known fulfilled requests, no toast.
@@ -727,7 +773,7 @@ function SupplyOrderProcessing() {
         requests.forEach((req) => {
           if (
             processingOrderIds.has(req.orderId) &&
-            req.status === "Fulfilled" &&
+            getMaterialRequestDisplayStatus(req.status) === "Confirmed" &&
             !seenFulfilledRef.current.has(req.id)
           ) {
             seenFulfilledRef.current.add(req.id);
@@ -822,11 +868,11 @@ function SupplyOrderProcessing() {
     
     setLoadingAccept(true);
     try {
-      const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Approved"], approvedBy);
+      const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Confirmed"], approvedBy);
 
       showToast(
         "success",
-        extractApiMessage(result?.payload, `Đơn hàng #${selectedOrder.id} đã chuyển sang Delivery.`)
+        extractApiMessage(result?.payload, `Đơn hàng #${selectedOrder.id} đã chuyển sang Confirmed.`)
       );
 
       setAcceptModalOpen(false);
@@ -878,12 +924,11 @@ function SupplyOrderProcessing() {
     try {
       const userInfo = JSON.parse(localStorage.getItem("USER_INFO") || "null");
       const approvedBy = userInfo?.id || 1;
-      const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Rejected", "Cancelled"], approvedBy);
-      const label = result.status === "Cancelled" ? "Cancelled" : "Rejected";
+      const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Rejected"], approvedBy);
 
       showToast(
         "success",
-        extractApiMessage(result?.payload, `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${label}.`)
+        extractApiMessage(result?.payload, `Đơn hàng #${selectedOrder.id} đã được chuyển sang Rejected.`)
       );
       setRejectModalOpen(false);
       dispatch(fetchGetOrder());
@@ -1019,7 +1064,7 @@ function SupplyOrderProcessing() {
 
     setLoadingDeliveryId(order.id);
     try {
-      const result = await dispatchOrderStatusUpdate(order.id, ["Approved"], approvedBy);
+      const result = await dispatchOrderStatusUpdate(order.id, ["Delivery", "Delivering"], approvedBy);
       showToast("success", extractApiMessage(result?.payload, `Order #${order.id} has been moved to Delivery.`));
       dispatch(fetchGetOrder());
     } catch (err) {
@@ -1207,24 +1252,25 @@ function SupplyOrderProcessing() {
                       const hasInventoryReady = !!readyOrders[order.id];
                       const displayStatus = getOrderDisplayStatus(order.status, hasInventoryReady);
                       const statusBadge = getStatusBadge(displayStatus);
-                      const hasEffectiveShortage = hasInsufficientStock && !hasInventoryReady;
-                      const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
-                      const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
                       const isPending = order.status === "Pending";
-                      const isProcessing = order.status === "Processing";
-                      const isApproved = order.status === "Approved";
+                      const isProcessing = displayStatus === "Processing";
+                      const isConfirmed = displayStatus === "Confirmed";
                       const isCompleted = order.status === "Completed";
                       const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
                       const isRejected = String(order.status || "").toLowerCase().includes("reject");
+                      const isInventoryReady = hasInventoryReady || isConfirmed;
+                      const hasEffectiveShortage = hasInsufficientStock && !isInventoryReady;
+                      const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
+                      const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
                       const isLockedStatus = isCancelled || isRejected;
                       const isDeliveredState = displayStatus === "Delivery" || isCompleted;
-                      const needsInventoryCheck = isPending || (isProcessing && !hasInventoryReady);
-                      const shouldShowInventoryColumns = isPending || hasInventoryReady;
+                      const needsInventoryCheck = isPending || (isProcessing && !isInventoryReady);
+                      const shouldShowInventoryColumns = isPending || isInventoryReady;
                       const isInventoryReadyForPending =
-                        (isPending && inventoryKnown && inNeedQuantity <= 0) || hasInventoryReady;
+                        (isPending && inventoryKnown && inNeedQuantity <= 0) || isInventoryReady;
                       const shouldShowMissingButton =
                         isPending && inventoryKnown && inNeedQuantity > 0;
-                      const canDeliver = isProcessing && hasInventoryReady && !isLockedStatus;
+                      const canDeliver = isConfirmed && !isLockedStatus;
                       const acceptDisabled = !isPending || isCompleted || isLockedStatus || hasEffectiveShortage;
                       const requestDisabled = !isPending || isCompleted || isLockedStatus;
 
@@ -1545,7 +1591,7 @@ function SupplyOrderProcessing() {
                 <p className="text-sm text-slate-500 mt-1">
                   Are you sure you want to accept{" "}
                   <span className="font-mono font-bold">#ORD-{selectedOrder?.id}</span>?
-                  This will move the order to Delivery.
+                  This will move the order to Confirmed.
                 </p>
               </div>
               <button onClick={() => setAcceptModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -1587,7 +1633,7 @@ function SupplyOrderProcessing() {
                 <span className="font-mono font-bold text-slate-700">#{selectedOrder?.id}</span>?
               </p>
               <p className="text-xs text-red-500 font-medium mt-2 bg-red-50 px-3 py-1.5 rounded-lg">
-                This will update the order status to Rejected (or Cancelled if Rejected is not supported). The order will remain in the list.
+                This will update the order status to Rejected. The order will remain in the list.
               </p>
             </div>
             <div className="mt-6 flex gap-3">

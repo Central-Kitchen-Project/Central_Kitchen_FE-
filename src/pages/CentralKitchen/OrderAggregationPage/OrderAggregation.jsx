@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { fetchGetMaterialRequest, updateMaterialRequestStatus } from "../../../store/materialSlice";
+import { updateOrderStatus } from "../../../store/orderSlice";
 import { extractApiMessage } from "../../../services/api";
 import PageHeader from "../../../components/common/PageHeader";
 
@@ -136,18 +137,27 @@ function DetailModal({ requestId, onClose }) {
                   label="Created At"
                   value={parseUTC(detail.createdAt).toLocaleString("vi-VN")}
                 />
-                <InfoCell
-                  icon="flag"
-                  label="Status"
-                  value={detail.status}
-                  valueClass={
-                    detail.status === "Pending"
-                      ? "text-amber-600 font-black uppercase"
-                      : detail.status === "Fulfilled"
-                        ? "text-green-600 font-black uppercase"
-                        : "text-slate-700"
+                {(() => {
+                  const displayStatus = getMaterialRequestDisplayStatus(detail.status);
+                  let valueClass = "text-slate-700";
+
+                  if (displayStatus === "Processing") {
+                    valueClass = "text-blue-600 font-black uppercase";
+                  } else if (displayStatus === "Confirmed") {
+                    valueClass = "text-emerald-600 font-black uppercase";
+                  } else if (displayStatus === "Rejected") {
+                    valueClass = "text-slate-600 font-black uppercase";
                   }
-                />
+
+                  return (
+                    <InfoCell
+                      icon="flag"
+                      label="Status"
+                      value={displayStatus}
+                      valueClass={valueClass}
+                    />
+                  );
+                })()}
               </div>
 
               {detail.note && (
@@ -275,9 +285,23 @@ function OrderAggregation() {
   const handleAccept = async (request) => {
     const id = request?.id;
     try {
+      let approvedBy;
+      try {
+        approvedBy = JSON.parse(localStorage.getItem("USER_INFO"))?.id;
+      } catch {
+        approvedBy = undefined;
+      }
+
       const response = await dispatch(
         updateMaterialRequestStatus({ id, status: "Fulfilled" })
       ).unwrap();
+
+      if (request?.orderId) {
+        await dispatch(
+          updateOrderStatus({ id: request.orderId, status: "Confirmed", approvedBy })
+        ).unwrap();
+      }
+
       showToast("success", extractApiMessage(response?.payload, `Yêu cầu vật tư #${id} đã được cập nhật thành công.`));
       dispatch(fetchGetMaterialRequest());
     } catch (error) {
@@ -287,7 +311,7 @@ function OrderAggregation() {
   };
 
   const pendingItems =
-    data?.filter((item) => ["Pending", "Processing"].includes(item.status)) || [];
+    data?.filter((item) => getMaterialRequestDisplayStatus(item.status) === "Processing") || [];
 
   return (
     <>
@@ -330,7 +354,7 @@ function OrderAggregation() {
                 <span className="material-symbols-outlined text-blue-600">
                   groups
                 </span>
-                Pending Aggregation
+                Processing Requests
               </h3>
             </div>
 
@@ -371,7 +395,7 @@ function OrderAggregation() {
                         colSpan={8}
                         className="px-6 py-10 text-center text-slate-400 text-sm"
                       >
-                        No pending requests found.
+                        No processing requests found.
                       </td>
                     </tr>
                   ) : (

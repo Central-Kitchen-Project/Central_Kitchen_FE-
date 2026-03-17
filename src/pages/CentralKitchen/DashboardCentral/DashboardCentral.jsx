@@ -8,6 +8,33 @@ import { fetchGetMaterialRequest } from '../../../store/materialSlice';
 import './DashboardCentral.css';
 import PageHeader from '../../../components/common/PageHeader';
 
+function getMaterialRequestDisplayStatus(status) {
+  const normalizedStatus = String(status || '').toLowerCase();
+
+  if (normalizedStatus === 'fulfilled' || normalizedStatus === 'confirmed' || normalizedStatus === 'approved') {
+    return 'Confirmed';
+  }
+
+  if (normalizedStatus === 'pending' || normalizedStatus === 'processing') {
+    return 'Processing';
+  }
+
+  if (normalizedStatus.includes('reject') || normalizedStatus.includes('cancel')) {
+    return 'Rejected';
+  }
+
+  return status || 'Unknown';
+}
+
+function getMaterialStatusBadgeClass(status) {
+  const displayStatus = getMaterialRequestDisplayStatus(status);
+
+  if (displayStatus === 'Processing') return 'bg-blue-50 text-blue-600';
+  if (displayStatus === 'Confirmed') return 'bg-emerald-50 text-emerald-600';
+  if (displayStatus === 'Rejected') return 'bg-slate-100 text-slate-600';
+
+  return 'bg-slate-50 text-slate-500';
+}
 
 function DashboardCentral() {
   const dispatch = useDispatch();
@@ -35,13 +62,13 @@ function DashboardCentral() {
   // Số liệu cơ bản
   // Lấy số liệu theo material requests (giống Material Tracking/Order Aggregation)
   const totalRequests = materials.length;
-  const pendingAggregation = materials.filter(r => r.status === 'Pending').length;
-  const fulfilledRequests = materials.filter(r => r.status === 'Fulfilled').length;
+  const processingRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Processing').length;
+  const confirmedRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Confirmed').length;
 
   // 3 order aggregation mới nhất (pending material requests, flatten từng item)
-  const pendingAggregations = Array.isArray(materials)
+  const processingAggregations = Array.isArray(materials)
     ? materials
-        .filter((req) => req.status === 'Pending' && Array.isArray(req.items) && req.items.length > 0)
+        .filter((req) => getMaterialRequestDisplayStatus(req.status) === 'Processing' && Array.isArray(req.items) && req.items.length > 0)
         .flatMap((req) => req.items.map((item) => ({
             requestId: req.id,
             materialName: item.materialName,
@@ -85,27 +112,27 @@ function DashboardCentral() {
             </div>
           </div>
         </div>
-        {/* Pending Aggregation */}
-        <div className="bg-white p-5 rounded-xl border border-yellow-50 shadow-soft flex flex-col gap-2">
+        {/* Processing Requests */}
+        <div className="bg-white p-5 rounded-xl border border-blue-50 shadow-soft flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-50">
-              <span className="material-symbols-outlined text-[24px] text-yellow-500">hourglass_empty</span>
+            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50">
+              <span className="material-symbols-outlined text-[24px] text-blue-500">autorenew</span>
             </span>
             <div>
-              <div className="text-2xl font-bold text-navy-charcoal">{pendingAggregation}</div>
-              <div className="text-sm text-yellow-700 font-medium mt-1">Pending Aggregation</div>
+              <div className="text-2xl font-bold text-navy-charcoal">{processingRequests}</div>
+              <div className="text-sm text-blue-700 font-medium mt-1">Processing Requests</div>
             </div>
           </div>
         </div>
-        {/* Fulfilled Requests */}
+        {/* Confirmed Requests */}
         <div className="bg-white p-5 rounded-xl border border-green-50 shadow-soft flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50">
               <span className="material-symbols-outlined text-[24px] text-green-500">task_alt</span>
             </span>
             <div>
-              <div className="text-2xl font-bold text-navy-charcoal">{fulfilledRequests}</div>
-              <div className="text-sm text-green-700 font-medium mt-1">Material Fulfilled</div>
+              <div className="text-2xl font-bold text-navy-charcoal">{confirmedRequests}</div>
+              <div className="text-sm text-green-700 font-medium mt-1">Confirmed Requests</div>
             </div>
           </div>
         </div>
@@ -148,21 +175,27 @@ function DashboardCentral() {
             </tr>
           </thead>
           <tbody className="text-sm divide-y divide-slate-100 text-slate-700">
-            {pendingAggregations.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No pending aggregation</td></tr>
+            {processingAggregations.length === 0 ? (
+              <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No processing requests</td></tr>
             ) : (
-              pendingAggregations.map((item, idx) => (
-                <tr key={item.requestId + '-' + item.materialName + '-' + idx}>
-                  <td className="px-4 py-2 font-mono">#{item.requestId}</td>
-                  <td className="px-4 py-2 font-bold">{item.materialName}</td>
-                  <td className="px-4 py-2">{item.requestedQuantity} {item.unit}</td>
-                  <td className="px-4 py-2">{item.requestedBy}</td>
-                  <td className="px-4 py-2">
-                    <span className="bg-amber-50 text-amber-600 px-2 py-1 rounded-full text-xs font-bold">{item.status}</span>
-                  </td>
-                  <td className="px-4 py-2 italic text-slate-500">{item.note || '-'}</td>
-                </tr>
-              ))
+              processingAggregations.map((item, idx) => {
+                const displayStatus = getMaterialRequestDisplayStatus(item.status);
+
+                return (
+                  <tr key={item.requestId + '-' + item.materialName + '-' + idx}>
+                    <td className="px-4 py-2 font-mono">#{item.requestId}</td>
+                    <td className="px-4 py-2 font-bold">{item.materialName}</td>
+                    <td className="px-4 py-2">{item.requestedQuantity} {item.unit}</td>
+                    <td className="px-4 py-2">{item.requestedBy}</td>
+                    <td className="px-4 py-2">
+                      <span className={`${getMaterialStatusBadgeClass(item.status)} px-2 py-1 rounded-full text-xs font-bold`}>
+                        {displayStatus}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 italic text-slate-500">{item.note || '-'}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -201,12 +234,8 @@ function DashboardCentral() {
                   </td>
                   <td className="px-4 py-2 italic text-slate-500">{mat.note || '-'}</td>
                   <td className="px-4 py-2">
-                    <span className={
-                      mat.status === 'Fulfilled' ? 'bg-green-50 text-green-600 px-2 py-1 rounded-full text-xs font-bold' :
-                      mat.status === 'Pending' ? 'bg-amber-50 text-amber-600 px-2 py-1 rounded-full text-xs font-bold' :
-                      'bg-slate-50 text-slate-500 px-2 py-1 rounded-full text-xs font-bold'
-                    }>
-                      {mat.status || '-'}
+                    <span className={`${getMaterialStatusBadgeClass(mat.status)} px-2 py-1 rounded-full text-xs font-bold`}>
+                      {getMaterialRequestDisplayStatus(mat.status)}
                     </span>
                   </td>
                 </tr>
