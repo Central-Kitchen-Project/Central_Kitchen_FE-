@@ -50,11 +50,11 @@ function FeedbackFranchise() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!orderId) {
-      alert('Thiếu Order ID. Vui lòng quay lại trang Order Tracking và bấm Feedback từ đơn hàng Completed.');
+      alert('Missing Order ID. Please go back to the Order Tracking page and click Feedback from a Completed order.');
       return;
     }
     if (!subject.trim()) {
-      alert('Vui lòng nhập Subject');
+      alert('Please enter a subject.');
       return;
     }
     setSubmitting(true);
@@ -70,14 +70,14 @@ function FeedbackFranchise() {
       };
       console.log('POST /api/Feedback body:', body);
       await dispatch(fetchCreateFeedback(body)).unwrap();
-      alert('Feedback đã được gửi thành công!');
+      alert('Feedback has been submitted successfully!');
       setCategory('Quality');
       setSubject('');
       setDescription('');
       setRating(null);
       dispatch(fetchGetAllFeedback());
     } catch {
-      alert('Gửi feedback thất bại, vui lòng thử lại.');
+      alert('Failed to submit feedback, please try again.');
     }
     setSubmitting(false);
   };
@@ -199,7 +199,7 @@ function FeedbackFranchise() {
             </div>
             {isLockedToOrder && (
               <p className="text-xs text-slate-400">
-                Order ID được gán từ Order Tracking (không thể thay đổi).
+                Order ID is prefilled from Order Tracking (cannot be changed).
               </p>
             )}
           </div>

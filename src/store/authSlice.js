@@ -20,7 +20,7 @@ export const fetchLogin = createAsyncThunk(`${name}/fetchLogin`, async (params =
     } catch {
         return {
             ok: false,
-            message: 'Thông tin đăng nhập của bạn không đúng!'
+            message: 'Your login information is incorrect!'
         }
     }
 });
@@ -35,7 +35,7 @@ export const fetchRegister = createAsyncThunk(`${name}/fetchRegister`, async (pa
     } catch {
         return {
             ok: false,
-            message: 'Đăng ký không thành công!'
+            message: 'Registration was not successful!'
         };
     }
 });

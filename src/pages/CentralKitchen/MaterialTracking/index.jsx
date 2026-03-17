@@ -104,7 +104,7 @@ function MaterialTracking() {
       });
       setRequests(res.data?.data || []);
     } catch (err) {
-      showToast("error", `Lỗi tải dữ liệu: ${err?.response?.data?.message || err.message}`);
+      showToast("error", `Failed to load data: ${err?.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -155,10 +155,10 @@ function MaterialTracking() {
         setDetailModal((prev) => (prev ? { ...prev, status: "Fulfilled" } : prev));
       }
 
-      showToast("success", `Yêu cầu #${request.id} đã được xác nhận.`);
+      showToast("success", `Request #${request.id} has been confirmed.`);
       await fetchRequests();
     } catch (err) {
-      showToast("error", `Lỗi cập nhật trạng thái: ${err?.response?.data?.message || err.message}`);
+      showToast("error", `Failed to update status: ${err?.response?.data?.message || err.message}`);
     } finally {
       setLoadingActionId(null);
     }

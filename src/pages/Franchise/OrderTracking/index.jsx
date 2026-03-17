@@ -193,11 +193,11 @@ function OrderTracking() {
     setLoadingId(confirmModal.id);
     try {
       const result = await dispatchOrderStatusUpdate(confirmModal.id, ["Completed"]);
-      showToast("success", extractApiMessage(result.payload, `Đơn hàng #${confirmModal.id} đã hoàn thành!`));
+      showToast("success", extractApiMessage(result.payload, `Order #${confirmModal.id} has been marked as completed.`));
       setConfirmModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingId(null);
     }
@@ -208,7 +208,7 @@ function OrderTracking() {
     setLoadingId(cancelModal.id);
     try {
       const result = await dispatchOrderStatusUpdate(cancelModal.id, ["Cancelled by Franchise", "Cancelled"]);
-      showToast("success", extractApiMessage(result.payload, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
+      showToast("success", extractApiMessage(result.payload, `Order #${cancelModal.id} has been cancelled by the franchise.`));
       setCancelModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
@@ -393,7 +393,7 @@ function OrderTracking() {
                       <tr>
                         <td colSpan={6} className="text-center text-slate-400 py-14 text-sm">
                           <span className="material-symbols-outlined text-4xl block mb-2 opacity-30">inbox</span>
-                          Không có đơn hàng nào phù hợp
+                          No matching orders found
                         </td>
                       </tr>
                     )}
@@ -441,7 +441,7 @@ function OrderTracking() {
                           {/* Items */}
                           <td className="px-6 py-4">
                             {lines.length === 0 ? (
-                              <span className="text-xs text-slate-400 italic">Không có sản phẩm</span>
+                              <span className="text-xs text-slate-400 italic">No items</span>
                             ) : (
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-sm text-slate-700">
@@ -606,7 +606,7 @@ function OrderTracking() {
                       <tbody>
                         {detailLines.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="text-center text-slate-400 py-6 text-sm">Không có sản phẩm</td>
+                            <td colSpan={5} className="text-center text-slate-400 py-6 text-sm">No items</td>
                           </tr>
                         ) : (
                           detailLines.map((line, index) => {

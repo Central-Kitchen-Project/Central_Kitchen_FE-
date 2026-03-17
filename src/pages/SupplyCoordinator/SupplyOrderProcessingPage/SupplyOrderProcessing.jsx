@@ -397,7 +397,7 @@ function buildOrderApprovalError(error) {
 
   if (payload?.error === "OR40005") {
     return {
-      message: "Không đủ số lượng trong kho để duyệt đơn.",
+      message: "Insufficient stock in inventory to approve this order.",
       details: missingItems.map((item) =>
         normalizeDisplayText(item).replace(/([\d]+)\.(\d+)/g, (_, int) => int)
       ),
@@ -405,7 +405,7 @@ function buildOrderApprovalError(error) {
   }
 
   return {
-    message: normalizeDisplayText(extractApiErrorMessage(error, "Lỗi không xác định")),
+    message: normalizeDisplayText(extractApiErrorMessage(error, "Unknown error")),
     details: [],
   };
 }
@@ -807,12 +807,12 @@ function SupplyOrderProcessing() {
 
   const confirmAccept = async () => {
     if (!selectedOrder) {
-      showToast("error", "Không tìm thấy đơn hàng được chọn");
+      showToast("error", "Selected order not found.");
       return;
     }
     
     if (!selectedOrder.id) {
-      showToast("error", "ID đơn hàng không hợp lệ");
+      showToast("error", "Invalid order ID.");
       return;
     }
     
@@ -850,7 +850,7 @@ function SupplyOrderProcessing() {
         }));
       }
       const approvalError = buildOrderApprovalError(err);
-      showToast("error", `Lỗi khi chấp nhận đơn: ${approvalError.message}`, approvalError.details);
+      showToast("error", `Error while approving order: ${approvalError.message}`, approvalError.details);
     } finally {
       setLoadingAccept(false);
     }
@@ -865,12 +865,12 @@ function SupplyOrderProcessing() {
 
   const confirmReject = async () => {
     if (!selectedOrder) {
-      showToast("error", "Không tìm thấy đơn hàng được chọn");
+      showToast("error", "Selected order not found.");
       return;
     }
     
     if (!selectedOrder.id) {
-      showToast("error", "ID đơn hàng không hợp lệ");
+      showToast("error", "Invalid order ID.");
       return;
     }
     
@@ -889,8 +889,8 @@ function SupplyOrderProcessing() {
       dispatch(fetchGetOrder());
     } catch (err) {
       console.error("Reject error:", err);
-      const errorMessage = extractApiErrorMessage(err, 'Lỗi không xác định');
-      showToast("error", `Lỗi khi từ chối đơn: ${errorMessage}`);
+      const errorMessage = extractApiErrorMessage(err, 'Unknown error');
+      showToast("error", `Error while rejecting order: ${errorMessage}`);
     } finally {
       setLoadingReject(false);
     }
@@ -912,7 +912,7 @@ function SupplyOrderProcessing() {
       setRequestItems(materials.map((material) => buildRequestItem(material, shortageLookup, inventoryLookup)));
     } catch (err) {
       setRequestItems([]);
-      showToast("error", `Lỗi khi tải danh sách nguyên liệu: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Failed to load material list: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingRequestItems(false);
     }
@@ -972,7 +972,7 @@ function SupplyOrderProcessing() {
       .filter((item) => item.requestedQuantity > 0);
 
     if (itemsToRequest.length === 0) {
-      showToast("error", "Không có nguyên liệu nào cần yêu cầu. Tăng Request Qty nếu muốn gửi thêm.");
+      showToast("error", "There are no materials to request. Increase Request Qty if you want to request more.");
       return;
     }
 
@@ -997,13 +997,13 @@ function SupplyOrderProcessing() {
         "success",
         extractApiMessage(
           materialRequestResponse,
-          extractApiMessage(statusResponse?.payload, `Yêu cầu vật liệu cho đơn #${selectedOrder.id} đã được gửi!`)
+          extractApiMessage(statusResponse?.payload, `Material request for order #${selectedOrder.id} has been submitted.`)
         )
       );
       setRequestModalOpen(false);
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi khi gửi yêu cầu: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error while submitting material request: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingRequest(false);
     }
@@ -1020,10 +1020,10 @@ function SupplyOrderProcessing() {
     setLoadingDeliveryId(order.id);
     try {
       const result = await dispatchOrderStatusUpdate(order.id, ["Approved"], approvedBy);
-      showToast("success", extractApiMessage(result?.payload, `Đơn hàng #${order.id} đã chuyển sang Delivery.`));
+      showToast("success", extractApiMessage(result?.payload, `Order #${order.id} has been moved to Delivery.`));
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi khi chuyển giao đơn: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error while moving order to Delivery: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingDeliveryId(null);
     }
