@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 const navItems = [
   { label: 'Dashboard', icon: 'dashboard', path: '/DashboardManager' },
-  { label: 'Inventory Management', icon: 'inventory_2', path: '/InventoryManager' },
+  // { label: 'Inventory Management', icon: 'inventory_2', path: '/InventoryManager' },
   { label: 'Purchase Orders', icon: 'shopping_bag', path: '/PurchaseOrderManager' },
   { label: 'Menu Management', icon: 'restaurant_menu', path: '/MenuManagement' },
   { label: 'Reports & Analytics', icon: 'bar_chart', path: '/ReportAnalyticsManager' },

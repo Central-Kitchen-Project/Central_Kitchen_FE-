@@ -29,10 +29,14 @@ function normalizeCollection(data) {
 function getOrderDisplayStatus(status, hasInventoryReady = false) {
   const normalizedStatus = String(status || '').toLowerCase()
 
-  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering') return 'delivery'
+  if (normalizedStatus === 'approved' || normalizedStatus === 'delivery' || normalizedStatus === 'delivering') {
+    return 'delivery'
+  }
+
   if (normalizedStatus === 'processing' && hasInventoryReady) return 'confirmed'
   if (normalizedStatus === 'confirmed' || normalizedStatus === 'filled') return 'confirmed'
-  if (normalizedStatus.includes('cancel') || normalizedStatus.includes('reject')) return 'rejected'
+  if (normalizedStatus.includes('cancel')) return 'cancelled'
+  if (normalizedStatus.includes('reject')) return 'rejected'
 
   return normalizedStatus || 'unknown'
 }
@@ -69,6 +73,8 @@ function formatStatusLabel(status) {
       return 'Completed'
     case 'rejected':
       return 'Rejected'
+    case 'cancelled':
+      return 'Cancelled'
     default:
       return status || 'Unknown'
   }
@@ -85,9 +91,10 @@ function getMeaningfulNote(note) {
 
 function DashboardSupplier() {
   const dispatch = useDispatch()
-  const orders = useSelector(state => state.ORDER.listOrders) || []
-  const materials = useSelector(state => state.MATERIAL.listMaterials) || []
-  const items = useSelector(state => state.ITEM.listItems) || []
+  const ordersRaw = useSelector(state => state.ORDER.listOrders)
+  const materialsRaw = useSelector(state => state.MATERIAL.listMaterials)
+  const orders = normalizeCollection(ordersRaw)
+  const materials = normalizeCollection(materialsRaw)
 
   useEffect(() => {
     dispatch(fetchGetOrder())
@@ -162,6 +169,7 @@ function DashboardSupplier() {
         delivery: countByStatus('delivery'),
         completed: countByStatus('completed'),
         rejected: countByStatus('rejected'),
+        cancelled: countByStatus('cancelled'),
       }
     })
   }, [orders, readyOrderIds])
@@ -190,6 +198,7 @@ function DashboardSupplier() {
       case 'delivery': return 'bg-violet-100 text-violet-700'
       case 'completed': return 'bg-green-100 text-green-700'
       case 'rejected': return 'bg-slate-100 text-slate-700'
+      case 'cancelled': return 'bg-rose-100 text-rose-700'
       default: return 'bg-slate-100 text-slate-700'
     }
   }
@@ -267,6 +276,7 @@ function DashboardSupplier() {
                 <span className="dashboard-supplier-legend-item flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-violet-400 inline-block" /> Delivery</span>
                 <span className="dashboard-supplier-legend-item flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-green-500 inline-block" /> Completed</span>
                 <span className="dashboard-supplier-legend-item flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-slate-500 inline-block" /> Rejected</span>
+                <span className="dashboard-supplier-legend-item flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-rose-400 inline-block" /> Cancelled</span>
               </div>
             </div>
             <div className="chart-container">
@@ -279,6 +289,7 @@ function DashboardSupplier() {
                         {day.delivery > 0 && <div className="bg-violet-400 w-full" style={{ height: `${(day.delivery / day.total) * 100}%` }} title={`Delivery: ${day.delivery}`} />}
                         {day.confirmed > 0 && <div className="bg-emerald-400 w-full" style={{ height: `${(day.confirmed / day.total) * 100}%` }} title={`Confirmed: ${day.confirmed}`} />}
                         {day.rejected > 0 && <div className="bg-slate-500 w-full" style={{ height: `${(day.rejected / day.total) * 100}%` }} title={`Rejected: ${day.rejected}`} />}
+                        {day.cancelled > 0 && <div className="bg-rose-400 w-full" style={{ height: `${(day.cancelled / day.total) * 100}%` }} title={`Cancelled: ${day.cancelled}`} />}
                         {day.processing > 0 && <div className="bg-blue-400 w-full" style={{ height: `${(day.processing / day.total) * 100}%` }} title={`Processing: ${day.processing}`} />}
                         {day.pending > 0 && <div className="bg-red-400 w-full" style={{ height: `${(day.pending / day.total) * 100}%` }} title={`Pending: ${day.pending}`} />}
                       </div>

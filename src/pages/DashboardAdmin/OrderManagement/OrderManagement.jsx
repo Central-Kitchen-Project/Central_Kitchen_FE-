@@ -3,15 +3,18 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchGetOrder, createOrder, updateOrderStatus, deleteOrder, clearOrderError } from "../../../store/orderSlice";
 import { fetchAllUsers } from "../../../store/userSlice";
 import { fetchGetAll } from "../../../store/itemSlice";
+import PageHeader from "../../../components/common/PageHeader";
 
-const STATUS_OPTIONS = ["All", "Pending", "Processing", "Approved", "Completed", "Cancelled"];
-const STATUS_FLOW = ["Pending", "Processing", "Approved", "Completed", "Cancelled"];
+const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
+const STATUS_FLOW = ["Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
 
 const STATUS_COLORS = {
   Pending: "bg-amber-50 text-amber-700",
   Processing: "bg-blue-50 text-blue-700",
-  Approved: "bg-violet-50 text-violet-700",
+  Confirmed: "bg-emerald-50 text-emerald-700",
+  Delivery: "bg-violet-50 text-violet-700",
   Completed: "bg-emerald-50 text-emerald-700",
+  Rejected: "bg-slate-100 text-slate-700",
   Cancelled: "bg-red-50 text-red-700",
 };
 
@@ -21,6 +24,42 @@ const normalizeArray = (data) => {
   if (data && typeof data === "object") return Object.values(data).find(Array.isArray) || [];
   return [];
 };
+
+const STATUS_UPDATE_CANDIDATES = {
+  Pending: ["Pending"],
+  Processing: ["Processing"],
+  Confirmed: ["Confirmed", "Filled"],
+  Delivery: ["Delivery", "Delivering", "Approved"],
+  Completed: ["Completed"],
+  Rejected: ["Rejected"],
+  Cancelled: ["Cancelled", "Cancelled by Franchise"],
+};
+
+function getOrderDisplayStatus(status) {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (normalizedStatus === "approved" || normalizedStatus === "delivering" || normalizedStatus === "delivery") {
+    return "Delivery";
+  }
+
+  if (normalizedStatus === "confirmed" || normalizedStatus === "filled") {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus === "rejected") {
+    return "Rejected";
+  }
+
+  if (normalizedStatus === "cancelled" || normalizedStatus === "cancelled by franchise") {
+    return "Cancelled";
+  }
+
+  if (normalizedStatus === "pending") return "Pending";
+  if (normalizedStatus === "processing") return "Processing";
+  if (normalizedStatus === "completed") return "Completed";
+
+  return status || "Unknown";
+}
 
 function OrderManagement() {
   const dispatch = useDispatch();
@@ -75,7 +114,7 @@ function OrderManagement() {
       const matchSearch =
         String(o.id).includes(search) ||
         (o.username || "").toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "All" || o.status === statusFilter;
+      const matchStatus = statusFilter === "All" || getOrderDisplayStatus(o.status) === statusFilter;
       return matchSearch && matchStatus;
     })
     .sort((a, b) => new Date(b.orderDate || 0) - new Date(a.orderDate || 0));
@@ -91,7 +130,7 @@ function OrderManagement() {
   }, [search, statusFilter]);
 
   const statusCounts = STATUS_OPTIONS.slice(1).reduce((acc, s) => {
-    acc[s] = orderList.filter((o) => o.status === s).length;
+    acc[s] = orderList.filter((o) => getOrderDisplayStatus(o.status) === s).length;
     return acc;
   }, {});
 
@@ -144,7 +183,23 @@ function OrderManagement() {
     setStatusDropdown(null);
     setActionLoading(true);
     try {
-      await dispatch(updateOrderStatus({ id: orderId, status: newStatus })).unwrap();
+      const candidates = STATUS_UPDATE_CANDIDATES[newStatus] || [newStatus];
+      let updated = false;
+
+      for (const candidateStatus of candidates) {
+        try {
+          await dispatch(updateOrderStatus({ id: orderId, status: candidateStatus })).unwrap();
+          updated = true;
+          break;
+        } catch {
+          // Try the next compatible backend status.
+        }
+      }
+
+      if (!updated) {
+        throw new Error(`Failed to update order #${orderId} to ${newStatus}`);
+      }
+
       await dispatch(fetchGetOrder());
       setSuccessMsg(`Order #${orderId} status updated to ${newStatus}`);
     } catch {
@@ -176,18 +231,11 @@ function OrderManagement() {
 
   return (
     <>
-      <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
-        <h2 className="text-lg font-bold text-slate-900">Order Management</h2>
-        <div className="flex items-center gap-3">
-          <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-          </button>
-          <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600">
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        as="h2"
+        title="Order Management"
+        subtitle="Review, create, and update order records across the platform."
+      />
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
         {/* Success / Error Messages */}
@@ -215,13 +263,19 @@ function OrderManagement() {
             <span className="text-2xl font-bold text-slate-900">{orderList.length}</span>
             <span className="text-[11px] text-slate-500">All time</span>
           </div>
-          {["Pending", "Processing", "Approved", "Completed"].map((status) => (
+          {["Pending", "Processing", "Confirmed", "Delivery"].map((status) => (
             <div key={status} className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
               <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{status}</span>
                 <div className={`size-8 rounded-lg flex items-center justify-center ${STATUS_COLORS[status]}`}>
                   <span className="material-symbols-outlined text-base">
-                    {status === "Pending" ? "schedule" : status === "Processing" ? "sync" : status === "Approved" ? "check_circle" : "done_all"}
+                    {status === "Pending"
+                      ? "schedule"
+                      : status === "Processing"
+                        ? "sync"
+                        : status === "Confirmed"
+                          ? "verified"
+                          : "local_shipping"}
                   </span>
                 </div>
               </div>
@@ -297,6 +351,7 @@ function OrderManagement() {
                     const lines = normalizeArray(order.orderLines);
                     const total = lines.reduce((sum, l) => sum + (l.price || 0) * (l.quantity || 0), 0);
                     const isExpanded = expandedOrder === order.id;
+                    const displayStatus = getOrderDisplayStatus(order.status);
                     return (
                       <React.Fragment key={order.id}>
                         <tr className="hover:bg-slate-50 border-b border-slate-100">
@@ -321,14 +376,14 @@ function OrderManagement() {
                           <td className="px-4 py-3 relative">
                             <button
                               onClick={() => setStatusDropdown(statusDropdown === order.id ? null : order.id)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer hover:opacity-80 transition-opacity ${STATUS_COLORS[order.status] || "bg-slate-100 text-slate-600"}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer hover:opacity-80 transition-opacity ${STATUS_COLORS[displayStatus] || "bg-slate-100 text-slate-600"}`}
                             >
-                              ● {order.status || "Unknown"}
+                              ● {displayStatus || "Unknown"}
                               <span className="material-symbols-outlined text-[12px]">expand_more</span>
                             </button>
                             {statusDropdown === order.id && (
                               <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-[140px]">
-                                {STATUS_FLOW.filter((s) => s !== order.status).map((s) => (
+                                {STATUS_FLOW.filter((s) => s !== displayStatus).map((s) => (
                                   <button
                                     key={s}
                                     onClick={() => handleUpdateStatus(order.id, s)}

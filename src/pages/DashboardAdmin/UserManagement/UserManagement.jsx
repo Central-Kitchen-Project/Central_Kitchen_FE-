@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers, createUser, updateUser, deleteUser, clearUserError } from "../../../store/userSlice";
+import PageHeader from "../../../components/common/PageHeader";
 
 const ROLE_MAP = {
   1: "Admin",
@@ -134,18 +135,11 @@ function UserManagement() {
     <>
       {/* Main Content */}
       {/* Header */}
-        <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
-          <h2 className="text-lg font-bold text-slate-900">User Management</h2>
-          <div className="flex items-center gap-3">
-            <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-              <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-            </button>
-            <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600">
-              <span className="material-symbols-outlined text-[20px]">settings</span>
-            </button>
-          </div>
-        </header>
+        <PageHeader
+          as="h2"
+          title="User Management"
+          subtitle="Create, update, and manage accounts across all system roles."
+        />
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">

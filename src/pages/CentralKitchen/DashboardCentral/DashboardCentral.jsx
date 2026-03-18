@@ -53,7 +53,7 @@ function DashboardCentral() {
   const fulfilledRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Confirmed').length;
 
   // 3 order aggregation mới nhất (pending material requests, flatten từng item)
-  const pendingAggregations = Array.isArray(materials)
+  const processingAggregations = Array.isArray(materials)
     ? materials
         .filter((req) => getMaterialRequestDisplayStatus(req.status) === 'Processing' && Array.isArray(req.items) && req.items.length > 0)
         .flatMap((req) => req.items.map((item) => ({
@@ -99,11 +99,11 @@ function DashboardCentral() {
             </div>
           </div>
         </div>
-        {/* Pending Aggregation */}
-        <div className="bg-white p-5 rounded-xl border border-yellow-50 shadow-soft flex flex-col gap-2">
+        {/* Processing Requests */}
+        <div className="bg-white p-5 rounded-xl border border-blue-50 shadow-soft flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-50">
-              <span className="material-symbols-outlined text-[24px] text-yellow-500">hourglass_empty</span>
+            <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50">
+              <span className="material-symbols-outlined text-[24px] text-blue-500">autorenew</span>
             </span>
             <div>
               <div className="text-2xl font-bold text-navy-charcoal">{pendingAggregation}</div>
@@ -111,15 +111,15 @@ function DashboardCentral() {
             </div>
           </div>
         </div>
-        {/* Fulfilled Requests */}
+        {/* Confirmed Requests */}
         <div className="bg-white p-5 rounded-xl border border-green-50 shadow-soft flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50">
               <span className="material-symbols-outlined text-[24px] text-green-500">task_alt</span>
             </span>
             <div>
-              <div className="text-2xl font-bold text-navy-charcoal">{fulfilledRequests}</div>
-              <div className="text-sm text-green-700 font-medium mt-1">Material Fulfilled</div>
+              <div className="text-2xl font-bold text-navy-charcoal">{confirmedRequests}</div>
+              <div className="text-sm text-green-700 font-medium mt-1">Confirmed Requests</div>
             </div>
           </div>
         </div>
@@ -165,18 +165,24 @@ function DashboardCentral() {
             {pendingAggregations.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No processing aggregation</td></tr>
             ) : (
-              pendingAggregations.map((item, idx) => (
-                <tr key={item.requestId + '-' + item.materialName + '-' + idx}>
-                  <td className="px-4 py-2 font-mono">#{item.requestId}</td>
-                  <td className="px-4 py-2 font-bold">{item.materialName}</td>
-                  <td className="px-4 py-2">{item.requestedQuantity} {item.unit}</td>
-                  <td className="px-4 py-2">{item.requestedBy}</td>
-                  <td className="px-4 py-2">
-                    <span className="bg-amber-50 text-amber-600 px-2 py-1 rounded-full text-xs font-bold">{item.status}</span>
-                  </td>
-                  <td className="px-4 py-2 italic text-slate-500">{item.note || '-'}</td>
-                </tr>
-              ))
+              processingAggregations.map((item, idx) => {
+                const displayStatus = getMaterialRequestDisplayStatus(item.status);
+
+                return (
+                  <tr key={item.requestId + '-' + item.materialName + '-' + idx}>
+                    <td className="px-4 py-2 font-mono">#{item.requestId}</td>
+                    <td className="px-4 py-2 font-bold">{item.materialName}</td>
+                    <td className="px-4 py-2">{item.requestedQuantity} {item.unit}</td>
+                    <td className="px-4 py-2">{item.requestedBy}</td>
+                    <td className="px-4 py-2">
+                      <span className={`${getMaterialStatusBadgeClass(item.status)} px-2 py-1 rounded-full text-xs font-bold`}>
+                        {displayStatus}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 italic text-slate-500">{item.note || '-'}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

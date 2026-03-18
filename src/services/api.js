@@ -22,7 +22,7 @@ export const extractApiMessage = (payload, fallback = "") => {
     return getMessageFromPayload(payload) || fallback;
 };
 
-export const extractApiErrorMessage = (error, fallback = 'Có lỗi xảy ra') => {
+export const extractApiErrorMessage = (error, fallback = 'An error occurred') => {
     return (
         getMessageFromPayload(error?.response?.data) ||
         getMessageFromPayload(error?.data) ||

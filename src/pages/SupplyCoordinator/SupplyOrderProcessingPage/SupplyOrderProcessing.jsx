@@ -106,10 +106,50 @@ function getLineQuantity(line) {
 }
 
 function getOrderDisplayStatus(status, hasInventoryReady = false) {
-  if (status === "Approved" || status === "Delivering") return "Delivery";
-  if (status === "Processing" && hasInventoryReady) return "Confirmed";
-  if (status === "Confirmed" || status === "Filled") return "Confirmed";
-  if (status === "Cancelled") return "Rejected";
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (normalizedStatus === "approved" || normalizedStatus === "delivery" || normalizedStatus === "delivering") {
+    return "Delivery";
+  }
+
+  if (normalizedStatus === "processing" && hasInventoryReady) {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus === "confirmed" || normalizedStatus === "filled") {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus.includes("cancel")) {
+    return "Cancelled";
+  }
+
+  if (normalizedStatus.includes("reject")) {
+    return "Rejected";
+  }
+
+  if (normalizedStatus === "pending") return "Pending";
+  if (normalizedStatus === "processing") return "Processing";
+  if (normalizedStatus === "completed") return "Completed";
+
+  return status || "Unknown";
+}
+
+function getMaterialRequestDisplayStatus(status) {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (normalizedStatus === "fulfilled" || normalizedStatus === "confirmed" || normalizedStatus === "approved") {
+    return "Confirmed";
+  }
+
+  if (normalizedStatus === "pending" || normalizedStatus === "processing") {
+    return "Processing";
+  }
+
+  if (normalizedStatus.includes("cancel") || normalizedStatus.includes("reject")) {
+    return "Rejected";
+  }
+
   return status || "Unknown";
 }
 
@@ -126,6 +166,8 @@ function getStatusBadge(status) {
     return { label: "Delivery", cls: "bg-violet-50 text-violet-600 border-violet-100" };
   if (displayStatus === "Completed")
     return { label: "Completed", cls: "bg-green-50 text-green-600 border-green-100" };
+  if (displayStatus === "Cancelled")
+    return { label: "Cancelled", cls: "bg-rose-50 text-rose-600 border-rose-200" };
   if (displayStatus === "Rejected")
     return { label: "Rejected", cls: "bg-slate-100 text-slate-600 border-slate-200" };
   return { label: displayStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-100" };
@@ -397,7 +439,7 @@ function buildOrderApprovalError(error) {
 
   if (payload?.error === "OR40005") {
     return {
-      message: "Không đủ số lượng trong kho để duyệt đơn.",
+      message: "Insufficient stock in inventory to approve this order.",
       details: missingItems.map((item) =>
         normalizeDisplayText(item).replace(/([\d]+)\.(\d+)/g, (_, int) => int)
       ),
@@ -405,7 +447,7 @@ function buildOrderApprovalError(error) {
   }
 
   return {
-    message: normalizeDisplayText(extractApiErrorMessage(error, "Lỗi không xác định")),
+    message: normalizeDisplayText(extractApiErrorMessage(error, "Unknown error")),
     details: [],
   };
 }
@@ -417,6 +459,7 @@ function getNeededQuantity(material) {
     material?.quanityNeeded ??
     material?.requiredQuantity ??
     material?.quantity ??
+    material?.qty ??
     0;
 
   const parsed = Number(rawQuantity);
@@ -528,7 +571,7 @@ function SupplyOrderProcessing() {
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected"];
+  const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
   const inventoryLookup = useMemo(() => buildInventoryLookup(userInventory), [userInventory]);
 
   useEffect(() => {
@@ -691,7 +734,7 @@ function SupplyOrderProcessing() {
     };
   }, [data, orderInventoryStatus, readyOrders, inventoryLookup, itemDetailsById]);
 
-  // Poll for fulfilled material requests on Processing orders
+  // Poll for confirmed material requests on Processing orders
   useEffect(() => {
     const checkFulfillments = async () => {
       const processingOrderIds = new Set(
@@ -716,6 +759,7 @@ function SupplyOrderProcessing() {
             });
             return next;
           });
+          dispatch(fetchGetOrder());
         }
 
         // First run only seeds known fulfilled requests, no toast.
@@ -848,12 +892,12 @@ function SupplyOrderProcessing() {
 
   const confirmAccept = async () => {
     if (!selectedOrder) {
-      showToast("error", "Không tìm thấy đơn hàng được chọn");
+      showToast("error", "Selected order not found.");
       return;
     }
     
     if (!selectedOrder.id) {
-      showToast("error", "ID đơn hàng không hợp lệ");
+      showToast("error", "Invalid order ID.");
       return;
     }
 
@@ -922,7 +966,7 @@ function SupplyOrderProcessing() {
         }));
       }
       const approvalError = buildOrderApprovalError(err);
-      showToast("error", `Lỗi khi chấp nhận đơn: ${approvalError.message}`, approvalError.details);
+      showToast("error", `Error while approving order: ${approvalError.message}`, approvalError.details);
     } finally {
       setLoadingAccept(false);
     }
@@ -937,12 +981,12 @@ function SupplyOrderProcessing() {
 
   const confirmReject = async () => {
     if (!selectedOrder) {
-      showToast("error", "Không tìm thấy đơn hàng được chọn");
+      showToast("error", "Selected order not found.");
       return;
     }
     
     if (!selectedOrder.id) {
-      showToast("error", "ID đơn hàng không hợp lệ");
+      showToast("error", "Invalid order ID.");
       return;
     }
     
@@ -950,19 +994,18 @@ function SupplyOrderProcessing() {
     try {
       const userInfo = JSON.parse(localStorage.getItem("USER_INFO") || "null");
       const approvedBy = userInfo?.id || 1;
-      const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Rejected", "Cancelled"], approvedBy);
-      const label = result.status === "Cancelled" ? "Cancelled" : "Rejected";
+      const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Rejected"], approvedBy);
 
       showToast(
         "success",
-        extractApiMessage(result?.payload, `Đơn hàng #${selectedOrder.id} đã được chuyển sang ${label}.`)
+        extractApiMessage(result?.payload, `Đơn hàng #${selectedOrder.id} đã được chuyển sang Rejected.`)
       );
       setRejectModalOpen(false);
       dispatch(fetchGetOrder());
     } catch (err) {
       console.error("Reject error:", err);
-      const errorMessage = extractApiErrorMessage(err, 'Lỗi không xác định');
-      showToast("error", `Lỗi khi từ chối đơn: ${errorMessage}`);
+      const errorMessage = extractApiErrorMessage(err, 'Unknown error');
+      showToast("error", `Error while rejecting order: ${errorMessage}`);
     } finally {
       setLoadingReject(false);
     }
@@ -984,7 +1027,7 @@ function SupplyOrderProcessing() {
       setRequestItems(materials.map((material) => buildRequestItem(material, shortageLookup, inventoryLookup)));
     } catch (err) {
       setRequestItems([]);
-      showToast("error", `Lỗi khi tải danh sách nguyên liệu: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Failed to load material list: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingRequestItems(false);
     }
@@ -1044,7 +1087,7 @@ function SupplyOrderProcessing() {
       .filter((item) => item.requestedQuantity > 0);
 
     if (itemsToRequest.length === 0) {
-      showToast("error", "Không có nguyên liệu nào cần yêu cầu. Tăng Request Qty nếu muốn gửi thêm.");
+      showToast("error", "There are no materials to request. Increase Request Qty if you want to request more.");
       return;
     }
 
@@ -1069,13 +1112,13 @@ function SupplyOrderProcessing() {
         "success",
         extractApiMessage(
           materialRequestResponse,
-          extractApiMessage(statusResponse?.payload, `Yêu cầu vật liệu cho đơn #${selectedOrder.id} đã được gửi!`)
+          extractApiMessage(statusResponse?.payload, `Material request for order #${selectedOrder.id} has been submitted.`)
         )
       );
       setRequestModalOpen(false);
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi khi gửi yêu cầu: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error while submitting material request: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingRequest(false);
     }
@@ -1109,11 +1152,11 @@ function SupplyOrderProcessing() {
 
     setLoadingDeliveryId(order.id);
     try {
-      const result = await dispatchOrderStatusUpdate(order.id, ["Delivering", "Approved"], approvedBy);
-      showToast("success", extractApiMessage(result?.payload, `Đơn hàng #${order.id} đã chuyển sang Delivery.`));
+      const result = await dispatchOrderStatusUpdate(order.id, ["Delivery", "Delivering"], approvedBy);
+      showToast("success", extractApiMessage(result?.payload, `Order #${order.id} has been moved to Delivery.`));
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi khi chuyển giao đơn: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error while moving order to Delivery: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingDeliveryId(null);
     }
@@ -1297,20 +1340,21 @@ function SupplyOrderProcessing() {
                       const hasInventoryReady = !!readyOrders[order.id];
                       const displayStatus = getOrderDisplayStatus(order.status, hasInventoryReady);
                       const statusBadge = getStatusBadge(displayStatus);
-                      const hasEffectiveShortage = hasInsufficientStock && !hasInventoryReady;
-                      const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
-                      const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
                       const isPending = order.status === "Pending";
                       const isProcessing = order.status === "Processing";
                       const isCompleted = order.status === "Completed";
                       const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
                       const isRejected = String(order.status || "").toLowerCase().includes("reject");
+                      const isInventoryReady = hasInventoryReady || isConfirmed;
+                      const hasEffectiveShortage = hasInsufficientStock && !isInventoryReady;
+                      const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
+                      const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
                       const isLockedStatus = isCancelled || isRejected;
                       const isConfirmed = displayStatus === "Confirmed";
                       const needsInventoryCheck = isPending || (isProcessing && !hasInventoryReady);
                       const shouldShowInventoryColumns = isPending || hasInventoryReady;
                       const isInventoryReadyForPending =
-                        (isPending && inventoryKnown && inNeedQuantity <= 0) || hasInventoryReady;
+                        (isPending && inventoryKnown && inNeedQuantity <= 0) || isInventoryReady;
                       const shouldShowMissingButton =
                         isPending && inventoryKnown && inNeedQuantity > 0;
                       const canDeliver = isConfirmed && !isLockedStatus && !hasEffectiveShortage;
@@ -1676,7 +1720,7 @@ function SupplyOrderProcessing() {
                 <span className="font-mono font-bold text-slate-700">#{selectedOrder?.id}</span>?
               </p>
               <p className="text-xs text-red-500 font-medium mt-2 bg-red-50 px-3 py-1.5 rounded-lg">
-                This will update the order status to Rejected (or Cancelled if Rejected is not supported). The order will remain in the list.
+                This will update the order status to Rejected. The order will remain in the list.
               </p>
             </div>
             <div className="mt-6 flex gap-3">
