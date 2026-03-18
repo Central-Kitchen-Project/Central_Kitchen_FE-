@@ -15,7 +15,9 @@ function parseUTC(dateStr) {
 
 function getMaterialRequestDisplayStatus(status) {
   switch (status) {
+    case "Approved":
     case "Fulfilled":
+    case "Confirmed":
       return "Confirmed";
     case "Pending":
     case "Processing":
@@ -122,6 +124,17 @@ function DetailModal({ requestId, onClose }) {
             <div className="space-y-5">
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-3">
+                {(() => {
+                  const detailDisplayStatus = getMaterialRequestDisplayStatus(detail.status);
+                  const detailStatusClass =
+                    detailDisplayStatus === "Processing"
+                      ? "text-amber-600 font-black uppercase"
+                      : detailDisplayStatus === "Confirmed"
+                        ? "text-green-600 font-black uppercase"
+                        : "text-slate-700";
+
+                  return (
+                    <>
                 <InfoCell
                   icon="tag"
                   label="Order ID"
@@ -137,25 +150,13 @@ function DetailModal({ requestId, onClose }) {
                   label="Created At"
                   value={parseUTC(detail.createdAt).toLocaleString("vi-VN")}
                 />
-                {(() => {
-                  const displayStatus = getMaterialRequestDisplayStatus(detail.status);
-                  let valueClass = "text-slate-700";
-
-                  if (displayStatus === "Processing") {
-                    valueClass = "text-blue-600 font-black uppercase";
-                  } else if (displayStatus === "Confirmed") {
-                    valueClass = "text-emerald-600 font-black uppercase";
-                  } else if (displayStatus === "Rejected") {
-                    valueClass = "text-slate-600 font-black uppercase";
-                  }
-
-                  return (
-                    <InfoCell
-                      icon="flag"
-                      label="Status"
-                      value={displayStatus}
-                      valueClass={valueClass}
-                    />
+                <InfoCell
+                  icon="flag"
+                  label="Status"
+                  value={detailDisplayStatus}
+                  valueClass={detailStatusClass}
+                />
+                    </>
                   );
                 })()}
               </div>
@@ -277,6 +278,24 @@ function OrderAggregation() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const dispatchMaterialStatusUpdate = async (requestId, nextStatuses) => {
+    let lastError;
+
+    for (const nextStatus of nextStatuses) {
+      const result = await dispatch(
+        updateMaterialRequestStatus({ id: requestId, status: nextStatus })
+      );
+
+      if (updateMaterialRequestStatus.fulfilled.match(result)) {
+        return result.payload;
+      }
+
+      lastError = result.payload || result.error;
+    }
+
+    throw lastError;
+  };
+
   const handleUrgentClick = (batchId) => {
     const id = batchId.replace("#", "");
     navigate(`/MaterialFulfillmentPlan?id=${id}`);
@@ -285,24 +304,9 @@ function OrderAggregation() {
   const handleAccept = async (request) => {
     const id = request?.id;
     try {
-      let approvedBy;
-      try {
-        approvedBy = JSON.parse(localStorage.getItem("USER_INFO"))?.id;
-      } catch {
-        approvedBy = undefined;
-      }
-
-      const response = await dispatch(
-        updateMaterialRequestStatus({ id, status: "Fulfilled" })
-      ).unwrap();
-
-      if (request?.orderId) {
-        await dispatch(
-          updateOrderStatus({ id: request.orderId, status: "Confirmed", approvedBy })
-        ).unwrap();
-      }
-
-      showToast("success", extractApiMessage(response?.payload, `Yêu cầu vật tư #${id} đã được cập nhật thành công.`));
+      // Update material request status to Approved (backend will handle inventory update)
+      const response = await dispatchMaterialStatusUpdate(id, ["Approved", "Fulfilled"]);
+      showToast("success", extractApiMessage(response?.payload, `Yêu cầu vật tư #${id} đã được cập nhật thành công và vật liệu đã được thêm vào kho.`));
       dispatch(fetchGetMaterialRequest());
     } catch (error) {
       console.error("Error accepting request:", error);
@@ -354,7 +358,7 @@ function OrderAggregation() {
                 <span className="material-symbols-outlined text-blue-600">
                   groups
                 </span>
-                Processing Requests
+                Processing Aggregation
               </h3>
             </div>
 

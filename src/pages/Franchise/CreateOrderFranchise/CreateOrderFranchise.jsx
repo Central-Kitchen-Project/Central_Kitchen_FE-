@@ -5,19 +5,6 @@ import { useEffect, useState } from 'react';
 import { fetchGetAll } from '../../../store/itemSlice';
 import axios from 'axios';
 
-function normalizeCollection(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.$values)) return data.$values;
-  if (data && typeof data === 'object') {
-    const arrayValue = Object.values(data).find(Array.isArray);
-    if (arrayValue) return arrayValue;
-
-    const wrappedArrayValue = Object.values(data).find((value) => Array.isArray(value?.$values));
-    if (wrappedArrayValue?.$values) return wrappedArrayValue.$values;
-  }
-  return [];
-}
-
 function CreateOrderFranchise() {
   const data = useSelector(state => state.ITEM.listItems);
   const dispatch = useDispatch();
@@ -102,31 +89,7 @@ function CreateOrderFranchise() {
 
   const PROCESSING_FEE = 5000;
 
-  const normalizeStockKey = (value) => String(value || '').trim().toLowerCase();
-
-  const getIngredientRequiredPerItem = (ingredient) => {
-    const raw = ingredient?.qty ?? ingredient?.quantity ?? ingredient?.requiredQuantity ?? 0;
-    const value = Number(raw);
-    return Number.isFinite(value) && value > 0 ? value : 0;
-  };
-
-  const getIngredientName = (ingredient) => {
-    return ingredient?.name || ingredient?.materialName || ingredient?.ingredientName || ingredient?.itemName || '';
-  };
-
-  const buildInventoryStockLookup = (inventoryItems) => {
-    const lookup = {};
-    (inventoryItems || []).forEach((inv) => {
-      const name = inv?.itemName || inv?.name || inv?.item?.itemName || inv?.item?.name;
-      const key = normalizeStockKey(name);
-      if (!key) return;
-      const qty = Number(inv?.quantity ?? inv?.currentStock ?? inv?.stock ?? 0);
-      if (!Number.isFinite(qty)) return;
-      lookup[key] = (lookup[key] || 0) + qty;
-    });
-    return lookup;
-  };
-
+  // Tổng hợp nguyên liệu từ tất cả items được chọn
   const aggregatedIngredients = () => {
     const map = {}; // key: "name|unit"
     selectedList.forEach(({ detail, quantity, item }) => {
@@ -191,66 +154,11 @@ function CreateOrderFranchise() {
         }
       }
 
-      const detailByItemId = { ...itemDetails, ...fetchedDetails };
-
-      // Load franchise inventory to determine shortage quantities.
-      const inventoryRes = await axios.get(
-        `http://meinamfpt-001-site1.ltempurl.com/api/Inventory?userId=${userInfo.id}`,
-        { headers: { accept: '*/*' } }
-      );
-      const inventoryItems = normalizeCollection(inventoryRes.data?.value ?? inventoryRes.data?.data ?? inventoryRes.data);
-      const stockLookup = buildInventoryStockLookup(inventoryItems);
-
-      // Simulate local production first, then submit only shortage quantity to central.
-      const shortageOrderItems = [];
-      selectedList.forEach(({ itemId, quantity }) => {
-        const detail = detailByItemId[itemId];
-        const ingredients = detail?.ingredients || [];
-
-        // If recipe is missing, keep current behavior and send full quantity.
-        if (!ingredients.length) {
-          shortageOrderItems.push({ itemId, quantity });
-          return;
-        }
-
-        let maxProducible = Number(quantity) || 0;
-        ingredients.forEach((ingredient) => {
-          const key = normalizeStockKey(getIngredientName(ingredient));
-          const requiredPerItem = getIngredientRequiredPerItem(ingredient);
-          if (!key || requiredPerItem <= 0) return;
-          const stock = stockLookup[key] || 0;
-          const canProduceByThisIngredient = Math.floor(stock / requiredPerItem);
-          maxProducible = Math.min(maxProducible, canProduceByThisIngredient);
-        });
-
-        const producibleQty = Math.max(0, Math.min(Number(quantity) || 0, maxProducible));
-        const shortageQty = (Number(quantity) || 0) - producibleQty;
-
-        // Deduct locally producible quantity from simulated stock for subsequent items.
-        if (producibleQty > 0) {
-          ingredients.forEach((ingredient) => {
-            const key = normalizeStockKey(getIngredientName(ingredient));
-            const requiredPerItem = getIngredientRequiredPerItem(ingredient);
-            if (!key || requiredPerItem <= 0) return;
-            const used = producibleQty * requiredPerItem;
-            stockLookup[key] = Math.max(0, (stockLookup[key] || 0) - used);
-          });
-        }
-
-        if (shortageQty > 0) {
-          shortageOrderItems.push({ itemId, quantity: shortageQty });
-        }
-      });
-
-      if (shortageOrderItems.length === 0) {
-        showToast('success', 'Inventory is enough for all selected products. No central order was sent.');
-        setSelectedItems({});
-        return;
-      }
+      const orderItems = selectedList.map(({ itemId, quantity }) => ({ itemId, quantity }));
 
       const payload = {
         userId: userInfo.id,
-        items: shortageOrderItems,
+        items: orderItems,
       };
 
       await axios.post('http://meinamfpt-001-site1.ltempurl.com/api/Order', payload, {

@@ -101,28 +101,8 @@ function getStatusBadge(status) {
 }
 
 function getOrderDisplayStatus(status) {
-  const normalizedStatus = String(status || "").toLowerCase();
-
-  if (normalizedStatus === "approved" || normalizedStatus === "delivering" || normalizedStatus === "delivery") {
-    return "Delivery";
-  }
-
-  if (normalizedStatus === "filled" || normalizedStatus === "confirmed") {
-    return "Confirmed";
-  }
-
-  if (normalizedStatus === "cancelled by franchise" || normalizedStatus === "cancelled") {
-    return "Cancelled";
-  }
-
-  if (normalizedStatus === "rejected") {
-    return "Rejected";
-  }
-
-  if (normalizedStatus === "pending") return "Pending";
-  if (normalizedStatus === "processing") return "Processing";
-  if (normalizedStatus === "completed") return "Completed";
-
+  if (status === "Approved" || status === "Delivering") return "Delivery";
+  if (status === "Confirmed" || status === "Filled") return "Processing";
   return status || "Unknown";
 }
 

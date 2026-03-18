@@ -260,10 +260,10 @@ function buildShortageLookup(missingItems) {
   }, {});
 }
 
-function buildShortageLookupFromMaterials(materials) {
+function buildShortageLookupFromMaterials(materials, inventoryLookup = { byId: {}, byName: {} }) {
   return normalizeCollection(materials).reduce((lookup, material) => {
     const quantityNeeded = getNeededQuantity(material);
-    const currentStock = getCurrentStock(material);
+    const currentStock = resolveInventoryStock(material, inventoryLookup);
 
     if (currentStock < quantityNeeded) {
       const materialName = normalizeDisplayText(material?.materialName || material?.name || "Unknown material");
@@ -278,15 +278,15 @@ function buildShortageLookupFromMaterials(materials) {
   }, {});
 }
 
-function buildInventoryStatus(materials) {
+function buildInventoryStatus(materials, inventoryLookup = { byId: {}, byName: {} }) {
   const normalizedMaterials = normalizeCollection(materials);
-  const shortageLookup = buildShortageLookupFromMaterials(normalizedMaterials);
+  const shortageLookup = buildShortageLookupFromMaterials(normalizedMaterials, inventoryLookup);
   const shortageCount = Object.keys(shortageLookup).length;
   const totalMaterials = normalizedMaterials.length;
   const totals = normalizedMaterials.reduce(
     (summary, material) => {
       const quantityNeeded = getNeededQuantity(material);
-      const currentStock = getCurrentStock(material);
+      const currentStock = resolveInventoryStock(material, inventoryLookup);
       const coveredQuantity = Math.min(currentStock, quantityNeeded);
       const missingQuantity = Math.max(quantityNeeded - currentStock, 0);
 
@@ -747,7 +747,7 @@ function SupplyOrderProcessing() {
         const fulfilledForProcessing = requests.filter(
           (req) =>
             processingOrderIds.has(req.orderId) &&
-            getMaterialRequestDisplayStatus(req.status) === "Confirmed"
+            (req.status === "Fulfilled" || req.status === "Confirmed")
         );
 
         // Keep the row badge state in sync with current fulfilled requests.
@@ -773,7 +773,7 @@ function SupplyOrderProcessing() {
         requests.forEach((req) => {
           if (
             processingOrderIds.has(req.orderId) &&
-            getMaterialRequestDisplayStatus(req.status) === "Confirmed" &&
+            (req.status === "Fulfilled" || req.status === "Confirmed") &&
             !seenFulfilledRef.current.has(req.id)
           ) {
             seenFulfilledRef.current.add(req.id);
@@ -845,10 +845,49 @@ function SupplyOrderProcessing() {
   };
 
   // --- Accept Modal ---
-  const openAcceptModal = (e, order) => {
+  const getOrderMaterialsSnapshot = async (orderId) => {
+    const res = await API.callWithToken().get(`MaterialRequest/order/${orderId}/materials`);
+    return normalizeCollection(res.data?.data ?? res.data);
+  };
+
+  const openAcceptModal = async (e, order) => {
     e.stopPropagation();
-    setSelectedOrder(order);
-    setAcceptModalOpen(true);
+
+    try {
+      const materials = await getOrderMaterialsSnapshot(order.id);
+
+      if (materials.length === 0) {
+        showToast("error", `Không thể Accept đơn #${order.id}: chưa có dữ liệu kiểm tra tồn kho. Vui lòng Request lên Central.`);
+        return;
+      }
+
+      const inventorySnapshot = buildInventoryStatus(materials, inventoryLookup);
+
+      setOrderInventoryStatus((prev) => ({
+        ...prev,
+        [order.id]: {
+          isLoading: false,
+          ...inventorySnapshot,
+        },
+      }));
+      setOrderShortages((prev) => ({
+        ...prev,
+        [order.id]: inventorySnapshot.shortageLookup || {},
+      }));
+
+      if (inventorySnapshot.hasShortage) {
+        showToast(
+          "error",
+          `Không thể Accept đơn #${order.id}: tồn kho chưa đủ${inventorySnapshot.shortageCount ? ` (${inventorySnapshot.shortageCount} nguyên liệu thiếu).` : "."} Vui lòng Request lên Central.`
+        );
+        return;
+      }
+
+      setSelectedOrder(order);
+      setAcceptModalOpen(true);
+    } catch (err) {
+      showToast("error", `Không thể kiểm tra tồn kho cho đơn #${order.id}. Vui lòng Request lên Central.`);
+    }
   };
 
   const confirmAccept = async () => {
@@ -861,13 +900,44 @@ function SupplyOrderProcessing() {
       showToast("error", "Invalid order ID.");
       return;
     }
-    
+
     // Get current user info for approvedBy field  
     const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
     const approvedBy = userInfo?.id || 1;
     
     setLoadingAccept(true);
     try {
+      const materials = await getOrderMaterialsSnapshot(selectedOrder.id);
+
+      if (materials.length === 0) {
+        showToast("error", `Không thể Accept đơn #${selectedOrder.id}: chưa có dữ liệu kiểm tra tồn kho. Vui lòng Request lên Central.`);
+        setAcceptModalOpen(false);
+        return;
+      }
+
+      const inventorySnapshot = buildInventoryStatus(materials, inventoryLookup);
+
+      setOrderInventoryStatus((prev) => ({
+        ...prev,
+        [selectedOrder.id]: {
+          isLoading: false,
+          ...inventorySnapshot,
+        },
+      }));
+      setOrderShortages((prev) => ({
+        ...prev,
+        [selectedOrder.id]: inventorySnapshot.shortageLookup || {},
+      }));
+
+      if (inventorySnapshot.hasShortage) {
+        showToast(
+          "error",
+          `Không thể Accept đơn #${selectedOrder.id}: tồn kho chưa đủ${inventorySnapshot.shortageCount ? ` (${inventorySnapshot.shortageCount} nguyên liệu thiếu).` : "."} Vui lòng Request lên Central.`
+        );
+        setAcceptModalOpen(false);
+        return;
+      }
+
       const result = await dispatchOrderStatusUpdate(selectedOrder.id, ["Confirmed"], approvedBy);
 
       showToast(
@@ -1059,6 +1129,24 @@ function SupplyOrderProcessing() {
 
   const handleDeliver = async (e, order) => {
     e.stopPropagation();
+    const fallbackInventoryStatus = buildInventoryStatusFromOrderLines(
+      order.orderLines || [],
+      inventoryLookup,
+      itemDetailsById
+    );
+    const resolvedInventoryStatus =
+      orderInventoryStatus[order.id]?.hasData ||
+      orderInventoryStatus[order.id]?.hasShortage ||
+      !fallbackInventoryStatus
+        ? orderInventoryStatus[order.id]
+        : fallbackInventoryStatus;
+    const hasEffectiveShortage = !!resolvedInventoryStatus?.hasShortage && !readyOrders[order.id];
+
+    if (hasEffectiveShortage) {
+      showToast("error", `Đơn #${order.id} chưa đủ tồn kho để chuyển sang Delivery.`);
+      return;
+    }
+
     const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
     const approvedBy = userInfo?.id || 1;
 
@@ -1253,8 +1341,7 @@ function SupplyOrderProcessing() {
                       const displayStatus = getOrderDisplayStatus(order.status, hasInventoryReady);
                       const statusBadge = getStatusBadge(displayStatus);
                       const isPending = order.status === "Pending";
-                      const isProcessing = displayStatus === "Processing";
-                      const isConfirmed = displayStatus === "Confirmed";
+                      const isProcessing = order.status === "Processing";
                       const isCompleted = order.status === "Completed";
                       const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
                       const isRejected = String(order.status || "").toLowerCase().includes("reject");
@@ -1263,14 +1350,14 @@ function SupplyOrderProcessing() {
                       const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
                       const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
                       const isLockedStatus = isCancelled || isRejected;
-                      const isDeliveredState = displayStatus === "Delivery" || isCompleted;
-                      const needsInventoryCheck = isPending || (isProcessing && !isInventoryReady);
-                      const shouldShowInventoryColumns = isPending || isInventoryReady;
+                      const isConfirmed = displayStatus === "Confirmed";
+                      const needsInventoryCheck = isPending || (isProcessing && !hasInventoryReady);
+                      const shouldShowInventoryColumns = isPending || hasInventoryReady;
                       const isInventoryReadyForPending =
                         (isPending && inventoryKnown && inNeedQuantity <= 0) || isInventoryReady;
                       const shouldShowMissingButton =
                         isPending && inventoryKnown && inNeedQuantity > 0;
-                      const canDeliver = isConfirmed && !isLockedStatus;
+                      const canDeliver = isConfirmed && !isLockedStatus && !hasEffectiveShortage;
                       const acceptDisabled = !isPending || isCompleted || isLockedStatus || hasEffectiveShortage;
                       const requestDisabled = !isPending || isCompleted || isLockedStatus;
 

@@ -9,32 +9,19 @@ import './DashboardCentral.css';
 import PageHeader from '../../../components/common/PageHeader';
 
 function getMaterialRequestDisplayStatus(status) {
-  const normalizedStatus = String(status || '').toLowerCase();
-
-  if (normalizedStatus === 'fulfilled' || normalizedStatus === 'confirmed' || normalizedStatus === 'approved') {
-    return 'Confirmed';
+  switch (status) {
+    case 'Approved':
+    case 'Fulfilled':
+    case 'Confirmed':
+      return 'Confirmed';
+    case 'Pending':
+    case 'Processing':
+      return 'Processing';
+    default:
+      return status || 'Unknown';
   }
-
-  if (normalizedStatus === 'pending' || normalizedStatus === 'processing') {
-    return 'Processing';
-  }
-
-  if (normalizedStatus.includes('reject') || normalizedStatus.includes('cancel')) {
-    return 'Rejected';
-  }
-
-  return status || 'Unknown';
 }
 
-function getMaterialStatusBadgeClass(status) {
-  const displayStatus = getMaterialRequestDisplayStatus(status);
-
-  if (displayStatus === 'Processing') return 'bg-blue-50 text-blue-600';
-  if (displayStatus === 'Confirmed') return 'bg-emerald-50 text-emerald-600';
-  if (displayStatus === 'Rejected') return 'bg-slate-100 text-slate-600';
-
-  return 'bg-slate-50 text-slate-500';
-}
 
 function DashboardCentral() {
   const dispatch = useDispatch();
@@ -62,8 +49,8 @@ function DashboardCentral() {
   // Số liệu cơ bản
   // Lấy số liệu theo material requests (giống Material Tracking/Order Aggregation)
   const totalRequests = materials.length;
-  const processingRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Processing').length;
-  const confirmedRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Confirmed').length;
+  const pendingAggregation = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Processing').length;
+  const fulfilledRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Confirmed').length;
 
   // 3 order aggregation mới nhất (pending material requests, flatten từng item)
   const processingAggregations = Array.isArray(materials)
@@ -75,7 +62,7 @@ function DashboardCentral() {
             requestedQuantity: item.requestedQuantity,
             unit: item.unit,
             requestedBy: req.requestedByUsername || req.requestedBy || '-',
-            status: req.status,
+            status: getMaterialRequestDisplayStatus(req.status),
             note: req.note,
             createdAt: req.createdAt,
           })))
@@ -119,8 +106,8 @@ function DashboardCentral() {
               <span className="material-symbols-outlined text-[24px] text-blue-500">autorenew</span>
             </span>
             <div>
-              <div className="text-2xl font-bold text-navy-charcoal">{processingRequests}</div>
-              <div className="text-sm text-blue-700 font-medium mt-1">Processing Requests</div>
+              <div className="text-2xl font-bold text-navy-charcoal">{pendingAggregation}</div>
+              <div className="text-sm text-yellow-700 font-medium mt-1">Processing Aggregation</div>
             </div>
           </div>
         </div>
@@ -175,8 +162,8 @@ function DashboardCentral() {
             </tr>
           </thead>
           <tbody className="text-sm divide-y divide-slate-100 text-slate-700">
-            {processingAggregations.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No processing requests</td></tr>
+            {pendingAggregations.length === 0 ? (
+              <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No processing aggregation</td></tr>
             ) : (
               processingAggregations.map((item, idx) => {
                 const displayStatus = getMaterialRequestDisplayStatus(item.status);
@@ -234,8 +221,12 @@ function DashboardCentral() {
                   </td>
                   <td className="px-4 py-2 italic text-slate-500">{mat.note || '-'}</td>
                   <td className="px-4 py-2">
-                    <span className={`${getMaterialStatusBadgeClass(mat.status)} px-2 py-1 rounded-full text-xs font-bold`}>
-                      {getMaterialRequestDisplayStatus(mat.status)}
+                    <span className={
+                      getMaterialRequestDisplayStatus(mat.status) === 'Confirmed' ? 'bg-green-50 text-green-600 px-2 py-1 rounded-full text-xs font-bold' :
+                      getMaterialRequestDisplayStatus(mat.status) === 'Processing' ? 'bg-amber-50 text-amber-600 px-2 py-1 rounded-full text-xs font-bold' :
+                      'bg-slate-50 text-slate-500 px-2 py-1 rounded-full text-xs font-bold'
+                    }>
+                      {getMaterialRequestDisplayStatus(mat.status) || '-'}
                     </span>
                   </td>
                 </tr>
