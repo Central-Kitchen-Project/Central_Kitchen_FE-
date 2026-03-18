@@ -96,6 +96,24 @@ function MaterialTracking() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const dispatchMaterialStatusUpdate = async (requestId, nextStatuses) => {
+    let lastError;
+
+    for (const nextStatus of nextStatuses) {
+      const result = await dispatch(
+        updateMaterialRequestStatus({ id: requestId, status: nextStatus })
+      );
+
+      if (updateMaterialRequestStatus.fulfilled.match(result)) {
+        return nextStatus;
+      }
+
+      lastError = result.payload || result.error;
+    }
+
+    throw lastError;
+  };
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -147,15 +165,14 @@ function MaterialTracking() {
 
     setLoadingActionId(request.id);
     try {
-      await dispatch(
-        updateMaterialRequestStatus({ id: request.id, status: "Fulfilled" })
-      ).unwrap();
+      // Update material request status to Approved (backend will handle inventory update)
+      const appliedStatus = await dispatchMaterialStatusUpdate(request.id, ["Approved", "Fulfilled"]);
 
       if (detailModal?.id === request.id) {
-        setDetailModal((prev) => (prev ? { ...prev, status: "Fulfilled" } : prev));
+        setDetailModal((prev) => (prev ? { ...prev, status: appliedStatus } : prev));
       }
 
-      showToast("success", `Yêu cầu #${request.id} đã được xác nhận.`);
+      showToast("success", `Yêu cầu #${request.id} đã được xác nhận và vật liệu đã được cập nhật vào kho.`);
       await fetchRequests();
     } catch (err) {
       showToast("error", `Lỗi cập nhật trạng thái: ${err?.response?.data?.message || err.message}`);
