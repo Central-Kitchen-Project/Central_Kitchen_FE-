@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { fetchGetOrder } from "../../../store/orderSlice";
+import { fetchGetOrder, updateOrderStatus } from "../../../store/orderSlice";
 import { extractApiErrorMessage, extractApiMessage } from "../../../services/api";
+import PageHeader from "../../../components/common/PageHeader";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
 
@@ -83,16 +84,24 @@ function getTimeDiff(dateStr) {
 }
 
 function getStatusBadge(status) {
-  switch (status) {
-    case "Pending":    return { label: "Pending",    cls: "bg-red-50 text-red-600 border-red-200",       dot: "bg-red-500" };
-    case "Approved":   return { label: "Approved",   cls: "bg-amber-50 text-amber-600 border-amber-200", dot: "bg-amber-500" };
-    case "Processing": return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200",    dot: "bg-blue-500" };
-    case "Completed":  return { label: "Completed",  cls: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500" };
+  const displayStatus = getOrderDisplayStatus(status);
+
+  switch (displayStatus) {
+    case "Pending":    return { label: "Pending", cls: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500" };
+    case "Delivery":   return { label: "Delivery", cls: "bg-violet-50 text-violet-600 border-violet-200", dot: "bg-violet-500" };
+    case "Processing": return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200", dot: "bg-blue-500" };
+    case "Completed":  return { label: "Completed", cls: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500" };
     case "Cancelled by Franchise":
     case "Cancelled":
       return { label: "Cancelled", cls: "bg-slate-100 text-slate-600 border-slate-300", dot: "bg-slate-500" };
-    default:           return { label: status || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
+    default:           return { label: displayStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
   }
+}
+
+function getOrderDisplayStatus(status) {
+  if (status === "Approved" || status === "Delivering") return "Delivery";
+  if (status === "Confirmed" || status === "Filled") return "Processing";
+  return status || "Unknown";
 }
 
 function getInitial(name) {
@@ -108,12 +117,19 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_FILTERS = ["All", "Pending", "Approved", "Processing", "Completed"];
+const STATUS_FILTERS = ["All", "Pending", "Processing", "Delivery", "Completed", "Cancelled"];
 
 function OrderTracking() {
   const data = useSelector((state) => state.ORDER.listOrders);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const userInfo = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("USER_INFO")) || {};
+    } catch {
+      return {};
+    }
+  }, []);
 
   useEffect(() => {
     dispatch(fetchGetOrder());
@@ -134,6 +150,20 @@ function OrderTracking() {
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const dispatchOrderStatusUpdate = async (orderId, nextStatuses) => {
+    let lastError;
+
+    for (const nextStatus of nextStatuses) {
+      const result = await dispatch(updateOrderStatus({ id: orderId, status: nextStatus }));
+      if (updateOrderStatus.fulfilled.match(result)) {
+        return { status: nextStatus, payload: result.payload };
+      }
+      lastError = result.payload || result.error;
+    }
+
+    throw lastError;
   };
 
   const openDetailModal = async (order) => {
@@ -163,12 +193,8 @@ function OrderTracking() {
     if (!confirmModal) return;
     setLoadingId(confirmModal.id);
     try {
-      const response = await axios.put(
-        `${BASE_URL}/Order/${confirmModal.id}/status`,
-        { status: "Completed" },
-        { headers: { accept: "*/*", "Content-Type": "application/json" } }
-      );
-      showToast("success", extractApiMessage(response.data, `Đơn hàng #${confirmModal.id} đã hoàn thành!`));
+      const result = await dispatchOrderStatusUpdate(confirmModal.id, ["Completed"]);
+      showToast("success", extractApiMessage(result.payload, `Đơn hàng #${confirmModal.id} đã hoàn thành!`));
       setConfirmModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
@@ -182,50 +208,37 @@ function OrderTracking() {
     if (!cancelModal) return;
     setLoadingId(cancelModal.id);
     try {
-      const payload = { status: "Cancelled by Franchise" };
-      const response = await axios.put(
-        `${BASE_URL}/Order/${cancelModal.id}/status`,
-        payload,
-        { headers: { accept: "*/*", "Content-Type": "application/json" } }
-      );
-      showToast("success", extractApiMessage(response.data, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
+      const result = await dispatchOrderStatusUpdate(cancelModal.id, ["Cancelled by Franchise", "Cancelled"]);
+      showToast("success", extractApiMessage(result.payload, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
       setCancelModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
-      if (err?.response?.data?.error === "OR40003") {
-        try {
-          const fallbackResponse = await axios.put(
-            `${BASE_URL}/Order/${cancelModal.id}/status`,
-            { status: "Cancelled" },
-            { headers: { accept: "*/*", "Content-Type": "application/json" } }
-          );
-          showToast("success", extractApiMessage(fallbackResponse.data, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
-          setCancelModal(null);
-          dispatch(fetchGetOrder());
-          return;
-        } catch (fallbackErr) {
-          showToast("error", `Lỗi: ${extractApiErrorMessage(fallbackErr)}`);
-        }
-      } else {
-        showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
-      }
+      showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingId(null);
     }
   };
 
-  const orders = data || [];
+  const orders = useMemo(() => normalizeCollection(data), [data]);
+  const myOrders = useMemo(() => {
+    const currentUserId = Number(userInfo?.id);
+
+    if (!Number.isFinite(currentUserId)) return orders;
+
+    return orders.filter((order) => Number(order?.userId) === currentUserId);
+  }, [orders, userInfo?.id]);
 
   const stats = useMemo(() => ({
-    total: orders.length,
-    pending: orders.filter((o) => o.status === "Pending").length,
-    processing: orders.filter((o) => o.status === "Processing").length,
-    completed: orders.filter((o) => o.status === "Completed").length,
-  }), [orders]);
+    total: myOrders.length,
+    pending: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Pending").length,
+    processing: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Processing").length,
+    delivery: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Delivery").length,
+    completed: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Completed").length,
+  }), [myOrders]);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const statusMatch = filterStatus === "All" || order.status === filterStatus;
+    return myOrders.filter((order) => {
+      const statusMatch = filterStatus === "All" || getOrderDisplayStatus(order.status) === filterStatus;
       const searchMatch =
         searchTerm === "" ||
         String(order.id).includes(searchTerm) ||
@@ -240,7 +253,7 @@ function OrderTracking() {
       }
       return statusMatch && searchMatch && dateMatch;
     });
-  }, [orders, filterStatus, searchTerm, filterDate]);
+  }, [myOrders, filterStatus, searchTerm, filterDate]);
 
   const detailLines = useMemo(() => normalizeCollection(detailModal?.orderLines), [detailModal]);
 
@@ -265,37 +278,38 @@ function OrderTracking() {
         <main className="flex-1 flex flex-col overflow-hidden bg-white">
 
           {/* Header */}
-          <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
-            <div className="flex items-center gap-4">
-              <h2 className="text-lg font-bold text-slate-900">Order Tracking</h2>
-              <span className="h-4 w-px bg-slate-200" />
-              <span className="text-sm text-slate-500 font-medium">{filteredOrders.length} orders</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => dispatch(fetchGetOrder())}
-                className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600"
-                title="Refresh"
-              >
-                <span className="material-symbols-outlined text-[20px]">refresh</span>
-              </button>
-              <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-                <span className="material-symbols-outlined text-[20px]">notifications</span>
-                {stats.pending > 0 && (
-                  <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-                )}
-              </button>
-            </div>
-          </header>
+          <PageHeader
+            as="h2"
+            title="Order Tracking"
+            subtitle="Follow order progress and confirm deliveries once they arrive."
+            actions={
+              <>
+                <button
+                  onClick={() => dispatch(fetchGetOrder())}
+                  className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600"
+                  title="Refresh"
+                >
+                  <span className="material-symbols-outlined text-[20px]">refresh</span>
+                </button>
+                <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
+                  <span className="material-symbols-outlined text-[20px]">notifications</span>
+                  {stats.pending > 0 && (
+                    <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
+                  )}
+                </button>
+              </>
+            }
+          />
 
           <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-slate-50/50">
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-5 gap-4">
               {[
                 { label: "Total Orders", value: stats.total, icon: "receipt_long", color: "text-slate-700", bg: "bg-slate-100" },
                 { label: "Pending", value: stats.pending, icon: "hourglass_empty", color: "text-red-600", bg: "bg-red-50" },
                 { label: "Processing", value: stats.processing, icon: "autorenew", color: "text-blue-600", bg: "bg-blue-50" },
+                { label: "Delivery", value: stats.delivery, icon: "local_shipping", color: "text-violet-600", bg: "bg-violet-50" },
                 { label: "Completed", value: stats.completed, icon: "task_alt", color: "text-green-600", bg: "bg-green-50" },
               ].map((card) => (
                 <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
@@ -388,9 +402,10 @@ function OrderTracking() {
                       const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const lines = order.orderLines || [];
                       const total = lines.reduce((s, l) => s + (l.price || 0) * l.quantity, 0);
-                      const badge = getStatusBadge(order.status);
-                      const isCompleted = order.status === "Completed";
-                      const isApproved = order.status === "Approved";
+                      const displayStatus = getOrderDisplayStatus(order.status);
+                      const badge = getStatusBadge(displayStatus);
+                      const isCompleted = displayStatus === "Completed";
+                      const isApproved = displayStatus === "Delivery";
                       const isPending = order.status === "Pending";
                       const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
                       const isRejected = String(order.status || "").toLowerCase().includes("reject");
@@ -486,7 +501,7 @@ function OrderTracking() {
                               </button>
                             ) : isCancelled || isRejected ? (
                               <span className="text-xs font-semibold text-slate-400">Cancelled</span>
-                            ) : !isPending ? (
+                            ) : displayStatus === "Processing" ? (
                               <span className="text-xs font-medium text-slate-400">In progress</span>
                             ) : (
                               <button
@@ -516,7 +531,7 @@ function OrderTracking() {
               {/* Footer */}
               <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
                 <span className="text-xs font-medium text-slate-500">
-                  Showing {filteredOrders.length} of {orders.length} orders
+                  Showing {filteredOrders.length} of {myOrders.length} orders
                 </span>
                 <div className="flex gap-2">
                   <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-400 disabled:opacity-50" disabled>
@@ -660,7 +675,7 @@ function OrderTracking() {
                 <button onClick={() => setDetailModal(null)} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm hover:bg-slate-50">
                   Close
                 </button>
-                {detailModal.status === "Approved" && (
+                {getOrderDisplayStatus(detailModal.status) === "Delivery" && (
                   <button
                     onClick={(e) => { setDetailModal(null); openCompleteModal(e, detailModal); }}
                     className="px-4 py-2 rounded-lg bg-primary text-white text-sm flex items-center gap-2 hover:bg-primary/90"

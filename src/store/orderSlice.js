@@ -89,6 +89,9 @@ const itemSlice = createSlice({
       .addCase(createOrder.rejected, (state, action) => {
         state.error = action.payload;
       })
+      .addCase(updateOrderStatus.fulfilled, (state) => {
+        state.error = null;
+      })
       .addCase(updateOrderStatus.rejected, (state, action) => {
         state.error = action.payload;
       })

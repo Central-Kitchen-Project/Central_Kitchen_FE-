@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetOrder } from '../../../store/orderSlice'
 import './PurchaseOrderManager.css'
+import PageHeader from '../../../components/common/PageHeader'
 
 function parseUTC(dateStr) {
   if (!dateStr) return null
@@ -24,6 +25,25 @@ function getTimeDiff(dateStr) {
   return `${Math.floor(diff / 1440)}d ago`
 }
 
+function getOrderDisplayStatus(status) {
+  const normalizedStatus = String(status || '').toLowerCase()
+
+  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering') return 'delivery'
+  if (normalizedStatus === 'cancelled by franchise') return 'cancelled'
+
+  return normalizedStatus
+}
+
+const STATUS_FILTERS = [
+  { value: 'all', label: 'All', active: 'bg-slate-800 text-white', idle: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50' },
+  { value: 'pending', label: 'Pending', active: 'border-red-500 bg-white text-red-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-red-600' },
+  { value: 'processing', label: 'Processing', active: 'border-blue-500 bg-white text-blue-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-blue-600' },
+  { value: 'delivery', label: 'Delivery', active: 'border-violet-500 bg-white text-violet-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-violet-600' },
+  { value: 'completed', label: 'Completed', active: 'border-green-500 bg-white text-green-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-green-600' },
+  { value: 'rejected', label: 'Rejected', active: 'border-slate-500 bg-white text-slate-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-slate-600' },
+  { value: 'cancelled', label: 'Cancelled', active: 'border-rose-500 bg-white text-rose-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-rose-600' },
+]
+
 function PurchaseOrderManager() {
   const dispatch = useDispatch()
   const orders = useSelector(state => state.ORDER.listOrders) || []
@@ -40,16 +60,20 @@ function PurchaseOrderManager() {
   }, [dispatch])
 
   const getStatusBadge = (status) => {
-    const s = status?.toLowerCase()
+    const s = getOrderDisplayStatus(status)
     switch (s) {
       case 'pending':
         return { label: 'Pending', cls: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' }
       case 'processing':
         return { label: 'Processing', cls: 'bg-blue-50 text-blue-600 border-blue-200', dot: 'bg-blue-500' }
+      case 'delivery':
+        return { label: 'Delivery', cls: 'bg-violet-50 text-violet-600 border-violet-200', dot: 'bg-violet-500' }
       case 'completed':
         return { label: 'Completed', cls: 'bg-green-50 text-green-600 border-green-200', dot: 'bg-green-500' }
-      case 'approved':
-        return { label: 'Approved', cls: 'bg-purple-50 text-purple-600 border-purple-200', dot: 'bg-purple-500' }
+      case 'rejected':
+        return { label: 'Rejected', cls: 'bg-slate-100 text-slate-600 border-slate-200', dot: 'bg-slate-500' }
+      case 'cancelled':
+        return { label: 'Cancelled', cls: 'bg-rose-50 text-rose-600 border-rose-200', dot: 'bg-rose-500' }
       default:
         return { label: status || 'Unknown', cls: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400' }
     }
@@ -58,20 +82,12 @@ function PurchaseOrderManager() {
   const filteredOrders = orders.filter(order => {
     const itemNames = (order.orderLines || []).map(line => line.name?.toLowerCase() || '')
     const matchesSearch = !searchTerm || itemNames.some(name => name.includes(searchTerm.toLowerCase())) || order.username?.toLowerCase().includes(searchTerm.toLowerCase()) || String(order.id).includes(searchTerm)
-    const orderStatus = order.status?.toLowerCase()
+    const orderStatus = getOrderDisplayStatus(order.status)
     const matchesStatus = selectedStatus === 'all' || orderStatus === selectedStatus
     const orderDateStr = order.orderDate ? parseUTC(order.orderDate).toISOString().split('T')[0] : ''
     const matchesDate = (!dateFilterFrom || orderDateStr >= dateFilterFrom) && (!dateFilterTo || orderDateStr <= dateFilterTo)
     return matchesSearch && matchesStatus && matchesDate
   })
-
-  const stats = {
-    total: orders.length,
-    pending: orders.filter((o) => o.status?.toLowerCase() === 'pending').length,
-    processing: orders.filter((o) => o.status?.toLowerCase() === 'processing').length,
-    completed: orders.filter((o) => o.status?.toLowerCase() === 'completed').length,
-    approved: orders.filter((o) => o.status?.toLowerCase() === 'approved').length,
-  }
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize))
@@ -86,10 +102,10 @@ function PurchaseOrderManager() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
-        <h1 className="text-xl font-bold text-slate-900">Purchase Orders Tracking</h1>
-        <p className="text-xs text-slate-500 mt-1">Monitor order status and distribution progress</p>
-      </div>
+      <PageHeader
+        title="Purchase Orders Tracking"
+        subtitle="Monitor order status and distribution progress for franchise stores."
+      />
 
       {/* Filters */}
       <div className="px-8 py-6 bg-slate-50 border-b border-slate-200 shrink-0">
@@ -136,57 +152,18 @@ function PurchaseOrderManager() {
           </div>
         </div>
         
-        <div className="flex gap-2 mt-4">
-          <button
-            onClick={() => setSelectedStatus('all')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-              selectedStatus === 'all'
-                ? 'bg-slate-800 text-white'
-                : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setSelectedStatus('pending')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
-              selectedStatus === 'pending'
-                ? 'border-red-500 bg-white text-red-600'
-                : 'border-slate-300 bg-white text-slate-700 hover:text-red-600'
-            }`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setSelectedStatus('processing')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
-              selectedStatus === 'processing'
-                ? 'border-blue-500 bg-white text-blue-600'
-                : 'border-slate-300 bg-white text-slate-700 hover:text-blue-600'
-            }`}
-          >
-            Processing
-          </button>
-          <button
-            onClick={() => setSelectedStatus('completed')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
-              selectedStatus === 'completed'
-                ? 'border-green-500 bg-white text-green-600'
-                : 'border-slate-300 bg-white text-slate-700 hover:text-green-600'
-            }`}
-          >
-            Completed
-          </button>
-          <button
-            onClick={() => setSelectedStatus('approved')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
-              selectedStatus === 'approved'
-                ? 'border-purple-500 bg-white text-purple-600'
-                : 'border-slate-300 bg-white text-slate-700 hover:text-purple-600'
-            }`}
-          >
-            Approved
-          </button>
+        <div className="flex gap-2 mt-4 flex-wrap">
+          {STATUS_FILTERS.map((status) => (
+            <button
+              key={status.value}
+              onClick={() => setSelectedStatus(status.value)}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${status.value === 'all' ? '' : 'border'} ${
+                selectedStatus === status.value ? status.active : status.idle
+              }`}
+            >
+              {status.label}
+            </button>
+          ))}
         </div>
       </div>
 

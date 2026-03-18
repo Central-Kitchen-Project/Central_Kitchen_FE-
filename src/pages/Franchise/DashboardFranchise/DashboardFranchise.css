@@ -58,10 +58,31 @@ body {
     height: 100%;
     gap: 8px;
     flex: 1;
+    min-width: 0;
 }
 
 .franchise-bar-label {
     font-size: 13px;
     font-weight: 600;
     color: #64748b;
+}
+
+@media (max-width: 1280px) {
+    .franchise-chart-container {
+        height: 300px;
+        padding: 16px 14px 14px;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .franchise-chart-container {
+        height: 260px;
+        padding: 14px 10px 12px;
+        gap: 8px;
+    }
+
+    .franchise-bar-label {
+        font-size: 12px;
+    }
 }

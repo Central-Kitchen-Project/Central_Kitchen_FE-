@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchGetInventory, fetchUpdateInventory } from '../../../store/inventorySlice'
+import { fetchGetInventory } from '../../../store/inventorySlice'
+import PageHeader from '../../../components/common/PageHeader'
 
 function InventoryFranchise() {
   const dispatch = useDispatch();
@@ -8,11 +9,6 @@ function InventoryFranchise() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
-
-  // Update stock modal state
-  const [showModal, setShowModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [newQuantity, setNewQuantity] = useState('');
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('USER_INFO'));
@@ -41,49 +37,24 @@ function InventoryFranchise() {
     return matchesSearch && label === statusFilter;
   });
 
-  const handleUpdateClick = (item) => {
-    setSelectedItem(item);
-    setNewQuantity(item.quantity ?? 0);
-    setShowModal(true);
-  };
-
-  const handleUpdateSubmit = async () => {
-    if (selectedItem == null || newQuantity === '') return;
-    const userInfo = JSON.parse(localStorage.getItem('USER_INFO'));
-    await dispatch(fetchUpdateInventory({
-      id: selectedItem.id,
-      quantity: parseFloat(newQuantity),
-      userId: userInfo?.id,
-    }));
-    setShowModal(false);
-    setSelectedItem(null);
-    // Refresh list
-    if (userInfo?.id) {
-      dispatch(fetchGetInventory(userInfo.id));
-    }
-  };
-
   return (
     <main className="flex-1">
-    <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4">
-      <div className="flex flex-col">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-          Inventory Management
-        </h2>
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-          <span className="material-symbols-outlined text-sm">store</span>
-          <span className="text-xs font-medium">Franchise Branch Stock</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
+    <PageHeader
+      as="h2"
+      title="Inventory Management"
+      subtitle="Monitor franchise branch stock levels and ingredient availability."
+      className="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md dark:border-slate-800"
+      titleClassName="dark:text-white"
+      subtitleClassName="dark:text-slate-400"
+      actions={
         <div className="relative">
           <button className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
             <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
           </button>
         </div>
-      </div>
-    </header>
+      }
+    />
     <div className="p-8 space-y-6">
       {/* Filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -128,13 +99,12 @@ function InventoryFranchise() {
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Current Stock</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center gap-2">
                       <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
                       <span className="text-sm">Loading inventory...</span>
@@ -143,7 +113,7 @@ function InventoryFranchise() {
                 </tr>
               ) : filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center gap-2">
                       <span className="material-symbols-outlined text-3xl">inventory_2</span>
                       <span className="text-sm">No inventory items found.</span>
@@ -180,14 +150,6 @@ function InventoryFranchise() {
                           {status.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleUpdateClick(item)}
-                          className="bg-primary text-white text-xs font-bold px-4 py-2 rounded hover:bg-primary/90 transition-all"
-                        >
-                          Update Stock
-                        </button>
-                      </td>
                     </tr>
                   );
                 })
@@ -202,40 +164,6 @@ function InventoryFranchise() {
         )}
       </div>
     </div>
-
-    {/* Update Stock Modal */}
-    {showModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Update Stock</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-            {selectedItem?.item?.itemName || selectedItem?.itemName || `Item #${selectedItem?.id}`}
-          </p>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Quantity</label>
-          <input
-            type="number"
-            step="0.01"
-            className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:bg-slate-800 dark:text-white focus:ring-primary focus:border-primary"
-            value={newQuantity}
-            onChange={(e) => setNewQuantity(e.target.value)}
-          />
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              onClick={() => { setShowModal(false); setSelectedItem(null); }}
-              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpdateSubmit}
-              className="px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary/90 transition-all"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </main>
   )
 }

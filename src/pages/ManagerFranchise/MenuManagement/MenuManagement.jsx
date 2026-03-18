@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchGetAll, removeItem } from '../../../store/itemSlice'
+import { fetchGetAll, hideItem, HIDDEN_ITEM_IDS_STORAGE_KEY } from '../../../store/itemSlice'
 import API from '../../../services/api'
 import axios from 'axios'
+import PageHeader from '../../../components/common/PageHeader'
 
 function MenuManagement() {
   const data = useSelector(state => state.ITEM.listItems)
@@ -204,26 +205,45 @@ function MenuManagement() {
     }
   // Add Item
   const openAddModal = () => {
-    setAddForm({ itemName: '', unit: '', itemType: itemTypes[0] || '', description: '', price: '', category: '' })
+    setAddForm({ itemName: '', unit: '', itemType: '', description: '', price: '', category: '' })
     setShowAddModal(true)
   }
 
   const closeAddModal = () => setShowAddModal(false)
 
+  const isAddFormValid = (() => {
+    const hasName = addForm.itemName.trim()
+    const hasUnit = addForm.unit.trim()
+    const hasType = addForm.itemType.trim()
+    const hasDescription = addForm.description.trim()
+    const hasCategory = addForm.category.trim()
+    const hasPrice = String(addForm.price).trim() !== '' && !Number.isNaN(Number(addForm.price))
+
+    return Boolean(hasName && hasUnit && hasType && hasDescription && hasCategory && hasPrice)
+  })()
+
   const createItem = async () => {
-    if (!addForm.itemName.trim() || !addForm.itemType.trim()) {
-      showToast('error', 'Item name and type are required')
+    if (
+      !addForm.itemName.trim() ||
+      !addForm.unit.trim() ||
+      !addForm.itemType.trim() ||
+      !addForm.description.trim() ||
+      !addForm.category.trim() ||
+      String(addForm.price).trim() === '' ||
+      Number.isNaN(Number(addForm.price))
+    ) {
+      showToast('error', 'All fields are required')
       return
     }
     setCreating(true)
     try {
       await axios.post('/api/Item', {
-        itemName: addForm.itemName,
-        unit: addForm.unit,
-        itemType: addForm.itemType,
-        description: addForm.description,
-        price: addForm.price ? Number(addForm.price) : null,
-        category: addForm.category || null
+        itemName: addForm.itemName.trim(),
+        unit: addForm.unit.trim(),
+        itemType: addForm.itemType.trim(),
+        description: addForm.description.trim(),
+        price: Number(addForm.price),
+        category: addForm.category.trim()
       })
       showToast('success', 'Item created successfully!')
       setShowAddModal(false)
@@ -275,9 +295,26 @@ function MenuManagement() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await API.callWithToken().delete(`Item/${deleteTarget.id}`)
-      dispatch(removeItem(deleteTarget.id))
-      showToast('success', `"${deleteTarget.name}" deleted successfully!`)
+      await API.callWithToken().put(`Item/${deleteTarget.id}`, {
+        itemName: deleteTarget.name || '',
+        unit: deleteTarget.unit || '',
+        itemType: deleteTarget.type || '',
+        description: deleteTarget.description || '',
+        price: Number(deleteTarget.price || 0),
+        category: deleteTarget.category || '',
+        isAvailable: false
+      })
+      try {
+        const currentHiddenIds = JSON.parse(localStorage.getItem(HIDDEN_ITEM_IDS_STORAGE_KEY) || '[]')
+        const nextHiddenIds = Array.from(new Set([...(Array.isArray(currentHiddenIds) ? currentHiddenIds : []), deleteTarget.id]))
+        localStorage.setItem(HIDDEN_ITEM_IDS_STORAGE_KEY, JSON.stringify(nextHiddenIds))
+      } catch {
+        // Ignore localStorage sync failures and still hide in current session.
+      }
+
+      dispatch(hideItem(deleteTarget.id))
+      await dispatch(fetchGetAll({ type: '', category: '' }))
+      showToast('success', `"${deleteTarget.name}" hidden successfully!`)
       closeDeleteModal()
     } catch (err) {
       console.error('Failed to delete item:', err)
@@ -363,10 +400,10 @@ function MenuManagement() {
       )}
 
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0">
-        <h1 className="text-xl font-bold text-slate-900">Menu Management</h1>
-        <p className="text-xs text-slate-500 mt-1">Manage items, recipes, and ingredients</p>
-      </div>
+      <PageHeader
+        title="Menu Management"
+        subtitle="Manage items, recipes, and ingredients for franchise operations."
+      />
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
@@ -767,6 +804,7 @@ function MenuManagement() {
                   value={addForm.itemName}
                   onChange={e => handleAddFormChange('itemName', e.target.value)}
                   placeholder="Enter item name"
+                  required
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -786,6 +824,7 @@ function MenuManagement() {
                         category: isNL ? 'nguyen lieu' : prev.category
                       }))
                     }}
+                    required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select type</option>
@@ -795,13 +834,14 @@ function MenuManagement() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Unit</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Unit *</label>
                   {addForm.itemType?.toLowerCase() === 'thanh pham' ? (
                     <input type="text" value="pcs" disabled className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed" />
                   ) : (
                     <select
                       value={addForm.unit}
                       onChange={e => handleAddFormChange('unit', e.target.value)}
+                      required
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select unit</option>
@@ -813,37 +853,43 @@ function MenuManagement() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Description *</label>
                 <textarea
                   value={addForm.description}
                   onChange={e => handleAddFormChange('description', e.target.value)}
                   rows={2}
-                  placeholder="Brief description"
+                  placeholder="Enter description"
+                  required
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Price (VND)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Price (VND) *</label>
                   <input
                     type="number"
                     value={addForm.price}
                     onChange={e => handleAddFormChange('price', e.target.value)}
                     placeholder="0"
+                    required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
                   <input
                     type="text"
                     value={addForm.category}
                     onChange={e => handleAddFormChange('category', e.target.value)}
-                    placeholder="Optional category"
+                    placeholder="Enter category"
+                    required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
 
                 </div>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                All fields are required. You cannot create an item with empty values.
               </div>
               {addForm.itemType?.toLowerCase() === 'thanh pham' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -860,7 +906,7 @@ function MenuManagement() {
               </button>
               <button
                 onClick={createItem}
-                disabled={creating}
+                disabled={creating || !isAddFormValid}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {creating ? 'Creating...' : 'Create Item'}
@@ -880,7 +926,7 @@ function MenuManagement() {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Item</h3>
               <p className="text-sm text-slate-500">
-                Are you sure you want to delete <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>? This action cannot be undone.
+                Are you sure you want to hide <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>? Inactive items will no longer appear in other tabs.
               </p>
             </div>
             <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-200">

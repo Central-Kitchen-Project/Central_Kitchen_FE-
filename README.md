@@ -22,7 +22,7 @@ Hệ thống được thiết kế theo **mô hình phân quyền theo vai trò 
 **Vai trò:** Nhân viên cửa hàng Franchise  
 
 **Chức năng chính:**
-- Tạo đơn đặt hàng nguyên liệu / bán thành phẩm từ bếp trung tâm
+- Tạo đơn đặt hàng nguyên liệu
 - Theo dõi trạng thái xử lý và giao hàng của đơn đặt
 - Xác nhận đã nhận hàng và phản hồi chất lượng
 - Xem tồn kho hiện tại tại cửa hàng
@@ -36,7 +36,7 @@ Hệ thống được thiết kế theo **mô hình phân quyền theo vai trò 
 - Tiếp nhận và xử lý đơn đặt hàng từ các cửa hàng franchise
 - Lập kế hoạch sản xuất theo nhu cầu tổng hợp
 - Cập nhật trạng thái sản xuất và xuất kho
-- Quản lý nguyên liệu đầu vào, hạn sử dụng và lô sản xuất
+
 
 ---
 
@@ -47,7 +47,6 @@ Hệ thống được thiết kế theo **mô hình phân quyền theo vai trò 
 - Tổng hợp và phân loại đơn đặt hàng từ các cửa hàng
 - Điều phối sản xuất và phân phối hàng hóa
 - Lập lịch giao hàng và theo dõi tiến độ vận chuyển
-- Xử lý các vấn đề phát sinh (thiếu hàng, giao trễ, hủy đơn)
 
 ---
 
