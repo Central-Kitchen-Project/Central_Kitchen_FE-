@@ -8,6 +8,20 @@ import { fetchGetMaterialRequest } from '../../../store/materialSlice';
 import './DashboardCentral.css';
 import PageHeader from '../../../components/common/PageHeader';
 
+function getMaterialRequestDisplayStatus(status) {
+  switch (status) {
+    case 'Approved':
+    case 'Fulfilled':
+    case 'Confirmed':
+      return 'Confirmed';
+    case 'Pending':
+    case 'Processing':
+      return 'Processing';
+    default:
+      return status || 'Unknown';
+  }
+}
+
 
 function DashboardCentral() {
   const dispatch = useDispatch();
@@ -35,20 +49,20 @@ function DashboardCentral() {
   // Số liệu cơ bản
   // Lấy số liệu theo material requests (giống Material Tracking/Order Aggregation)
   const totalRequests = materials.length;
-  const pendingAggregation = materials.filter(r => r.status === 'Pending').length;
-  const fulfilledRequests = materials.filter(r => r.status === 'Fulfilled').length;
+  const pendingAggregation = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Processing').length;
+  const fulfilledRequests = materials.filter(r => getMaterialRequestDisplayStatus(r.status) === 'Confirmed').length;
 
   // 3 order aggregation mới nhất (pending material requests, flatten từng item)
   const pendingAggregations = Array.isArray(materials)
     ? materials
-        .filter((req) => req.status === 'Pending' && Array.isArray(req.items) && req.items.length > 0)
+        .filter((req) => getMaterialRequestDisplayStatus(req.status) === 'Processing' && Array.isArray(req.items) && req.items.length > 0)
         .flatMap((req) => req.items.map((item) => ({
             requestId: req.id,
             materialName: item.materialName,
             requestedQuantity: item.requestedQuantity,
             unit: item.unit,
             requestedBy: req.requestedByUsername || req.requestedBy || '-',
-            status: req.status,
+            status: getMaterialRequestDisplayStatus(req.status),
             note: req.note,
             createdAt: req.createdAt,
           })))
@@ -93,7 +107,7 @@ function DashboardCentral() {
             </span>
             <div>
               <div className="text-2xl font-bold text-navy-charcoal">{pendingAggregation}</div>
-              <div className="text-sm text-yellow-700 font-medium mt-1">Pending Aggregation</div>
+              <div className="text-sm text-yellow-700 font-medium mt-1">Processing Aggregation</div>
             </div>
           </div>
         </div>
@@ -149,7 +163,7 @@ function DashboardCentral() {
           </thead>
           <tbody className="text-sm divide-y divide-slate-100 text-slate-700">
             {pendingAggregations.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No pending aggregation</td></tr>
+              <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No processing aggregation</td></tr>
             ) : (
               pendingAggregations.map((item, idx) => (
                 <tr key={item.requestId + '-' + item.materialName + '-' + idx}>
@@ -202,11 +216,11 @@ function DashboardCentral() {
                   <td className="px-4 py-2 italic text-slate-500">{mat.note || '-'}</td>
                   <td className="px-4 py-2">
                     <span className={
-                      mat.status === 'Fulfilled' ? 'bg-green-50 text-green-600 px-2 py-1 rounded-full text-xs font-bold' :
-                      mat.status === 'Pending' ? 'bg-amber-50 text-amber-600 px-2 py-1 rounded-full text-xs font-bold' :
+                      getMaterialRequestDisplayStatus(mat.status) === 'Confirmed' ? 'bg-green-50 text-green-600 px-2 py-1 rounded-full text-xs font-bold' :
+                      getMaterialRequestDisplayStatus(mat.status) === 'Processing' ? 'bg-amber-50 text-amber-600 px-2 py-1 rounded-full text-xs font-bold' :
                       'bg-slate-50 text-slate-500 px-2 py-1 rounded-full text-xs font-bold'
                     }>
-                      {mat.status || '-'}
+                      {getMaterialRequestDisplayStatus(mat.status) || '-'}
                     </span>
                   </td>
                 </tr>

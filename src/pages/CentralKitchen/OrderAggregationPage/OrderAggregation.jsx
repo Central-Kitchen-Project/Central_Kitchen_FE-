@@ -14,7 +14,9 @@ function parseUTC(dateStr) {
 
 function getMaterialRequestDisplayStatus(status) {
   switch (status) {
+    case "Approved":
     case "Fulfilled":
+    case "Confirmed":
       return "Confirmed";
     case "Pending":
     case "Processing":
@@ -121,6 +123,17 @@ function DetailModal({ requestId, onClose }) {
             <div className="space-y-5">
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-3">
+                {(() => {
+                  const detailDisplayStatus = getMaterialRequestDisplayStatus(detail.status);
+                  const detailStatusClass =
+                    detailDisplayStatus === "Processing"
+                      ? "text-amber-600 font-black uppercase"
+                      : detailDisplayStatus === "Confirmed"
+                        ? "text-green-600 font-black uppercase"
+                        : "text-slate-700";
+
+                  return (
+                    <>
                 <InfoCell
                   icon="tag"
                   label="Order ID"
@@ -139,15 +152,12 @@ function DetailModal({ requestId, onClose }) {
                 <InfoCell
                   icon="flag"
                   label="Status"
-                  value={detail.status}
-                  valueClass={
-                    detail.status === "Pending"
-                      ? "text-amber-600 font-black uppercase"
-                      : detail.status === "Fulfilled"
-                        ? "text-green-600 font-black uppercase"
-                        : "text-slate-700"
-                  }
+                  value={detailDisplayStatus}
+                  valueClass={detailStatusClass}
                 />
+                    </>
+                  );
+                })()}
               </div>
 
               {detail.note && (
@@ -267,6 +277,24 @@ function OrderAggregation() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const dispatchMaterialStatusUpdate = async (requestId, nextStatuses) => {
+    let lastError;
+
+    for (const nextStatus of nextStatuses) {
+      const result = await dispatch(
+        updateMaterialRequestStatus({ id: requestId, status: nextStatus })
+      );
+
+      if (updateMaterialRequestStatus.fulfilled.match(result)) {
+        return result.payload;
+      }
+
+      lastError = result.payload || result.error;
+    }
+
+    throw lastError;
+  };
+
   const handleUrgentClick = (batchId) => {
     const id = batchId.replace("#", "");
     navigate(`/MaterialFulfillmentPlan?id=${id}`);
@@ -275,10 +303,9 @@ function OrderAggregation() {
   const handleAccept = async (request) => {
     const id = request?.id;
     try {
-      const response = await dispatch(
-        updateMaterialRequestStatus({ id, status: "Fulfilled" })
-      ).unwrap();
-      showToast("success", extractApiMessage(response?.payload, `Yêu cầu vật tư #${id} đã được cập nhật thành công.`));
+      // Update material request status to Approved (backend will handle inventory update)
+      const response = await dispatchMaterialStatusUpdate(id, ["Approved", "Fulfilled"]);
+      showToast("success", extractApiMessage(response?.payload, `Yêu cầu vật tư #${id} đã được cập nhật thành công và vật liệu đã được thêm vào kho.`));
       dispatch(fetchGetMaterialRequest());
     } catch (error) {
       console.error("Error accepting request:", error);
@@ -287,7 +314,7 @@ function OrderAggregation() {
   };
 
   const pendingItems =
-    data?.filter((item) => ["Pending", "Processing"].includes(item.status)) || [];
+    data?.filter((item) => getMaterialRequestDisplayStatus(item.status) === "Processing") || [];
 
   return (
     <>
@@ -330,7 +357,7 @@ function OrderAggregation() {
                 <span className="material-symbols-outlined text-blue-600">
                   groups
                 </span>
-                Pending Aggregation
+                Processing Aggregation
               </h3>
             </div>
 

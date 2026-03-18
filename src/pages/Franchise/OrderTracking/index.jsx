@@ -100,6 +100,7 @@ function getStatusBadge(status) {
 
 function getOrderDisplayStatus(status) {
   if (status === "Approved" || status === "Delivering") return "Delivery";
+  if (status === "Confirmed" || status === "Filled") return "Processing";
   return status || "Unknown";
 }
 
