@@ -22,6 +22,12 @@ function getMaterialRequestDisplayStatus(status) {
   }
 }
 
+function getMaterialStatusBadgeClass(status) {
+  const display = getMaterialRequestDisplayStatus(status);
+  if (display === 'Confirmed') return 'bg-green-50 text-green-600';
+  if (display === 'Processing') return 'bg-amber-50 text-amber-600';
+  return 'bg-slate-50 text-slate-500';
+}
 
 function DashboardCentral() {
   const dispatch = useDispatch();
@@ -118,7 +124,7 @@ function DashboardCentral() {
               <span className="material-symbols-outlined text-[24px] text-green-500">task_alt</span>
             </span>
             <div>
-              <div className="text-2xl font-bold text-navy-charcoal">{confirmedRequests}</div>
+              <div className="text-2xl font-bold text-navy-charcoal">{fulfilledRequests}</div>
               <div className="text-sm text-green-700 font-medium mt-1">Confirmed Requests</div>
             </div>
           </div>
@@ -162,7 +168,7 @@ function DashboardCentral() {
             </tr>
           </thead>
           <tbody className="text-sm divide-y divide-slate-100 text-slate-700">
-            {pendingAggregations.length === 0 ? (
+            {processingAggregations.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-2 text-center text-slate-400">No processing aggregation</td></tr>
             ) : (
               processingAggregations.map((item, idx) => {

@@ -1345,12 +1345,12 @@ function SupplyOrderProcessing() {
                       const isCompleted = order.status === "Completed";
                       const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
                       const isRejected = String(order.status || "").toLowerCase().includes("reject");
+                      const isConfirmed = displayStatus === "Confirmed";
                       const isInventoryReady = hasInventoryReady || isConfirmed;
                       const hasEffectiveShortage = hasInsufficientStock && !isInventoryReady;
                       const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
                       const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
                       const isLockedStatus = isCancelled || isRejected;
-                      const isConfirmed = displayStatus === "Confirmed";
                       const needsInventoryCheck = isPending || (isProcessing && !hasInventoryReady);
                       const shouldShowInventoryColumns = isPending || hasInventoryReady;
                       const isInventoryReadyForPending =
