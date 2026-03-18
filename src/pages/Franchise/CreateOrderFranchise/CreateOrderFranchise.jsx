@@ -130,15 +130,24 @@ function CreateOrderFranchise() {
   // Tổng hợp nguyên liệu từ tất cả items được chọn
   const aggregatedIngredients = () => {
     const map = {}; // key: "name|unit"
-    selectedList.forEach(({ detail, quantity }) => {
-      if (!detail?.ingredients?.length) return;
-      detail.ingredients.forEach(ing => {
-        const key = `${ing.name}|${ing.unit}`;
+    selectedList.forEach(({ detail, quantity, item }) => {
+      if (detail?.ingredients?.length) {
+        // Nếu có ingredients, cộng các nguyên liệu từ công thức
+        detail.ingredients.forEach(ing => {
+          const key = `${ing.name}|${ing.unit}`;
+          if (!map[key]) {
+            map[key] = { name: ing.name, unit: ing.unit, qty: 0 };
+          }
+          map[key].qty += ing.qty * quantity;
+        });
+      } else {
+        // Nếu không có ingredients (nguyên liệu thô), cộng chính item đó
+        const key = `${item.name}|${item.unit}`;
         if (!map[key]) {
-          map[key] = { name: ing.name, unit: ing.unit, qty: 0 };
+          map[key] = { name: item.name, unit: item.unit, qty: 0 };
         }
-        map[key].qty += ing.qty * quantity;
-      });
+        map[key].qty += quantity;
+      }
     });
     return Object.values(map);
   };
