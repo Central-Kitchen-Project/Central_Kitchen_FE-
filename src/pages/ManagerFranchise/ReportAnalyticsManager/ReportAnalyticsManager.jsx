@@ -1,117 +1,198 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useOutletContext } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetAll } from '../../../store/itemSlice'
 import { fetchGetInventory } from '../../../store/inventorySlice'
-import { fetchGetTransactions } from '../../../store/inventoryTransactionSlice'
+import { fetchAllUsers } from '../../../store/userSlice'
 import PageHeader from '../../../components/common/PageHeader'
 
+const TRACKABLE_ROLE_OPTIONS = [
+  { value: '4', label: 'Central Kitchen' },
+  { value: '5', label: 'Supply Coordinator' },
+]
+
 function ReportAnalyticsManager() {
-  const { userInfo } = useOutletContext()
   const [activeReport, setActiveReport] = useState('cost')
   const [stockFilter, setStockFilter] = useState('All')
   const [stockPage, setStockPage] = useState(1)
+  const [selectedRoleId, setSelectedRoleId] = useState('4')
+  const [selectedUserId, setSelectedUserId] = useState('')
   const ITEMS_PER_PAGE = 6
   const dispatch = useDispatch()
 
   const listItems = useSelector((state) => state.ITEM.listItems) || []
   const listInventory = useSelector((state) => state.INVENTORY.listInventory) || []
   const inventoryLoading = useSelector((state) => state.INVENTORY.loading)
-  const listTransactions = useSelector((state) => state.INVENTORY_TRANSACTION?.listTransactions) || []
+  const users = useSelector((state) => state.USER?.users) || []
+  const userLoading = useSelector((state) => state.USER?.loading)
 
   useEffect(() => {
     dispatch(fetchGetAll({ type: '', category: '' }))
-    dispatch(fetchGetTransactions())
-    if (userInfo?.id) {
-      dispatch(fetchGetInventory(userInfo.id))
-    }
-  }, [dispatch, userInfo?.id])
+    dispatch(fetchAllUsers())
+  }, [dispatch])
 
-  // Build maps from inventory for cross-referencing with items
-  const inventoryByItemId = useMemo(() => {
+  const trackableUsers = useMemo(() => {
+    const userList = Array.isArray(users) ? users : []
+
+    return userList
+      .filter((user) => ['4', '5'].includes(String(user?.roleId)))
+      .sort((a, b) => {
+        const nameA = String(a?.username || a?.email || a?.id || '').toLowerCase()
+        const nameB = String(b?.username || b?.email || b?.id || '').toLowerCase()
+        return nameA.localeCompare(nameB)
+      })
+  }, [users])
+
+  const availableUsers = useMemo(
+    () => trackableUsers.filter((user) => String(user?.roleId) === selectedRoleId),
+    [trackableUsers, selectedRoleId]
+  )
+
+  useEffect(() => {
+    if (!trackableUsers.length) return
+
+    const hasRoleOption = trackableUsers.some((user) => String(user?.roleId) === selectedRoleId)
+    if (!hasRoleOption) {
+      setSelectedRoleId(String(trackableUsers[0].roleId))
+    }
+  }, [trackableUsers, selectedRoleId])
+
+  useEffect(() => {
+    if (!availableUsers.length) {
+      setSelectedUserId('')
+      return
+    }
+
+    const hasSelectedUser = availableUsers.some((user) => String(user?.id) === String(selectedUserId))
+    if (!hasSelectedUser) {
+      setSelectedUserId(String(availableUsers[0].id))
+    }
+  }, [availableUsers, selectedUserId])
+
+  useEffect(() => {
+    if (selectedUserId) {
+      dispatch(fetchGetInventory(selectedUserId))
+    }
+  }, [dispatch, selectedUserId])
+
+  useEffect(() => {
+    setStockPage(1)
+  }, [selectedUserId])
+
+  const selectedUser = useMemo(
+    () => availableUsers.find((user) => String(user?.id) === String(selectedUserId)) || null,
+    [availableUsers, selectedUserId]
+  )
+
+  const selectedRoleLabel = useMemo(
+    () => TRACKABLE_ROLE_OPTIONS.find((role) => role.value === selectedRoleId)?.label || 'Inventory User',
+    [selectedRoleId]
+  )
+
+  const itemById = useMemo(() => {
     const map = {}
-    const inventoryArr = Array.isArray(listInventory) ? listInventory : []
-    inventoryArr.forEach((inv) => {
-      const itemId = inv.item?.id || inv.itemId
-      if (itemId) map[itemId] = inv
+    const itemsArr = Array.isArray(listItems) ? listItems : []
+    itemsArr.forEach((item) => {
+      if (item?.id) map[item.id] = item
     })
     return map
-  }, [listInventory])
-
-  // Cost Analysis — computed from real item data
-  const costData = useMemo(() => {
-    if (!listItems.length) {
-      return { totalInventoryValue: 0, avgCostPerUnit: 0, highValueItems: 0, totalSKUs: 0, topItems: [] }
-    }
-    const totalInventoryValue = listItems.reduce((sum, item) => sum + (item.price || 0), 0)
-    const avgCostPerUnit = Math.round(totalInventoryValue / listItems.length)
-    const highValueItems = listItems.filter((item) => (item.price || 0) > 100000).length
-    const totalSKUs = listItems.length
-    const topItems = [...listItems]
-      .sort((a, b) => (b.price || 0) - (a.price || 0))
-      .slice(0, 5)
-      .map((item) => ({ name: item.name || item.itemName, value: item.price || 0, unit: item.unit || 'unit' }))
-    return { totalInventoryValue, avgCostPerUnit, highValueItems, totalSKUs, topItems }
   }, [listItems])
 
-  // Inventory Stock Overview — based on ALL items, joined with inventory data
+  const getInventoryStatus = (inventoryItem) => {
+    const quantity = Number(inventoryItem?.quantity ?? 0)
+    const minThreshold = Number(
+      inventoryItem?.minThreshold ??
+      inventoryItem?.item?.minThreshold ??
+      inventoryItem?.item?.minimumThreshold ??
+      10
+    )
+    const rawStatus = String(inventoryItem?.status || '').toLowerCase()
+
+    if (rawStatus.includes('out')) return 'Out of Stock'
+    if (rawStatus.includes('low')) return 'Low Stock'
+    if (rawStatus.includes('in')) return 'In Stock'
+    if (quantity <= 0) return 'Out of Stock'
+    if (quantity <= minThreshold) return 'Low Stock'
+    return 'In Stock'
+  }
+
   const stockData = useMemo(() => {
-    if (!listItems.length) {
-      return { totalItems: 0, inStock: 0, lowStock: 0, outOfStock: 0, notTracked: 0, stockItems: [] }
+    const inventoryArr = selectedUserId && !inventoryLoading && Array.isArray(listInventory)
+      ? listInventory
+      : []
+
+    if (!inventoryArr.length) {
+      return { totalItems: 0, inStock: 0, lowStock: 0, outOfStock: 0, stockItems: [] }
     }
 
-    let inStock = 0, lowStock = 0, outOfStock = 0, notTracked = 0
+    let inStock = 0
+    let lowStock = 0
+    let outOfStock = 0
 
-    const stockItems = listItems.map((item) => {
-      const inv = inventoryByItemId[item.id]
-      const quantity = inv ? (inv.quantity ?? 0) : null
-      const price = item.price || 0
+    const stockItems = inventoryArr.map((inventoryItem, index) => {
+      const itemId = inventoryItem?.item?.id || inventoryItem?.itemId
+      const item = inventoryItem?.item || itemById[itemId] || {}
+      const quantity = Number(inventoryItem?.quantity ?? 0)
+      const price = Number(item?.price ?? inventoryItem?.price ?? 0)
+      const status = getInventoryStatus(inventoryItem)
 
-      let status
-      if (!inv) {
-        status = 'Not Tracked'
-        notTracked++
-      } else if (quantity <= 0) {
-        status = 'Out of Stock'
+      if (status === 'Out of Stock') {
         outOfStock++
-      } else if (quantity <= (inv.minThreshold ?? 10)) {
-        status = 'Low Stock'
+      } else if (status === 'Low Stock') {
         lowStock++
       } else {
-        status = 'In Stock'
         inStock++
       }
 
       return {
-        name: item.name || item.itemName || `Item #${item.id}`,
-        quantity: quantity ?? 0,
-        unit: item.unit || '-',
+        id: inventoryItem?.id || itemId || index,
+        name: item?.itemName || item?.name || inventoryItem?.itemName || `Item #${itemId ?? index + 1}`,
+        quantity,
+        unit: item?.unit || inventoryItem?.unit || '-',
         status,
         price,
-        stockValue: (quantity ?? 0) * price,
-        hasInventory: !!inv,
+        stockValue: quantity * price,
       }
     })
 
-    // Sort: Out of Stock → Low Stock → Not Tracked → In Stock
     stockItems.sort((a, b) => {
-      const order = { 'Out of Stock': 0, 'Low Stock': 1, 'Not Tracked': 2, 'In Stock': 3 }
+      const order = { 'Out of Stock': 0, 'Low Stock': 1, 'In Stock': 2 }
       return (order[a.status] ?? 4) - (order[b.status] ?? 4)
     })
 
-    return { totalItems: listItems.length, inStock, lowStock, outOfStock, notTracked, stockItems }
-  }, [listItems, inventoryByItemId])
+    return { totalItems: inventoryArr.length, inStock, lowStock, outOfStock, stockItems }
+  }, [inventoryLoading, listInventory, itemById, selectedUserId])
 
-  // Total stock value = sum of (quantity × price) for all inventory items
-  const totalStockValue = useMemo(() => {
-    return stockData.stockItems.reduce((sum, s) => sum + (s.stockValue || 0), 0)
+  // Cost Analysis — based on tracked inventory for the current user
+  const costData = useMemo(() => {
+    if (!stockData.stockItems.length) {
+      return { totalInventoryValue: 0, avgCostPerUnit: 0, highValueItems: 0, totalSKUs: 0, topItems: [] }
+    }
+
+    const pricedItems = stockData.stockItems.filter((item) => item.price > 0)
+    const totalInventoryValue = stockData.stockItems.reduce((sum, item) => sum + (item.stockValue || 0), 0)
+    const avgCostPerUnit = pricedItems.length
+      ? Math.round(pricedItems.reduce((sum, item) => sum + item.price, 0) / pricedItems.length)
+      : 0
+    const highValueItems = pricedItems.filter((item) => item.price > 100000).length
+    const totalSKUs = stockData.totalItems
+    const topItems = [...stockData.stockItems]
+      .sort((a, b) => (b.stockValue || 0) - (a.stockValue || 0))
+      .slice(0, 5)
+      .map((item) => ({
+        name: item.name,
+        value: item.stockValue || 0,
+        unit: item.unit || 'unit',
+      }))
+
+    return { totalInventoryValue, avgCostPerUnit, highValueItems, totalSKUs, topItems }
   }, [stockData])
 
+  const totalStockValue = costData.totalInventoryValue
   const riskRatio = stockData.totalItems > 0 ? (stockData.outOfStock + stockData.lowStock) / stockData.totalItems : 0
   const riskLevel = riskRatio > 0.5 ? 'High' : riskRatio > 0.2 ? 'Medium' : 'Low'
   const riskColor = riskLevel === 'High' ? 'text-red-600' : riskLevel === 'Medium' ? 'text-amber-600' : 'text-emerald-600'
 
-  const trackedItems = stockData.totalItems - stockData.notTracked
+  const trackedItems = stockData.totalItems
   const stockHealthPct = trackedItems > 0 ? Math.round((stockData.inStock / trackedItems) * 100) : 0
 
   const statusBadge = (status) => {
@@ -128,11 +209,71 @@ function ReportAnalyticsManager() {
       {/* Header */}
       <PageHeader
         title="Reports & Analytics"
-        subtitle="View cost analysis and waste reports."
+        subtitle="Track inventory value and stock health by selected central kitchen or supply user."
       />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col items-start gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Inventory Tracking Scope</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Choose a `Central Kitchen` or `Supply Coordinator` user to load inventory via their `userId`.
+              </p>
+            </div>
+            <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Role
+                </span>
+                <select
+                  value={selectedRoleId}
+                  onChange={(event) => setSelectedRoleId(event.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  {TRACKABLE_ROLE_OPTIONS.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  User
+                </span>
+                <select
+                  value={selectedUserId}
+                  onChange={(event) => setSelectedUserId(event.target.value)}
+                  disabled={userLoading || !availableUsers.length}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {!availableUsers.length ? (
+                    <option value="">
+                      {userLoading ? 'Loading users...' : `No ${selectedRoleLabel.toLowerCase()} users`}
+                    </option>
+                  ) : (
+                    availableUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username || user.email || `User #${user.id}`}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">
+              Role: {selectedRoleLabel}
+            </span>
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
+              User: {selectedUser?.username || selectedUser?.email || (selectedUserId ? `#${selectedUserId}` : 'Not selected')}
+            </span>
+          </div>
+        </div>
+
         {/* Report Tabs */}
         <div className="flex items-center gap-3 mb-6">
           <button
@@ -165,15 +306,15 @@ function ReportAnalyticsManager() {
             {/* Material Cost Breakdown */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
               <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-slate-800">Material Cost Breakdown</h3>
+                <h3 className="text-sm font-bold text-slate-800">Inventory Value Summary</h3>
                 <span className="material-symbols-outlined text-slate-400 text-lg cursor-pointer hover:text-slate-600">more_horiz</span>
               </div>
               <div className="p-5 space-y-0">
                 {[
-                  { label: 'Total Inventory Value', value: `${costData.totalInventoryValue.toLocaleString('vi-VN')}đ` },
-                  { label: 'Average Cost per Unit', value: `${costData.avgCostPerUnit.toLocaleString('vi-VN')}đ` },
-                  { label: 'High-Value Items (>100k)', value: costData.highValueItems },
-                  { label: 'Total SKUs', value: costData.totalSKUs },
+                  { label: 'Total Stock Value', value: `${costData.totalInventoryValue.toLocaleString('vi-VN')}đ` },
+                  { label: 'Average Unit Cost', value: `${costData.avgCostPerUnit.toLocaleString('vi-VN')}đ` },
+                  { label: 'High-Value SKUs (>100k/unit)', value: costData.highValueItems },
+                  { label: 'Tracked SKUs', value: costData.totalSKUs },
                 ].map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center py-4 border-b border-slate-50 last:border-0">
                     <span className="text-sm text-slate-500">{item.label}</span>
@@ -186,7 +327,7 @@ function ReportAnalyticsManager() {
             {/* Top 5 Most Valuable Items */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
               <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-slate-800">Top 5 Most Valuable Items</h3>
+                <h3 className="text-sm font-bold text-slate-800">Top 5 Highest Stock Value Items</h3>
                 <span className="material-symbols-outlined text-slate-400 text-lg cursor-pointer hover:text-slate-600">more_horiz</span>
               </div>
               <div className="p-5">
@@ -207,7 +348,7 @@ function ReportAnalyticsManager() {
                           </div>
                         </td>
                         <td className="py-3 text-sm font-semibold text-slate-900 text-right">
-                          {item.value.toLocaleString('vi-VN')}đ/{item.unit}
+                          {item.value.toLocaleString('vi-VN')}đ
                         </td>
                       </tr>
                     ))}
@@ -222,7 +363,7 @@ function ReportAnalyticsManager() {
         {activeReport === 'waste' && (
           <div className="space-y-6 animate-fade-in">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -259,22 +400,13 @@ function ReportAnalyticsManager() {
                 </div>
                 <span className="text-2xl font-bold text-red-600">{stockData.outOfStock}</span>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="w-9 h-9 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-lg">help_outline</span>
-                  </span>
-                  <span className="text-xs font-medium text-slate-500">Not Tracked</span>
-                </div>
-                <span className="text-2xl font-bold text-slate-500">{stockData.notTracked}</span>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Loss Overview */}
+              {/* Inventory Overview */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                 <div className="px-5 py-4 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-800">Loss Overview</h3>
+                  <h3 className="text-sm font-bold text-slate-800">Inventory Overview</h3>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-slate-50">
@@ -307,7 +439,7 @@ function ReportAnalyticsManager() {
                 <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-sm font-bold text-slate-800">Inventory Stock Details</h3>
                   <div className="flex items-center gap-2">
-                    {['All', 'In Stock', 'Low Stock', 'Out of Stock', 'Not Tracked'].map((f) => (
+                    {['All', 'In Stock', 'Low Stock', 'Out of Stock'].map((f) => (
                       <button
                         key={f}
                         onClick={() => { setStockFilter(f); setStockPage(1) }}
@@ -355,8 +487,8 @@ function ReportAnalyticsManager() {
                                 <td colSpan={5} className="px-5 py-8 text-center text-slate-400 text-sm">No items found</td>
                               </tr>
                             ) : (
-                              paged.map((item, idx) => (
-                                <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                              paged.map((item) => (
+                                <tr key={item.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
                                   <td className="px-5 py-3 text-sm font-medium text-slate-700">{item.name}</td>
                                   <td className={`px-5 py-3 text-sm font-bold text-right ${item.status === 'Out of Stock' ? 'text-red-600' : item.status === 'Low Stock' ? 'text-amber-600' : 'text-slate-900'}`}>
                                     {item.quantity}

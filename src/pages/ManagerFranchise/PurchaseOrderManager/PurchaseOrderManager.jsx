@@ -28,8 +28,21 @@ function getTimeDiff(dateStr) {
 function getOrderDisplayStatus(status) {
   const normalizedStatus = String(status || '').toLowerCase()
 
-  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering') return 'delivery'
-  if (normalizedStatus === 'cancelled by franchise') return 'cancelled'
+  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering' || normalizedStatus === 'delivery') {
+    return 'delivery'
+  }
+
+  if (normalizedStatus === 'filled' || normalizedStatus === 'confirmed') {
+    return 'confirmed'
+  }
+
+  if (normalizedStatus === 'cancelled by franchise' || normalizedStatus === 'cancelled') {
+    return 'cancelled'
+  }
+
+  if (normalizedStatus === 'rejected') {
+    return 'rejected'
+  }
 
   return normalizedStatus
 }
@@ -38,6 +51,7 @@ const STATUS_FILTERS = [
   { value: 'all', label: 'All', active: 'bg-slate-800 text-white', idle: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50' },
   { value: 'pending', label: 'Pending', active: 'border-red-500 bg-white text-red-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-red-600' },
   { value: 'processing', label: 'Processing', active: 'border-blue-500 bg-white text-blue-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-blue-600' },
+  { value: 'confirmed', label: 'Confirmed', active: 'border-emerald-500 bg-white text-emerald-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-emerald-600' },
   { value: 'delivery', label: 'Delivery', active: 'border-violet-500 bg-white text-violet-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-violet-600' },
   { value: 'completed', label: 'Completed', active: 'border-green-500 bg-white text-green-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-green-600' },
   { value: 'rejected', label: 'Rejected', active: 'border-slate-500 bg-white text-slate-600', idle: 'border-slate-300 bg-white text-slate-700 hover:text-slate-600' },
@@ -66,6 +80,8 @@ function PurchaseOrderManager() {
         return { label: 'Pending', cls: 'bg-red-50 text-red-600 border-red-200', dot: 'bg-red-500' }
       case 'processing':
         return { label: 'Processing', cls: 'bg-blue-50 text-blue-600 border-blue-200', dot: 'bg-blue-500' }
+      case 'confirmed':
+        return { label: 'Confirmed', cls: 'bg-emerald-50 text-emerald-600 border-emerald-200', dot: 'bg-emerald-500' }
       case 'delivery':
         return { label: 'Delivery', cls: 'bg-violet-50 text-violet-600 border-violet-200', dot: 'bg-violet-500' }
       case 'completed':

@@ -46,14 +46,6 @@ function InventoryFranchise() {
       className="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md dark:border-slate-800"
       titleClassName="dark:text-white"
       subtitleClassName="dark:text-slate-400"
-      actions={
-        <div className="relative">
-          <button className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 relative">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-800" />
-          </button>
-        </div>
-      }
     />
     <div className="p-8 space-y-6">
       {/* Filters */}

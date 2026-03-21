@@ -15,8 +15,21 @@ function parseUTC(dateStr) {
 function getOrderDisplayStatus(status) {
   const normalizedStatus = String(status || '').toLowerCase()
 
-  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering') return 'delivery'
-  if (normalizedStatus === 'cancelled by franchise') return 'cancelled'
+  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering' || normalizedStatus === 'delivery') {
+    return 'delivery'
+  }
+
+  if (normalizedStatus === 'filled' || normalizedStatus === 'confirmed') {
+    return 'confirmed'
+  }
+
+  if (normalizedStatus === 'cancelled by franchise' || normalizedStatus === 'cancelled') {
+    return 'cancelled'
+  }
+
+  if (normalizedStatus === 'rejected') {
+    return 'rejected'
+  }
 
   return normalizedStatus
 }
@@ -65,6 +78,7 @@ function DashboardManager() {
         label,
         total: dayOrders.length,
         completed: countByStatus('completed'),
+        confirmed: countByStatus('confirmed'),
         pending: countByStatus('pending'),
         delivery: countByStatus('delivery'),
         processing: countByStatus('processing'),
@@ -153,6 +167,7 @@ function DashboardManager() {
           <span className="text-sm font-semibold text-slate-900">Orders This Week</span>
           <div className="dashboard-chart-legend flex items-center gap-3 text-[10px] flex-wrap justify-end">
             <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-green-500 inline-block" /> Completed</span>
+            <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-400 inline-block" /> Confirmed</span>
             <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-red-400 inline-block" /> Pending</span>
             <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-blue-400 inline-block" /> Processing</span>
             <span className="dashboard-legend-item flex items-center gap-1"><span className="size-2 rounded-full bg-violet-400 inline-block" /> Delivery</span>
@@ -167,6 +182,7 @@ function DashboardManager() {
                 {day.total > 0 ? (
                   <div className="flex flex-col-reverse w-full rounded-t-md overflow-hidden" style={{ height: `${(day.total / maxOrders) * 100}%` }}>
                     {day.completed > 0 && <div className="bg-green-500 w-full" style={{ height: `${(day.completed / day.total) * 100}%` }} title={`Completed: ${day.completed}`} />}
+                    {day.confirmed > 0 && <div className="bg-emerald-400 w-full" style={{ height: `${(day.confirmed / day.total) * 100}%` }} title={`Confirmed: ${day.confirmed}`} />}
                     {day.cancelled > 0 && <div className="bg-rose-400 w-full" style={{ height: `${(day.cancelled / day.total) * 100}%` }} title={`Cancelled: ${day.cancelled}`} />}
                     {day.rejected > 0 && <div className="bg-slate-500 w-full" style={{ height: `${(day.rejected / day.total) * 100}%` }} title={`Rejected: ${day.rejected}`} />}
                     {day.delivery > 0 && <div className="bg-violet-400 w-full" style={{ height: `${(day.delivery / day.total) * 100}%` }} title={`Delivery: ${day.delivery}`} />}

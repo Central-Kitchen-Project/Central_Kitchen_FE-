@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchAllUsers, fetchDashboardCount } from '../../store/userSlice'
 import { fetchGetOrder } from '../../store/orderSlice'
 import './DashboardAdmin.css'
+import PageHeader from '../../components/common/PageHeader'
 
 const normalizeArray = (data) => {
   if (Array.isArray(data)) return data;
@@ -61,18 +62,11 @@ function DashboardAdmin() {
 
   return (
     <>
-    <header className="h-16 flex items-center justify-between px-8 border-b border-slate-200 bg-white shrink-0">
-      <h2 className="text-lg font-bold text-slate-900">Admin Dashboard</h2>
-      <div className="flex items-center gap-3">
-        <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-          <span className="material-symbols-outlined text-[20px]">notifications</span>
-          <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-        </button>
-        <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600">
-          <span className="material-symbols-outlined text-[20px]">settings</span>
-        </button>
-      </div>
-    </header>
+    <PageHeader
+      as="h2"
+      title="Admin Dashboard"
+      subtitle="Monitor users, orders, and operational activity across the system."
+    />
     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
     {/* Stats Row - 5 columns */}
     <div className="grid grid-cols-5 gap-4">

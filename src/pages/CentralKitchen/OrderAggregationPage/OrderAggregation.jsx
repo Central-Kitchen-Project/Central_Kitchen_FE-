@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link, useOutletContext } from "react-router-dom";
 import { fetchGetMaterialRequest, updateMaterialRequestStatus } from "../../../store/materialSlice";
+import { updateOrderStatus } from "../../../store/orderSlice";
 import { extractApiMessage } from "../../../services/api";
 import PageHeader from "../../../components/common/PageHeader";
 
@@ -60,7 +61,7 @@ function DetailModal({ requestId, onClose }) {
         setLoading(false);
       })
       .catch(() => {
-        setError("Không thể tải chi tiết yêu cầu.");
+        setError("Unable to load request details.");
         setLoading(false);
       });
   }, [requestId]);
@@ -84,7 +85,7 @@ function DetailModal({ requestId, onClose }) {
             </div>
             <div>
               <h2 className="text-white font-bold text-base leading-tight">
-                Chi tiết yêu cầu
+                Request Detail
               </h2>
               {detail && (
                 <p className="text-blue-100 text-xs font-medium">
@@ -102,12 +103,12 @@ function DetailModal({ requestId, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5">
+            <div className="px-6 py-5">
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="size-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
               <p className="text-slate-500 text-sm font-medium">
-                Đang tải dữ liệu...
+                Loading data...
               </p>
             </div>
           )}
@@ -175,18 +176,18 @@ function DetailModal({ requestId, onClose }) {
                   <span className="material-symbols-outlined text-sm text-blue-500">
                     inventory_2
                   </span>
-                  Danh sách vật liệu ({detail.items?.length || 0} mục)
+                  Materials list ({detail.items?.length || 0} items)
                 </h3>
                 <div className="rounded-xl border border-slate-200 overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-4 py-2.5 text-left text-xs font-bold uppercase text-slate-500 tracking-wider">
-                          Vật liệu
+                          <th className="px-4 py-2.5 text-left text-xs font-bold uppercase text-slate-500 tracking-wider">
+                          Material
                         </th>
                         {/* <th className="px-4 py-2.5 text-left text-xs font-bold uppercase text-slate-500 tracking-wider">Tồn kho</th> */}
-                        <th className="px-4 py-2.5 text-left text-xs font-bold uppercase text-slate-500 tracking-wider">
-                          Yêu cầu
+                          <th className="px-4 py-2.5 text-left text-xs font-bold uppercase text-slate-500 tracking-wider">
+                          Requested
                         </th>
                       </tr>
                     </thead>
@@ -240,7 +241,7 @@ function DetailModal({ requestId, onClose }) {
             onClick={onClose}
             className="px-5 py-2 rounded-lg text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>
@@ -398,7 +399,7 @@ function OrderAggregation() {
                         colSpan={8}
                         className="px-6 py-10 text-center text-slate-400 text-sm"
                       >
-                        No pending requests found.
+                        No processing requests found.
                       </td>
                     </tr>
                   ) : (

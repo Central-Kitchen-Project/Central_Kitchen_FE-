@@ -50,11 +50,11 @@ function FeedbackFranchise() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!orderId) {
-      alert('Thiếu Order ID. Vui lòng quay lại trang Order Tracking và bấm Feedback từ đơn hàng Completed.');
+      alert('Missing Order ID. Please go back to the Order Tracking page and click Feedback from a Completed order.');
       return;
     }
     if (!subject.trim()) {
-      alert('Vui lòng nhập Subject');
+      alert('Please enter a subject.');
       return;
     }
     setSubmitting(true);
@@ -70,14 +70,14 @@ function FeedbackFranchise() {
       };
       console.log('POST /api/Feedback body:', body);
       await dispatch(fetchCreateFeedback(body)).unwrap();
-      alert('Feedback đã được gửi thành công!');
+      alert('Feedback has been submitted successfully!');
       setCategory('Quality');
       setSubject('');
       setDescription('');
       setRating(null);
       dispatch(fetchGetAllFeedback());
     } catch {
-      alert('Gửi feedback thất bại, vui lòng thử lại.');
+      alert('Failed to submit feedback, please try again.');
     }
     setSubmitting(false);
   };
@@ -121,7 +121,7 @@ function FeedbackFranchise() {
   };
   return (
     <>
-    <header className="sticky top-0 z-10 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
       <div className="flex flex-col">
         <h2 className="text-xl font-bold text-slate-900">
           Feedback &amp; Support
@@ -129,14 +129,6 @@ function FeedbackFranchise() {
         <div className="flex items-center gap-2 text-slate-500">
           <span className="material-symbols-outlined text-sm">location_on</span>
           <span className="text-xs font-medium">Downtown Branch</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <button className="p-2 rounded-lg bg-slate-100 text-slate-600 relative">
-            <span className="material-symbols-outlined">notifications</span>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-          </button>
         </div>
       </div>
     </header>
@@ -199,7 +191,7 @@ function FeedbackFranchise() {
             </div>
             {isLockedToOrder && (
               <p className="text-xs text-slate-400">
-                Order ID được gán từ Order Tracking (không thể thay đổi).
+                Order ID is prefilled from Order Tracking (cannot be changed).
               </p>
             )}
           </div>

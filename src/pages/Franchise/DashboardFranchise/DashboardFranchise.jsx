@@ -32,9 +32,16 @@ function normalizeCollection(data) {
 function getOrderDisplayStatus(status) {
   const normalizedStatus = String(status || '').toLowerCase()
 
-  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering') return 'delivery'
+  if (normalizedStatus === 'approved' || normalizedStatus === 'delivering' || normalizedStatus === 'delivery') {
+    return 'delivery'
+  }
+
+  if (normalizedStatus === 'filled' || normalizedStatus === 'confirmed') {
+    return 'confirmed'
+  }
+
   if (normalizedStatus === 'cancelled by franchise' || normalizedStatus === 'cancelled') return 'cancelled'
-  if (normalizedStatus === 'rejected') return 'cancelled'
+  if (normalizedStatus === 'rejected') return 'rejected'
 
   return normalizedStatus || 'unknown'
 }
@@ -45,10 +52,14 @@ function formatOrderStatusLabel(status) {
       return 'Pending'
     case 'processing':
       return 'Processing'
+    case 'confirmed':
+      return 'Confirmed'
     case 'delivery':
       return 'Delivery'
     case 'completed':
       return 'Completed'
+    case 'rejected':
+      return 'Rejected'
     case 'cancelled':
       return 'Cancelled'
     default:
@@ -125,8 +136,10 @@ function DashboardFranchise() {
   const totalOrders = myOrders.length
   const pendingOrders = countOrdersByStatus('pending')
   const processingOrders = countOrdersByStatus('processing')
+  const confirmedOrders = countOrdersByStatus('confirmed')
   const deliveryOrders = countOrdersByStatus('delivery')
   const completedOrders = countOrdersByStatus('completed')
+  const rejectedOrders = countOrdersByStatus('rejected')
   const cancelledOrders = countOrdersByStatus('cancelled')
 
   // Inventory stats
@@ -187,8 +200,10 @@ function DashboardFranchise() {
         total: dayOrders.length,
         pending: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'pending').length,
         processing: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'processing').length,
+        confirmed: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'confirmed').length,
         delivery: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'delivery').length,
         completed: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'completed').length,
+        rejected: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'rejected').length,
         cancelled: dayOrders.filter(o => getOrderDisplayStatus(o.status) === 'cancelled').length,
       }
     })
@@ -199,9 +214,11 @@ function DashboardFranchise() {
   const statusDistribution = [
     { label: 'Pending', count: pendingOrders, color: 'bg-red-400', text: 'text-red-600' },
     { label: 'Processing', count: processingOrders, color: 'bg-blue-500', text: 'text-blue-600' },
+    { label: 'Confirmed', count: confirmedOrders, color: 'bg-emerald-500', text: 'text-emerald-600' },
     { label: 'Delivery', count: deliveryOrders, color: 'bg-violet-500', text: 'text-violet-600' },
     { label: 'Completed', count: completedOrders, color: 'bg-green-500', text: 'text-green-600' },
-    { label: 'Cancelled', count: cancelledOrders, color: 'bg-slate-500', text: 'text-slate-600' },
+    { label: 'Rejected', count: rejectedOrders, color: 'bg-slate-500', text: 'text-slate-600' },
+    { label: 'Cancelled', count: cancelledOrders, color: 'bg-rose-400', text: 'text-rose-600' },
   ]
 
   // Helpers
@@ -209,9 +226,11 @@ function DashboardFranchise() {
     switch (status) {
       case 'pending': return 'bg-red-100 text-red-700'
       case 'processing': return 'bg-blue-100 text-blue-700'
+      case 'confirmed': return 'bg-emerald-100 text-emerald-700'
       case 'delivery': return 'bg-violet-100 text-violet-700'
       case 'completed': return 'bg-green-100 text-green-700'
-      case 'cancelled': return 'bg-slate-100 text-slate-700'
+      case 'rejected': return 'bg-slate-100 text-slate-700'
+      case 'cancelled': return 'bg-rose-100 text-rose-700'
       default: return 'bg-slate-100 text-slate-700'
     }
   }
@@ -297,10 +316,12 @@ function DashboardFranchise() {
               <span className="text-base font-semibold text-slate-900">Orders Last 7 Days</span>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                 <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-green-500 inline-block" /> Completed</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-500 inline-block" /> Confirmed</span>
                 <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-violet-500 inline-block" /> Delivery</span>
                 <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-blue-500 inline-block" /> Processing</span>
                 <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-red-400 inline-block" /> Pending</span>
-                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-slate-500 inline-block" /> Cancelled</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-slate-500 inline-block" /> Rejected</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-rose-400 inline-block" /> Cancelled</span>
               </div>
             </div>
             <div className="franchise-chart-container">
@@ -310,10 +331,12 @@ function DashboardFranchise() {
                     {day.total > 0 ? (
                       <div className="flex flex-col-reverse w-full rounded-t-md overflow-hidden" style={{ height: `${(day.total / maxWeekly) * 100}%` }}>
                         {day.completed > 0 && <div className="bg-green-500 w-full" style={{ height: `${(day.completed / day.total) * 100}%` }} title={`Completed: ${day.completed}`} />}
+                        {day.confirmed > 0 && <div className="bg-emerald-500 w-full" style={{ height: `${(day.confirmed / day.total) * 100}%` }} title={`Confirmed: ${day.confirmed}`} />}
                         {day.delivery > 0 && <div className="bg-violet-500 w-full" style={{ height: `${(day.delivery / day.total) * 100}%` }} title={`Delivery: ${day.delivery}`} />}
                         {day.processing > 0 && <div className="bg-blue-500 w-full" style={{ height: `${(day.processing / day.total) * 100}%` }} title={`Processing: ${day.processing}`} />}
                         {day.pending > 0 && <div className="bg-red-400 w-full" style={{ height: `${(day.pending / day.total) * 100}%` }} title={`Pending: ${day.pending}`} />}
-                        {day.cancelled > 0 && <div className="bg-slate-500 w-full" style={{ height: `${(day.cancelled / day.total) * 100}%` }} title={`Cancelled: ${day.cancelled}`} />}
+                        {day.rejected > 0 && <div className="bg-slate-500 w-full" style={{ height: `${(day.rejected / day.total) * 100}%` }} title={`Rejected: ${day.rejected}`} />}
+                        {day.cancelled > 0 && <div className="bg-rose-400 w-full" style={{ height: `${(day.cancelled / day.total) * 100}%` }} title={`Cancelled: ${day.cancelled}`} />}
                       </div>
                     ) : (
                       <div className="bg-slate-100 w-full rounded-t-md" style={{ height: '4px' }} />

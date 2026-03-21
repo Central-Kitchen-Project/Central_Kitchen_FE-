@@ -88,12 +88,14 @@ function getStatusBadge(status) {
 
   switch (displayStatus) {
     case "Pending":    return { label: "Pending", cls: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500" };
+    case "Confirmed":  return { label: "Confirmed", cls: "bg-emerald-50 text-emerald-600 border-emerald-200", dot: "bg-emerald-500" };
     case "Delivery":   return { label: "Delivery", cls: "bg-violet-50 text-violet-600 border-violet-200", dot: "bg-violet-500" };
     case "Processing": return { label: "Processing", cls: "bg-blue-50 text-blue-600 border-blue-200", dot: "bg-blue-500" };
     case "Completed":  return { label: "Completed", cls: "bg-green-50 text-green-600 border-green-200", dot: "bg-green-500" };
+    case "Rejected":   return { label: "Rejected", cls: "bg-slate-100 text-slate-600 border-slate-300", dot: "bg-slate-500" };
     case "Cancelled by Franchise":
     case "Cancelled":
-      return { label: "Cancelled", cls: "bg-slate-100 text-slate-600 border-slate-300", dot: "bg-slate-500" };
+      return { label: "Cancelled", cls: "bg-rose-50 text-rose-600 border-rose-200", dot: "bg-rose-500" };
     default:           return { label: displayStatus || "Unknown", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-400" };
   }
 }
@@ -117,7 +119,7 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_FILTERS = ["All", "Pending", "Processing", "Delivery", "Completed", "Cancelled"];
+const STATUS_FILTERS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
 
 function OrderTracking() {
   const data = useSelector((state) => state.ORDER.listOrders);
@@ -145,7 +147,8 @@ function OrderTracking() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [filterDate, setFilterDate] = useState("");
+  const [filterFromDate, setFilterFromDate] = useState("");
+  const [filterToDate, setFilterToDate] = useState("");
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -194,11 +197,11 @@ function OrderTracking() {
     setLoadingId(confirmModal.id);
     try {
       const result = await dispatchOrderStatusUpdate(confirmModal.id, ["Completed"]);
-      showToast("success", extractApiMessage(result.payload, `Đơn hàng #${confirmModal.id} đã hoàn thành!`));
+      showToast("success", extractApiMessage(result.payload, `Order #${confirmModal.id} has been marked as completed.`));
       setConfirmModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingId(null);
     }
@@ -209,7 +212,7 @@ function OrderTracking() {
     setLoadingId(cancelModal.id);
     try {
       const result = await dispatchOrderStatusUpdate(cancelModal.id, ["Cancelled by Franchise", "Cancelled"]);
-      showToast("success", extractApiMessage(result.payload, `Đơn hàng #${cancelModal.id} đã được hủy bởi Franchise.`));
+      showToast("success", extractApiMessage(result.payload, `Order #${cancelModal.id} has been cancelled by the franchise.`));
       setCancelModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
@@ -232,8 +235,11 @@ function OrderTracking() {
     total: myOrders.length,
     pending: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Pending").length,
     processing: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Processing").length,
+    confirmed: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Confirmed").length,
     delivery: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Delivery").length,
     completed: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Completed").length,
+    rejected: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Rejected").length,
+    cancelled: myOrders.filter((o) => getOrderDisplayStatus(o.status) === "Cancelled").length,
   }), [myOrders]);
 
   const filteredOrders = useMemo(() => {
@@ -247,13 +253,24 @@ function OrderTracking() {
           l.name?.toLowerCase().includes(searchTerm.toLowerCase())
         );
       let dateMatch = true;
-      if (filterDate) {
-        const orderDay = parseUTC(order.orderDate).toISOString().slice(0, 10);
-        dateMatch = orderDay === filterDate;
+      const orderDate = parseUTC(order.orderDate);
+
+      if (!orderDate || Number.isNaN(orderDate.getTime())) {
+        dateMatch = !filterFromDate && !filterToDate;
+      } else {
+        if (filterFromDate) {
+          const fromDate = new Date(`${filterFromDate}T00:00:00`);
+          dateMatch = dateMatch && orderDate.getTime() >= fromDate.getTime();
+        }
+
+        if (filterToDate) {
+          const toDate = new Date(`${filterToDate}T23:59:59.999`);
+          dateMatch = dateMatch && orderDate.getTime() <= toDate.getTime();
+        }
       }
       return statusMatch && searchMatch && dateMatch;
     });
-  }, [myOrders, filterStatus, searchTerm, filterDate]);
+  }, [myOrders, filterStatus, searchTerm, filterFromDate, filterToDate]);
 
   const detailLines = useMemo(() => normalizeCollection(detailModal?.orderLines), [detailModal]);
 
@@ -282,97 +299,84 @@ function OrderTracking() {
             as="h2"
             title="Order Tracking"
             subtitle="Follow order progress and confirm deliveries once they arrive."
-            actions={
-              <>
-                <button
-                  onClick={() => dispatch(fetchGetOrder())}
-                  className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600"
-                  title="Refresh"
-                >
-                  <span className="material-symbols-outlined text-[20px]">refresh</span>
-                </button>
-                <button className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 relative text-slate-600">
-                  <span className="material-symbols-outlined text-[20px]">notifications</span>
-                  {stats.pending > 0 && (
-                    <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-white" />
-                  )}
-                </button>
-              </>
-            }
           />
 
-          <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-slate-50/50">
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-5 gap-4">
-              {[
-                { label: "Total Orders", value: stats.total, icon: "receipt_long", color: "text-slate-700", bg: "bg-slate-100" },
-                { label: "Pending", value: stats.pending, icon: "hourglass_empty", color: "text-red-600", bg: "bg-red-50" },
-                { label: "Processing", value: stats.processing, icon: "autorenew", color: "text-blue-600", bg: "bg-blue-50" },
-                { label: "Delivery", value: stats.delivery, icon: "local_shipping", color: "text-violet-600", bg: "bg-violet-50" },
-                { label: "Completed", value: stats.completed, icon: "task_alt", color: "text-green-600", bg: "bg-green-50" },
-              ].map((card) => (
-                <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
-                  <div className={`w-11 h-11 rounded-lg ${card.bg} flex items-center justify-center ${card.color}`}>
-                    <span className="material-symbols-outlined text-[22px]">{card.icon}</span>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{card.value}</p>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">{card.label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-5 bg-slate-50/50">
 
             {/* Table */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
 
               {/* Toolbar */}
-              <div className="p-4 border-b border-slate-100 flex flex-wrap gap-3 items-center justify-between">
-                <div className="flex items-center gap-3 flex-wrap">
+              <div className="border-b border-slate-100 p-4">
+                <div className="flex flex-wrap items-center gap-3">
                   {/* Search */}
-                  <div className="relative w-60">
+                  <div className="relative min-w-[240px] flex-1 max-w-sm">
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
                     <input
-                      className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:ring-primary focus:border-primary outline-none"
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none focus:border-primary focus:ring-primary"
                       placeholder="Search orders, items..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
 
-                  {/* Date filter */}
+                  {/* From date */}
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-slate-400 text-[20px]">calendar_today</span>
+                    <span className="material-symbols-outlined text-slate-400 text-[18px]">calendar_today</span>
                     <input
                       type="date"
-                      className="text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none text-slate-700"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none"
+                      value={filterFromDate}
+                      onChange={(e) => setFilterFromDate(e.target.value)}
+                      title="From date"
                     />
-                    {filterDate && (
-                      <button onClick={() => setFilterDate("")} className="text-slate-400 hover:text-slate-600">
-                        <span className="material-symbols-outlined text-[18px]">close</span>
-                      </button>
-                    )}
                   </div>
-                </div>
 
-                {/* Status tabs */}
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-                  {STATUS_FILTERS.map((s) => (
+                  {/* To date */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">to</span>
+                    <input
+                      type="date"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none"
+                      value={filterToDate}
+                      onChange={(e) => setFilterToDate(e.target.value)}
+                      title="To date"
+                    />
+                  </div>
+
+                  {(filterFromDate || filterToDate) && (
                     <button
-                      key={s}
-                      onClick={() => setFilterStatus(s)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                        filterStatus === s
-                          ? "bg-white text-slate-800 shadow-sm"
-                          : "text-slate-500 hover:text-slate-700"
-                      }`}
+                      onClick={() => {
+                        setFilterFromDate("");
+                        setFilterToDate("");
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
                     >
-                      {s}
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                      Clear dates
                     </button>
-                  ))}
+                  )}
+
+                  {/* Status dropdown */}
+                  <div className="relative min-w-[180px]">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px] pointer-events-none">
+                      tune
+                    </span>
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-9 text-sm font-medium text-slate-700 outline-none focus:border-primary focus:ring-primary"
+                    >
+                      {STATUS_FILTERS.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                      expand_more
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -386,7 +390,7 @@ function OrderTracking() {
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Items</th>
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Total</th>
                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Status</th>
-                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
+                      <th className="w-[170px] px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -394,7 +398,7 @@ function OrderTracking() {
                       <tr>
                         <td colSpan={6} className="text-center text-slate-400 py-14 text-sm">
                           <span className="material-symbols-outlined text-4xl block mb-2 opacity-30">inbox</span>
-                          Không có đơn hàng nào phù hợp
+                          No matching orders found
                         </td>
                       </tr>
                     )}
@@ -405,10 +409,11 @@ function OrderTracking() {
                       const displayStatus = getOrderDisplayStatus(order.status);
                       const badge = getStatusBadge(displayStatus);
                       const isCompleted = displayStatus === "Completed";
-                      const isApproved = displayStatus === "Delivery";
-                      const isPending = order.status === "Pending";
-                      const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
-                      const isRejected = String(order.status || "").toLowerCase().includes("reject");
+                      const isDelivery = displayStatus === "Delivery";
+                      const isConfirmed = displayStatus === "Confirmed";
+                      const isPending = displayStatus === "Pending";
+                      const isCancelled = displayStatus === "Cancelled";
+                      const isRejected = displayStatus === "Rejected";
 
                       return (
                         <tr
@@ -442,7 +447,7 @@ function OrderTracking() {
                           {/* Items */}
                           <td className="px-6 py-4">
                             {lines.length === 0 ? (
-                              <span className="text-xs text-slate-400 italic">Không có sản phẩm</span>
+                              <span className="text-xs text-slate-400 italic">No items</span>
                             ) : (
                               <div className="flex flex-col gap-0.5">
                                 <span className="text-sm text-slate-700">
@@ -473,52 +478,68 @@ function OrderTracking() {
                           </td>
 
                           {/* Actions */}
-                          <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            {isApproved ? (
+                          <td className="w-[170px] px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            {isDelivery ? (
                               <button
                                 onClick={(e) => openCompleteModal(e, order)}
                                 disabled={loadingId === order.id}
-                                className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="ml-auto inline-flex min-w-[100px] items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {loadingId === order.id ? (
-                                  <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                                   </svg>
                                 ) : (
-                                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
                                 )}
                                 Complete
                               </button>
                             ) : isCompleted ? (
                               <button
                                 onClick={() => navigate(`/FeedbackFranchise?orderId=${order.id}`)}
-                                className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-green-600 text-white hover:bg-green-700"
+                                className="ml-auto inline-flex min-w-[100px] items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-700"
                                 title="Gửi feedback cho đơn đã hoàn thành"
                               >
-                                <span className="material-symbols-outlined text-[14px]">rate_review</span>
+                                <span className="material-symbols-outlined text-[16px]">rate_review</span>
                                 Feedback
                               </button>
-                            ) : isCancelled || isRejected ? (
-                              <span className="text-xs font-semibold text-slate-400">Cancelled</span>
+                            ) : isRejected ? (
+                              <span className="text-xs font-medium text-slate-500">
+                                Rejected
+                              </span>
+                            ) : isCancelled ? (
+                              <span className="text-xs font-medium text-rose-500">
+                                Cancelled
+                              </span>
+                            ) : isConfirmed ? (
+                              <span className="text-xs font-medium text-emerald-600">
+                                Awaiting
+                              </span>
                             ) : displayStatus === "Processing" ? (
-                              <span className="text-xs font-medium text-slate-400">In progress</span>
-                            ) : (
+                              <span className="text-xs font-medium text-slate-500">
+                                In progress
+                              </span>
+                            ) : isPending ? (
                               <button
                                 onClick={(e) => openCancelModal(e, order)}
                                 disabled={loadingId === order.id}
-                                className="px-3 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 ml-auto transition-all bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="ml-auto inline-flex min-w-[100px] items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {loadingId === order.id ? (
-                                  <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                                   </svg>
                                 ) : (
-                                  <span className="material-symbols-outlined text-[14px]">cancel</span>
+                                  <span className="material-symbols-outlined text-[16px]">cancel</span>
                                 )}
                                 Cancel
                               </button>
+                            ) : (
+                              <span className="text-xs font-medium text-slate-400">
+                                No action
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -607,7 +628,7 @@ function OrderTracking() {
                       <tbody>
                         {detailLines.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="text-center text-slate-400 py-6 text-sm">Không có sản phẩm</td>
+                            <td colSpan={5} className="text-center text-slate-400 py-6 text-sm">No items</td>
                           </tr>
                         ) : (
                           detailLines.map((line, index) => {

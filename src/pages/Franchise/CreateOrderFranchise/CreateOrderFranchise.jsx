@@ -114,6 +114,7 @@ function CreateOrderFranchise() {
     return Object.values(map);
   };
 
+
   const handleClickSubmit = () => {
     if (selectedList.length === 0) {
       showToast('error', 'Please select at least one product!');
@@ -223,7 +224,7 @@ function CreateOrderFranchise() {
               <input
                 type="text"
                 className="search-box"
-                placeholder="Search products, SKUs..."
+                placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
