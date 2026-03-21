@@ -5,6 +5,7 @@ import { HIDDEN_ITEM_IDS_STORAGE_KEY, syncHiddenItems } from "./store/itemSlice"
 import SignIn from "../src/pages/SignInPage/SignIn";
 import SignUp from "./pages/SignUpPage";
 import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
+import ResetPassword from "./pages/ResetPasswordPage/ResetPassword";
 import NotFound from "./pages/NotFound";
 import HomepageFranchise from "./pages/Franchise/HomepageFranchise/HomepageFranchise";
 import HomepageCentral from "./pages/CentralKitchen/HomepageCentral/HomepageCentral";
@@ -72,6 +73,8 @@ function App() {
       <Route path="/SignIn" element={<SignIn />} />
       <Route path="/SignUp" element={<SignUp />} />
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/ResetPassword" element={<ResetPassword />} />
 
       {/* Central role — shared sidebar layout */}
       <Route element={<CentralLayout />}>

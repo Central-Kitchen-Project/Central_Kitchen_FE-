@@ -1,32 +1,22 @@
 import React, { useState } from "react";
 import "../SignInPage/SignIn.css";
 import { useNavigate } from "react-router-dom";
-import authService from "../../services/authService";
-import { extractApiErrorMessage, extractApiMessage } from "../../services/api";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchForgotPassword } from "../../store/authSlice";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { forgotPasswordLoading, forgotPasswordMessage, forgotPasswordError } = useSelector((state) => state.AUTH);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus(null);
 
-    try {
-      const res = await authService.forgotPassword({ email });
-      const message = extractApiMessage(
-        res?.data,
-        "Reset email sent. Please check your inbox."
-      );
-      setStatus(message);
-    } catch (err) {
-      const message = extractApiErrorMessage(
-        err,
-        "Failed to send reset email. Please try again."
-      );
-      setStatus(message);
-    }
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+
+    await dispatch(fetchForgotPassword({ email: trimmedEmail }));
   };
 
   return (
@@ -63,10 +53,17 @@ function ForgotPassword() {
               />
             </div>
 
-            <button className="primary-btn w-full h-14 rounded-xl text-black font-bold text-base" type="submit">Send Reset Email</button>
+            <button
+              className="primary-btn w-full h-14 rounded-xl text-black font-bold text-base disabled:opacity-70 disabled:cursor-not-allowed"
+              type="submit"
+              disabled={forgotPasswordLoading}
+            >
+              {forgotPasswordLoading ? "Sending..." : "Send Reset Email"}
+            </button>
           </form>
 
-          {status && <p className="text-center text-sm text-[#658670] mt-4">{status}</p>}
+          {forgotPasswordMessage && <p className="text-center text-sm text-[#658670] mt-4">{forgotPasswordMessage}</p>}
+          {forgotPasswordError && <p className="text-center text-sm text-red-600 mt-4">{forgotPasswordError}</p>}
 
           <p className="text-center text-sm text-[#658670] mt-8">
             Remembered your password?
