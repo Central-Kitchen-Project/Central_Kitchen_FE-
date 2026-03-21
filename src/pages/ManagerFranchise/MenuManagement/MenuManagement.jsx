@@ -1,9 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchGetAll, hideItem, HIDDEN_ITEM_IDS_STORAGE_KEY } from '../../../store/itemSlice'
+import { fetchGetAll } from '../../../store/itemSlice'
 import API from '../../../services/api'
 import axios from 'axios'
 import PageHeader from '../../../components/common/PageHeader'
+
+const isInactiveItem = (item) => {
+  if (!item || typeof item !== 'object') return false
+  if (item.active === false || item.isActive === false || item.isAvailable === false) return true
+
+  const status = String(item.status || '').toLowerCase()
+  if (status === 'inactive' || status === 'disabled' || status === 'unavailable') return true
+
+  return false
+}
+
+const getItemStatus = (item) => {
+  if (isInactiveItem(item)) {
+    return 'Inactive'
+  }
+  return 'Active'
+}
 
 function MenuManagement() {
   const data = useSelector(state => state.ITEM.listItems)
@@ -46,6 +63,7 @@ function MenuManagement() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [statusOverride, setStatusOverride] = useState({})
 
   const [toast, setToast] = useState(null)
 
@@ -90,21 +108,40 @@ function MenuManagement() {
       showToast('error', 'Item name is required')
       return
     }
+
+    const parsedPrice = Number(editForm.price)
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      showToast('error', 'Price must be a valid number')
+      return
+    }
+
     try {
-      await API.callWithToken().put(`Item/${editForm.id}`, {
-        itemName: editForm.itemName,
-        unit: editForm.unit,
-        itemType: editForm.itemType,
-        description: editForm.description,
-        price: editForm.price ? Number(editForm.price) : null,
-        category: editForm.category || null
-      })
+      // Read latest detail first to preserve backend-required fields that may not be present in table row data.
+      const detailRes = await API.callWithToken().get(`Item/${editForm.id}`)
+      const current = detailRes?.data?.data || {}
+
+      const payload = {
+        itemName: editForm.itemName.trim() || current.itemName || current.name || '',
+        unit: (editForm.unit || current.unit || '').trim(),
+        itemType: (editForm.itemType || current.itemType || current.type || '').trim(),
+        description: (editForm.description ?? current.description ?? '').trim(),
+        price: parsedPrice,
+        category: (editForm.category || current.category || '').trim(),
+        isAvailable: current.isAvailable !== false,
+      }
+
+      await API.callWithToken().put(`Item/${editForm.id}`, payload)
       showToast('success', 'Item updated successfully!')
       setShowEditModal(false)
       dispatch(fetchGetAll({ type: '', category: '' }))
     } catch (err) {
       console.error('Failed to update item:', err)
-      showToast('error', 'Failed to update item. Please try again.')
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.title ||
+        (Array.isArray(err?.response?.data?.errors) ? err.response.data.errors.join(', ') : null)
+
+      showToast('error', apiMessage || 'Failed to update item. Please try again.')
     }
   }
 
@@ -295,26 +332,16 @@ function MenuManagement() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await API.callWithToken().put(`Item/${deleteTarget.id}`, {
-        itemName: deleteTarget.name || '',
-        unit: deleteTarget.unit || '',
-        itemType: deleteTarget.type || '',
-        description: deleteTarget.description || '',
-        price: Number(deleteTarget.price || 0),
-        category: deleteTarget.category || '',
-        isAvailable: false
-      })
-      try {
-        const currentHiddenIds = JSON.parse(localStorage.getItem(HIDDEN_ITEM_IDS_STORAGE_KEY) || '[]')
-        const nextHiddenIds = Array.from(new Set([...(Array.isArray(currentHiddenIds) ? currentHiddenIds : []), deleteTarget.id]))
-        localStorage.setItem(HIDDEN_ITEM_IDS_STORAGE_KEY, JSON.stringify(nextHiddenIds))
-      } catch {
-        // Ignore localStorage sync failures and still hide in current session.
-      }
+      await API.callWithToken().delete(`Item/${deleteTarget.id}`)
 
-      dispatch(hideItem(deleteTarget.id))
       await dispatch(fetchGetAll({ type: '', category: '' }))
-      showToast('success', `"${deleteTarget.name}" hidden successfully!`)
+      setStatusOverride((prev) => {
+        const next = { ...prev }
+        delete next[deleteTarget.id]
+        return next
+      })
+
+      showToast('success', `"${deleteTarget.name}" deleted successfully.`)
       closeDeleteModal()
     } catch (err) {
       console.error('Failed to delete item:', err)
@@ -468,6 +495,7 @@ function MenuManagement() {
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 w-8">#</th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Item Name</th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Type</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Status</th>
                   <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Unit</th>
                   <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Price</th>
                   <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Ingredients</th>
@@ -480,6 +508,7 @@ function MenuManagement() {
                   const expanded = expandedRows[product.id]
                   const ings = rowIngredients[product.id] || []
                   const isLoadingIng = loadingRow[product.id]
+                  const status = statusOverride[product.id] || getItemStatus(product)
                   return (
                     <>
                       <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
@@ -497,6 +526,13 @@ function MenuManagement() {
                             finished ? 'bg-blue-50 text-blue-600' : 'bg-blue-50 text-blue-600'
                           }`}>
                             {product.type}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {status}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-sm text-slate-600 text-center">{product.unit}</td>
@@ -926,7 +962,7 @@ function MenuManagement() {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Item</h3>
               <p className="text-sm text-slate-500">
-                Are you sure you want to hide <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>? Inactive items will no longer appear in other tabs.
+                Are you sure you want to permanently delete <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>?
               </p>
             </div>
             <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-200">
