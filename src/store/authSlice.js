@@ -1,6 +1,14 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import authService from "../services/authService";
+import { extractApiErrorMessage, extractApiMessage } from "../services/api";
 import { getUserIdFromJwtString, resolveUserIdFromLoginToken } from "../utils/userInfo";
+
+/** Wrong email or wrong password — single message. */
+const LOGIN_FAILED_MESSAGE = "Incorrect email or password.";
+
+/** Fallback if API body has no usable message*/
+const FORGOT_PASSWORD_SUCCESS_MESSAGE =
+  "Password reset has been sent. Check your email for a reset link.";
 
 const initialState = {
     token: null,
@@ -15,8 +23,7 @@ const name = "auth";
 export const fetchLogin = createAsyncThunk(`${name}/fetchLogin`, async (params = {}) => {
     try {
         const res = await authService.login(params);
-        console.log("res", res);
-        
+
         const token = res.data;
         return {
             ok: true,
@@ -27,8 +34,8 @@ export const fetchLogin = createAsyncThunk(`${name}/fetchLogin`, async (params =
     } catch {
         return {
             ok: false,
-            message: 'Your login information is incorrect!'
-        }
+            message: LOGIN_FAILED_MESSAGE,
+        };
     }
 });
 
@@ -54,7 +61,7 @@ export const fetchForgotPassword = createAsyncThunk(
             const res = await authService.forgotPassword(params);
             return extractApiMessage(
                 res?.data,
-                "Reset email sent. Please check your inbox."
+                FORGOT_PASSWORD_SUCCESS_MESSAGE
             );
         } catch (error) {
             return rejectWithValue(
