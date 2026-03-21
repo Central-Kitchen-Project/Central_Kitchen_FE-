@@ -9,6 +9,14 @@ function CreateOrderFranchise() {
   const data = useSelector(state => state.ITEM.listItems);
   const dispatch = useDispatch();
 
+  const activeItems = (data || []).filter((item) => {
+    if (!item || typeof item !== 'object') return false;
+    if (item.active === false) return false;
+    if (item.isActive === false) return false;
+    if (item.isAvailable === false) return false;
+    return true;
+  });
+
   // Get logged-in user info from localStorage
   const userInfo = (() => {
     try {
@@ -78,10 +86,10 @@ function CreateOrderFranchise() {
   };
 
   const selectedList = Object.entries(selectedItems).map(([id, quantity]) => {
-    const item = data?.find(d => d.id === parseInt(id));
+    const item = activeItems.find(d => d.id === parseInt(id));
     const detail = itemDetails[parseInt(id)];
     return { itemId: parseInt(id), quantity, item, detail };
-  });
+  }).filter(({ item }) => !!item);
 
   const subtotal = selectedList.reduce((sum, { item, quantity }) => {
     return sum + (item?.price || 0) * quantity;
@@ -180,7 +188,7 @@ function CreateOrderFranchise() {
   const ingredients = aggregatedIngredients();
 
   // Filter & search logic
-  const filteredData = (data || []).filter(item => {
+  const filteredData = activeItems.filter(item => {
     const matchesFilter = activeFilter === 'all' || item.type?.toLowerCase() === activeFilter;
     const matchesSearch = !searchTerm || 
       item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -189,7 +197,7 @@ function CreateOrderFranchise() {
   });
 
   // Get unique types for filter tabs
-  const itemTypes = [...new Set((data || []).map(item => item.type?.toLowerCase()).filter(Boolean))];
+  const itemTypes = [...new Set(activeItems.map(item => item.type?.toLowerCase()).filter(Boolean))];
 
   return (
     <>
@@ -245,7 +253,7 @@ function CreateOrderFranchise() {
                       : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  All ({(data || []).length})
+                  All ({activeItems.length})
                 </button>
                 {itemTypes.map(type => (
                   <button
@@ -257,18 +265,18 @@ function CreateOrderFranchise() {
                         : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    {type} ({(data || []).filter(i => i.type?.toLowerCase() === type).length})
+                    {type} ({activeItems.filter(i => i.type?.toLowerCase() === type).length})
                   </button>
                 ))}
               </div>
 
               <div className="products-grid" id="productsGrid">
-                {(!data || data.length === 0) && (
+                {activeItems.length === 0 && (
                   <div className="col-span-full text-center text-slate-400 py-10">
                     Loading products...
                   </div>
                 )}
-                {data && data.length > 0 && filteredData.length === 0 && (
+                {activeItems.length > 0 && filteredData.length === 0 && (
                   <div className="col-span-full text-center text-slate-400 py-10">
                     No matching products found
                   </div>
