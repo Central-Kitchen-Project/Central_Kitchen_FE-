@@ -28,41 +28,57 @@ function SignIn() {
   };
 
   // Handle submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("formdata",formData);
-    
-    dispatch(fetchLogin(formData)).then((res) => {
-      console.log("res.payload",res.payload);
-      
-      if (res.payload.data.token.roleId === 1) {
-        navigate("/DashboardAdmin");
-      } else if (res.payload.data.token.roleId === 2) {
-        navigate("/DashboardManager");
-      } else if (res.payload.data.token.roleId === 3) {
-        navigate("/DashboardFranchise");
-      } else if (res.payload.data.token.roleId === 4) {
-        navigate("/DashboardCentral");
-      } else if (res.payload.data.token.roleId === 5) {
-        navigate("/DashboardSupplier");
-        // setError("Login failed. Please check your credentials.");
-      }
-      
-    });
 
     const { email, password } = formData;
 
-    if (!email || !password) {
+    if (!email?.trim() || !password) {
       setError("Please enter both email and password.");
       return;
     }
 
-    console.log("Email:", email);
-    console.log("Password:", password);
-
     setError("");
 
-    // navigate("/Dashboard");
+    try {
+      const action = await dispatch(fetchLogin(formData));
+
+      if (!fetchLogin.fulfilled.match(action)) {
+        setError("Login failed. Please try again.");
+        return;
+      }
+
+      const payload = action.payload;
+
+      if (!payload.ok) {
+        setError(payload.message || "Incorrect email or password.");
+        return;
+      }
+
+      const token = payload.data?.token;
+      const roleId = token?.roleId;
+
+      if (roleId == null) {
+        setError("Invalid response from server. Please try again.");
+        return;
+      }
+
+      if (roleId === 1) {
+        navigate("/DashboardAdmin");
+      } else if (roleId === 2) {
+        navigate("/DashboardManager");
+      } else if (roleId === 3) {
+        navigate("/DashboardFranchise");
+      } else if (roleId === 4) {
+        navigate("/DashboardCentral");
+      } else if (roleId === 5) {
+        navigate("/DashboardSupplier");
+      } else {
+        setError("Unknown account role. Please contact support.");
+      }
+    } catch {
+      setError("Login failed. Please try again.");
+    }
   };
 
   return (
