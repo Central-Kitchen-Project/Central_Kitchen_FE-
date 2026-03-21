@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import authService from "../services/authService";
+import { getUserIdFromJwtString, resolveUserIdFromLoginToken } from "../utils/userInfo";
 
 const initialState = {
     token: null,
@@ -52,16 +53,30 @@ const authSlice = createSlice({
                 localStorage.setItem("ACCESS_TOKEN", JSON.stringify(state.token));
                 // Store user info for sidebar display
                 if (state.token.username) {
-                    // Try to get userId from: 1) token response object, 2) JWT claims
-                    let userId = state.token.userId || state.token.id || null;
-                    if (!userId) {
-                        try {
-                            const jwtPayload = JSON.parse(atob(state.token.token.split('.')[1]));
-                            userId = jwtPayload.nameid || jwtPayload.sub || jwtPayload.userId || jwtPayload.Id || jwtPayload.id;
-                        } catch (e) { console.log('JWT decode error', e); }
+                    // 1) Login body fields  2) nested user  3) JWT claims (many ASP.NET claim types)
+                    let userId =
+                        state.token.userId ??
+                        state.token.id ??
+                        state.token.userID ??
+                        state.token?.user?.id ??
+                        state.token?.User?.id ??
+                        null;
+                    if (userId == null) {
+                        userId = resolveUserIdFromLoginToken(state.token);
                     }
+                    if (userId == null && state.token.token) {
+                        userId = getUserIdFromJwtString(state.token.token);
+                    }
+                    const numericId =
+                        userId != null && userId !== ''
+                            ? Number(userId)
+                            : null;
+                    const safeId =
+                        numericId != null && Number.isFinite(numericId) && numericId > 0
+                            ? numericId
+                            : null;
                     localStorage.setItem("USER_INFO", JSON.stringify({
-                        id: userId ? Number(userId) : null,
+                        id: safeId,
                         username: state.token.username,
                         email: state.token.email,
                         roleId: state.token.roleId,

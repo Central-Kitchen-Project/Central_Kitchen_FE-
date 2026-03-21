@@ -1,11 +1,19 @@
 import API from "./api";
 
 const inventoryTransactionService = {
-  GetAll: function () {
-    return API.call().get(`/InventoryTransaction`);
+  /** @param {number|string|null|undefined} userId - query param theo Swagger GET /InventoryTransaction */
+  GetAll: function (userId) {
+    const config = {};
+    if (userId != null && userId !== "") {
+      const n = Number(userId);
+      if (Number.isFinite(n) && n > 0) {
+        config.params = { userId: n };
+      }
+    }
+    return API.callWithToken().get(`/InventoryTransaction`, config);
   },
   GetById: function (id) {
-    return API.call().get(`/InventoryTransaction/${id}`);
+    return API.callWithToken().get(`/InventoryTransaction/${id}`);
   },
 };
 

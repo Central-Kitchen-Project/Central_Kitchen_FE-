@@ -1,12 +1,13 @@
 
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchGetOrder } from '../../../store/orderSlice';
 import { fetchGetInventory } from '../../../store/inventorySlice';
 import { fetchGetMaterialRequest } from '../../../store/materialSlice';
 import './DashboardCentral.css';
 import PageHeader from '../../../components/common/PageHeader';
+import { getStoredUserId } from '../../../utils/userInfo';
 
 function getMaterialRequestDisplayStatus(status) {
   switch (status) {
@@ -31,7 +32,11 @@ function getMaterialStatusBadgeClass(status) {
 
 function DashboardCentral() {
   const dispatch = useDispatch();
-  const userId = localStorage.getItem('USER_ID');
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    setUserId(getStoredUserId());
+  }, []);
 
   // Lấy dữ liệu từ redux (đúng tên state trong store/index.js)
   const ordersRaw = useSelector(state => state.ORDER?.listOrders);
@@ -48,7 +53,7 @@ function DashboardCentral() {
   // Gọi API khi mount
   useEffect(() => {
     dispatch(fetchGetOrder());
-    if (userId) dispatch(fetchGetInventory(userId));
+    if (userId != null) dispatch(fetchGetInventory(userId));
     dispatch(fetchGetMaterialRequest());
   }, [dispatch, userId]);
 

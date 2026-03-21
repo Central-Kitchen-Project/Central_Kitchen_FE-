@@ -5,8 +5,8 @@ const navItems = [
   { label: 'Dashboard', icon: 'dashboard', path: '/DashboardSupplier' },
   { label: 'Order Processing', icon: 'list_alt', path: '/SupplyOrderProcessing' },
   { label: 'Inventory', icon: 'inventory_2', path: '/InventorySupply' },
-  // { label: 'Delivery Scheduling', icon: 'local_shipping', path: '#' },
-  // { label: 'Issue Management', icon: 'warning', path: '#' },
+  { label: 'Stock History', icon: 'history', path: '/InventoryTransactionHistory' },
+
 ]
 
 function SupplierLayout() {
