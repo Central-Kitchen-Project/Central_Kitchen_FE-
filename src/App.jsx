@@ -7,8 +7,6 @@ import SignUp from "./pages/SignUpPage";
 import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
 import ResetPassword from "./pages/ResetPasswordPage/ResetPassword";
 import NotFound from "./pages/NotFound";
-import HomepageFranchise from "./pages/Franchise/HomepageFranchise/HomepageFranchise";
-import HomepageCentral from "./pages/CentralKitchen/HomepageCentral/HomepageCentral";
 import HomepageSupply from "./pages/SupplyCoordinator/HomepageSupply/HomepageSupply";
 import DashboardSupplier from "./pages/SupplyCoordinator/DashboardSupplier/DashboardSupplier";    
 import DashboardCentral from "./pages/CentralKitchen/DashboardCentral/DashboardCentral";
@@ -117,9 +115,9 @@ function App() {
         <Route path="/MasterAdmin" element={<MasterAdmin />} />
       </Route>
 
-      {/* Homepage */}
-      <Route path="/HomepageFranchise" element={<HomepageFranchise />} />
-      <Route path="/HomepageCentral" element={<HomepageCentral />} />
+      {/* Legacy homepage URLs — components removed; redirect to role dashboards */}
+      <Route path="/HomepageFranchise" element={<Navigate to="/DashboardFranchise" replace />} />
+      <Route path="/HomepageCentral" element={<Navigate to="/DashboardCentral" replace />} />
       <Route path="/HomepageSupply" element={<HomepageSupply />} /> 
 
       {/* Not found */}
