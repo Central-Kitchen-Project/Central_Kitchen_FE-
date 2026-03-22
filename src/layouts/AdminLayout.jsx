@@ -5,6 +5,7 @@ const navItems = [
   { label: 'Dashboard', icon: 'dashboard', path: '/DashboardAdmin' },
   { label: 'User Management', icon: 'group', path: '/UserManagement' },
   { label: 'Order Management', icon: 'shopping_cart', path: '/OrderManagement' },
+  { label: 'Feedback Management', icon: 'rate_review', path: '/FeedbackManagement' },
   { label: 'RBAC Settings', icon: 'lock', path: '/RBACSettings' },
 //   { label: 'System Configuration', icon: 'tune', path: '/SystemConfiguration' },
   { label: 'Master Data', icon: 'database', path: '/MasterAdmin' },

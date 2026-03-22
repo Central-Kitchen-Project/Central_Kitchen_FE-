@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import feedbackService from "../services/feedbackService";
+import { extractApiErrorMessage } from "../services/api";
 
 const initialState = {
   listFeedbacks: [],
@@ -8,6 +9,18 @@ const initialState = {
 };
 
 const name = "feedback";
+
+const getStatusCandidates = (status) => {
+  const normalized = String(status || "").trim().toLowerCase();
+
+  if (normalized === "underreview" || normalized === "under review") {
+    return ["Under Review", "UnderReview"];
+  }
+
+  if (normalized === "received") return ["Received"];
+  if (normalized === "resolved") return ["Resolved"];
+  return [status];
+};
 
 // GET all feedbacks
 export const fetchGetAllFeedback = createAsyncThunk(
@@ -63,6 +76,30 @@ export const fetchDeleteFeedback = createAsyncThunk(
   }
 );
 
+// PUT update feedback status
+export const fetchUpdateFeedbackStatus = createAsyncThunk(
+  `${name}/fetchUpdateFeedbackStatus`,
+  async ({ id, status }, { rejectWithValue }) => {
+    const statusCandidates = getStatusCandidates(status);
+    let lastError = null;
+
+    for (const candidate of statusCandidates) {
+      try {
+        const response = await feedbackService.UpdateStatus(id, { status: candidate });
+        return response.data?.data || { id, status: candidate };
+      } catch (error) {
+        lastError = error;
+        if (error?.response?.status !== 400) break;
+      }
+    }
+
+    console.log(lastError);
+    return rejectWithValue(
+      extractApiErrorMessage(lastError, "Cannot update feedback status")
+    );
+  }
+);
+
 const feedbackSlice = createSlice({
   name,
   initialState,
@@ -98,6 +135,22 @@ const feedbackSlice = createSlice({
       state.listFeedbacks = state.listFeedbacks.filter(
         (item) => item.id !== action.payload
       );
+    });
+
+    // PUT status -> update item in list
+    builder.addCase(fetchUpdateFeedbackStatus.fulfilled, (state, action) => {
+      const payload = action.payload || {};
+      const idx = state.listFeedbacks.findIndex((item) => item.id === payload.id);
+      if (idx !== -1) {
+        state.listFeedbacks[idx] = {
+          ...state.listFeedbacks[idx],
+          ...payload,
+          status: payload.status || state.listFeedbacks[idx].status,
+        };
+      }
+    });
+    builder.addCase(fetchUpdateFeedbackStatus.rejected, (state, action) => {
+      state.error = action.payload || action.error.message;
     });
   },
 });
