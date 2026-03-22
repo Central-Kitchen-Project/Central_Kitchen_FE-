@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchGetOrder, createOrder, updateOrderStatus, deleteOrder, clearOrderError } from "../../../store/orderSlice";
+import { fetchGetOrder, createOrder, deleteOrder, clearOrderError } from "../../../store/orderSlice";
 import { fetchAllUsers } from "../../../store/userSlice";
 import { fetchGetAll } from "../../../store/itemSlice";
 import PageHeader from "../../../components/common/PageHeader";
 
 const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
-const STATUS_FLOW = ["Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
 
 const STATUS_COLORS = {
   Pending: "bg-amber-50 text-amber-700",
@@ -23,16 +22,6 @@ const normalizeArray = (data) => {
   if (data && Array.isArray(data.$values)) return data.$values;
   if (data && typeof data === "object") return Object.values(data).find(Array.isArray) || [];
   return [];
-};
-
-const STATUS_UPDATE_CANDIDATES = {
-  Pending: ["Pending"],
-  Processing: ["Processing"],
-  Confirmed: ["Confirmed", "Filled"],
-  Delivery: ["Delivery", "Delivering", "Approved"],
-  Completed: ["Completed"],
-  Rejected: ["Rejected"],
-  Cancelled: ["Cancelled", "Cancelled by Franchise"],
 };
 
 function getOrderDisplayStatus(status) {
@@ -81,9 +70,6 @@ function OrderManagement() {
 
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  // Status update
-  const [statusDropdown, setStatusDropdown] = useState(null);
 
   useEffect(() => {
     dispatch(fetchGetOrder());
@@ -178,37 +164,6 @@ function OrderManagement() {
     }
   };
 
-  /* ── Update Status ── */
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    setStatusDropdown(null);
-    setActionLoading(true);
-    try {
-      const candidates = STATUS_UPDATE_CANDIDATES[newStatus] || [newStatus];
-      let updated = false;
-
-      for (const candidateStatus of candidates) {
-        try {
-          await dispatch(updateOrderStatus({ id: orderId, status: candidateStatus })).unwrap();
-          updated = true;
-          break;
-        } catch {
-          // Try the next compatible backend status.
-        }
-      }
-
-      if (!updated) {
-        throw new Error(`Failed to update order #${orderId} to ${newStatus}`);
-      }
-
-      await dispatch(fetchGetOrder());
-      setSuccessMsg(`Order #${orderId} status updated to ${newStatus}`);
-    } catch {
-      // error is handled by Redux
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   /* ── Delete Order ── */
   const handleDeleteOrder = async (orderId) => {
     setDeleteConfirm(null);
@@ -234,7 +189,7 @@ function OrderManagement() {
       <PageHeader
         as="h2"
         title="Order Management"
-        subtitle="Review, create, and update order records across the platform."
+        subtitle="Review and create order records across the platform."
       />
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
@@ -374,27 +329,11 @@ function OrderManagement() {
                             {total.toLocaleString("vi-VN")}₫
                           </td>
                           <td className="px-4 py-3 relative">
-                            <button
-                              onClick={() => setStatusDropdown(statusDropdown === order.id ? null : order.id)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer hover:opacity-80 transition-opacity ${STATUS_COLORS[displayStatus] || "bg-slate-100 text-slate-600"}`}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${STATUS_COLORS[displayStatus] || "bg-slate-100 text-slate-600"}`}
                             >
                               ● {displayStatus || "Unknown"}
-                              <span className="material-symbols-outlined text-[12px]">expand_more</span>
-                            </button>
-                            {statusDropdown === order.id && (
-                              <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-[140px]">
-                                {STATUS_FLOW.filter((s) => s !== displayStatus).map((s) => (
-                                  <button
-                                    key={s}
-                                    onClick={() => handleUpdateStatus(order.id, s)}
-                                    className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 first:rounded-t-lg last:rounded-b-lg"
-                                  >
-                                    <span className={`inline-block size-2 rounded-full ${STATUS_COLORS[s]?.split(" ")[0]?.replace("bg-", "bg-") || "bg-slate-300"}`} />
-                                    {s}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                            </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
@@ -663,11 +602,6 @@ function OrderManagement() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Close status dropdown when clicking outside */}
-      {statusDropdown && (
-        <div className="fixed inset-0 z-20" onClick={() => setStatusDropdown(null)} />
       )}
     </>
   );

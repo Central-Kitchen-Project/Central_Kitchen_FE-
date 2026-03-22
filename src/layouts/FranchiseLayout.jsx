@@ -1,8 +1,9 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 function FranchiseLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [userInfo, setUserInfo] = useState({
     username: "User",
     roleId: 3,
@@ -46,7 +47,11 @@ function FranchiseLayout() {
         <nav className="flex-1 px-4 flex flex-col gap-2">
           <Link
             to="/DashboardFranchise"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              location.pathname === "/DashboardFranchise"
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
           >
             <span className="material-symbols-outlined">dashboard</span>
             Dashboard
@@ -54,7 +59,11 @@ function FranchiseLayout() {
 
           <Link
             to="/CreateOrderFranchise"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              location.pathname === "/CreateOrderFranchise"
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
           >
             <span className="material-symbols-outlined">
               add_circle
@@ -63,7 +72,11 @@ function FranchiseLayout() {
           </Link>
           <Link
             to="/OrderTrackingFranchise"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              location.pathname === "/OrderTrackingFranchise"
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
           >
             <span className="material-symbols-outlined">
               local_shipping
@@ -72,7 +85,11 @@ function FranchiseLayout() {
           </Link>
           <Link
             to="/InventoryFranchise"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              location.pathname === "/InventoryFranchise"
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
           >
             <span className="material-symbols-outlined">
               inventory_2
@@ -80,8 +97,23 @@ function FranchiseLayout() {
             Inventory
           </Link>
           <Link
+            to="/FranchiseTransactionHistory"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              location.pathname === "/FranchiseTransactionHistory"
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
+          >
+            <span className="material-symbols-outlined">history</span>
+            Stock History
+          </Link>
+          <Link
             to="/FeedbackFranchise"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+              location.pathname === "/FeedbackFranchise"
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "hover:bg-slate-100 text-slate-700"
+            }`}
           >
             <span className="material-symbols-outlined">
               chat_bubble

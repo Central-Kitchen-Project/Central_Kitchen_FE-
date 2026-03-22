@@ -5,6 +5,7 @@ import { HIDDEN_ITEM_IDS_STORAGE_KEY, syncHiddenItems } from "./store/itemSlice"
 import SignIn from "../src/pages/SignInPage/SignIn";
 import SignUp from "./pages/SignUpPage";
 import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
+import ResetPassword from "./pages/ResetPasswordPage/ResetPassword";
 import NotFound from "./pages/NotFound";
 import HomepageFranchise from "./pages/Franchise/HomepageFranchise/HomepageFranchise";
 import HomepageCentral from "./pages/CentralKitchen/HomepageCentral/HomepageCentral";
@@ -29,7 +30,9 @@ import OrderTracking from "./pages/Franchise/OrderTracking";
 import MaterialTracking from "./pages/CentralKitchen/MaterialTracking";
 import FeedbackFranchise from "./pages/Franchise/FeedbackFranchise/FeedbackFranchise";
 import InventoryFranchise from "./pages/Franchise/InventoryFranchise/InventoryFranchise";
+import FranchiseTransactionHistory from "./pages/Franchise/FranchiseTransactionHistory/FranchiseTransactionHistory";
 import InventorySupply from "./pages/SupplyCoordinator/InventorySupply/InventorySupply";
+import InventoryTransactionHistory from "./pages/SupplyCoordinator/InventoryTransactionHistory/InventoryTransactionHistory";
 import InventoryManager from "./pages/ManagerFranchise/InventoryManager/InventoryManager";
 import PurchaseOrderManager from "./pages/ManagerFranchise/PurchaseOrderManager/PurchaseOrderManager";
 import MenuManagement from "./pages/ManagerFranchise/MenuManagement/MenuManagement";
@@ -70,6 +73,8 @@ function App() {
       <Route path="/SignIn" element={<SignIn />} />
       <Route path="/SignUp" element={<SignUp />} />
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/ResetPassword" element={<ResetPassword />} />
 
       {/* Central role — shared sidebar layout */}
       <Route element={<CentralLayout />}>
@@ -84,7 +89,8 @@ function App() {
         <Route path="/DashboardSupplier" element={<DashboardSupplier />} />
         <Route path="/SupplyOrderProcessing" element={<SupplyOrderProcessing />} />
         <Route path="/SupplyOrderProcessing/accept/:orderId" element={<AcceptOrder />} />
-        <Route path="/InventorySupply" element={<InventorySupply />} />      
+        <Route path="/InventorySupply" element={<InventorySupply />} />
+        <Route path="/InventoryTransactionHistory" element={<InventoryTransactionHistory />} />
       </Route>
 
       {/* Franchise */}
@@ -93,6 +99,7 @@ function App() {
       <Route path="/CreateOrderFranchise" element={<CreateOrderFranchise />} />
       <Route path="/OrderTrackingFranchise" element={<OrderTracking />} />
       <Route path="/InventoryFranchise" element={<InventoryFranchise />} />
+      <Route path="/FranchiseTransactionHistory" element={<FranchiseTransactionHistory />} />
       <Route path="/FeedbackFranchise" element={<FeedbackFranchise />} />
       </Route>
       {/* <Route path="/ConfirmOrderFranchise" element={<ConfirmOrderFranchise />} /> Không dùng nữa */}

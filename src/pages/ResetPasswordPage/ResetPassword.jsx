@@ -1,0 +1,152 @@
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import "../SignInPage/SignIn.css";
+import { fetchResetPassword } from "../../store/authSlice";
+
+function ResetPassword() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const emailFromUrl = (searchParams.get("email") || "").trim();
+  const tokenFromUrl = (searchParams.get("token") || "").trim();
+
+  const [email, setEmail] = useState(emailFromUrl);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [clientError, setClientError] = useState("");
+
+  const { resetPasswordLoading, resetPasswordMessage, resetPasswordError } = useSelector((state) => state.AUTH);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setClientError("");
+
+    const payload = {
+      email: email.trim(),
+      token: tokenFromUrl,
+      newPassword,
+    };
+
+    if (!payload.email) {
+      setClientError("Email is required.");
+      return;
+    }
+
+    if (!payload.token) {
+      setClientError("Invalid or missing reset token from the email link.");
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      setClientError("New password must be at least 6 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setClientError("Confirm password does not match.");
+      return;
+    }
+
+    const result = await dispatch(fetchResetPassword(payload));
+    if (fetchResetPassword.fulfilled.match(result)) {
+      setTimeout(() => {
+        navigate("/SignIn");
+      }, 1500);
+    }
+  };
+
+  return (
+    <div className="signin-page flex min-h-screen">
+      <div className="flex flex-col w-full lg:w-[45%] xl:w-[40%] px-8 md:px-16 lg:px-24 py-12 justify-between bg-white shadow-xl">
+        <header className="flex items-center gap-3">
+          <div className="p-3 logo-box rounded-xl text-white">
+            <svg className="size-6" fill="none" viewBox="0 0 48 48">
+              <path
+                clipRule="evenodd"
+                d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
+                fill="currentColor"
+                fillRule="evenodd"
+              />
+            </svg>
+          </div>
+          <h2 className="text-[#121713] text-xl font-bold tracking-tight">Central Kitchen System</h2>
+        </header>
+
+        <main className="max-w-[420px] w-full mx-auto my-12">
+          <h1 className="text-[#121713] text-3xl font-extrabold mb-3">Reset Password</h1>
+          <p className="text-[#658670] text-base mb-8">
+            Set your new password for this account.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="text-sm font-semibold text-[#121713]">Email</label>
+              <input
+                className="form-input w-full rounded-xl h-14 p-4 mt-2"
+                placeholder="Enter your email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                readOnly={Boolean(emailFromUrl)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-[#121713]">New Password</label>
+              <input
+                className="form-input w-full rounded-xl h-14 p-4 mt-2"
+                placeholder="Enter new password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-[#121713]">Confirm Password</label>
+              <input
+                className="form-input w-full rounded-xl h-14 p-4 mt-2"
+                placeholder="Confirm new password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button
+              className="primary-btn w-full h-14 rounded-xl text-black font-bold text-base disabled:opacity-70 disabled:cursor-not-allowed"
+              type="submit"
+              disabled={resetPasswordLoading}
+            >
+              {resetPasswordLoading ? "Resetting..." : "Reset Password"}
+            </button>
+          </form>
+
+          {clientError && <p className="text-center text-sm text-red-600 mt-4">{clientError}</p>}
+          {resetPasswordError && <p className="text-center text-sm text-red-600 mt-4">{resetPasswordError}</p>}
+          {resetPasswordMessage && <p className="text-center text-sm text-[#658670] mt-4">{resetPasswordMessage}</p>}
+
+          <p className="text-center text-sm text-[#658670] mt-8">
+            Back to sign in?
+            <span onClick={() => navigate("/SignIn")} className="text-[#57c436] font-bold ml-1 cursor-pointer hover:underline">Sign In</span>
+          </p>
+        </main>
+
+        <footer className="text-sm text-[#658670]">© 2026 Central Kitchen System</footer>
+      </div>
+
+      <div className="lg:block lg:flex-1 relative overflow">
+        <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1556910103-1c02745aae4d")' }}>
+          <div className="absolute inset-0 bg-gradient-to-tr from-black/70 to-transparent" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ResetPassword;
