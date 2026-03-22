@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import { fetchGetAllFeedback, fetchCreateFeedback } from '../../../store/feedbackSlice'
@@ -17,8 +17,7 @@ function FeedbackFranchise() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [rating, setRating] = useState(null); // 1-5 or null
-  // Tạm thời ẩn filter status
-  // const [filterStatus, setFilterStatus] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 8;
@@ -34,11 +33,6 @@ function FeedbackFranchise() {
   useEffect(() => {
     if (lockedOrderId) setOrderId(String(lockedOrderId));
   }, [lockedOrderId]);
-
-  // Reset to page 1 when feedbacks change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [feedbacks?.length]);
 
   // Lấy userId từ order được chọn
   const getSelectedUserId = () => {
@@ -82,20 +76,79 @@ function FeedbackFranchise() {
     setSubmitting(false);
   };
 
-  // Tạm thời ẩn filter status
-  // const filteredFeedbacks = filterStatus === 'All'
-  //   ? feedbacks
-  //   : feedbacks?.filter((fb) => fb.status === filterStatus);
-  const filteredFeedbacks = feedbacks;
+  const normalizeStatus = (status) => {
+    const value = String(status || '').trim().toLowerCase();
+    if (value === 'underreview' || value === 'under review') return 'UnderReview';
+    if (value === 'received') return 'Received';
+    if (value === 'resolved') return 'Resolved';
+    return null;
+  };
 
-  const statusColor = (status) => {
-    switch (status) {
-      case 'Resolved': return { text: 'text-green-600', bg: 'bg-green-600' };
-      case 'UnderReview': return { text: 'text-blue-600', bg: 'bg-blue-600' };
-      case 'Received': return { text: 'text-slate-500', bg: 'bg-slate-400' };
-      default: return { text: 'text-amber-600', bg: 'bg-amber-500' };
+  const statusLabel = (status) => {
+    const n = normalizeStatus(status);
+    if (n === 'UnderReview') return 'Under Review';
+    if (n === 'Received') return 'Received';
+    if (n === 'Resolved') return 'Resolved';
+    return status ? String(status) : '—';
+  };
+
+  const statusBadgeClass = (status) => {
+    switch (normalizeStatus(status)) {
+      case 'Resolved':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'UnderReview':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Received':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      default:
+        return 'bg-slate-100 text-slate-600 border-slate-200';
     }
   };
+
+  /** Giống DashboardFranchise: chỉ feedback của user đăng nhập hoặc gắn đơn của user */
+  const userInfo = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('USER_INFO')) || {};
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const myOrderIds = useMemo(() => {
+    const uid = Number(userInfo?.id);
+    if (!Number.isFinite(uid)) return new Set();
+    const arr = Array.isArray(orders) ? orders : [];
+    return new Set(
+      arr
+        .filter((o) => Number(o?.userId) === uid)
+        .map((o) => Number(o.id))
+        .filter(Number.isFinite)
+    );
+  }, [orders, userInfo?.id]);
+
+  const myFeedbacks = useMemo(() => {
+    const list = Array.isArray(feedbacks) ? feedbacks : [];
+    const uid = Number(userInfo?.id);
+    if (!Number.isFinite(uid)) return list;
+
+    return list.filter((fb) => {
+      const feedbackOrderId = Number(fb.orderId);
+      const feedbackUserId = Number(fb.userId ?? fb.createdBy ?? fb.customerId);
+      if (Number.isFinite(feedbackOrderId) && myOrderIds.has(feedbackOrderId)) return true;
+      if (Number.isFinite(feedbackUserId) && feedbackUserId === uid) return true;
+      return false;
+    });
+  }, [feedbacks, myOrderIds, userInfo?.id]);
+
+  const filteredFeedbacks = useMemo(() => {
+    if (filterStatus === 'All') return myFeedbacks;
+    return myFeedbacks.filter((fb) => normalizeStatus(fb.status) === filterStatus);
+  }, [myFeedbacks, filterStatus]);
+
+  // Reset to page 1 when danh sách sau lọc thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [myFeedbacks?.length, filterStatus]);
 
   const categoryColor = (cat) => {
     switch (cat) {
@@ -288,8 +341,7 @@ function FeedbackFranchise() {
           <h2 className="text-lg font-bold text-slate-900">
             Past Feedback History
           </h2>
-          {/* Tạm thời ẩn filter status */}
-          {/* <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Filter:</span>
             <select
               className="text-xs border-slate-200 rounded px-2 py-1"
@@ -301,7 +353,7 @@ function FeedbackFranchise() {
               <option value="UnderReview">Under Review</option>
               <option value="Received">Received</option>
             </select>
-          </div> */}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -322,29 +374,26 @@ function FeedbackFranchise() {
                 <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Ref ID
                 </th>
-                {/* Tạm thời ẩn cột Status */}
-                {/* <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Status
-                </th> */}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm">
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">
                     Loading...
                   </td>
                 </tr>
               ) : !filteredFeedbacks || filteredFeedbacks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm">
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">
                     No feedback found.
                   </td>
                 </tr>
               ) : (
                 paginatedFeedbacks.map((fb) => {
-                  // Tạm thời ẩn status
-                  // const sc = statusColor(fb.status);
                   return (
                     <tr key={fb.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-sm text-slate-600">
@@ -371,13 +420,13 @@ function FeedbackFranchise() {
                       <td className="px-6 py-4 text-sm text-primary font-medium">
                         {fb.refId ? `${fb.refId}` : '—'}
                       </td>
-                      {/* Tạm thời ẩn cột Status */}
-                      {/* <td className="px-6 py-4">
-                        <span className={`flex items-center gap-1.5 ${sc.text} text-xs font-bold uppercase`}>
-                          <span className={`w-2 h-2 rounded-full ${sc.bg}`} />
-                          {fb.status}
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${statusBadgeClass(fb.status)}`}
+                        >
+                          {statusLabel(fb.status)}
                         </span>
-                      </td> */}
+                      </td>
                     </tr>
                   );
                 })
@@ -387,7 +436,7 @@ function FeedbackFranchise() {
         </div>
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
           <p className="text-xs text-slate-500">
-            Showing {paginatedFeedbacks.length > 0 ? startIdx + 1 : 0} to {Math.min(endIdx, filteredFeedbacks?.length || 0)} of {feedbacks?.length || 0} reports
+            Showing {paginatedFeedbacks.length > 0 ? startIdx + 1 : 0} to {Math.min(endIdx, filteredFeedbacks?.length || 0)} of {filteredFeedbacks?.length || 0} reports
           </p>
           <div className="flex items-center gap-2">
             <button 
