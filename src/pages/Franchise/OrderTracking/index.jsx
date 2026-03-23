@@ -723,9 +723,9 @@ function OrderTracking() {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold">Complete Order</h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  Xác nhận hoàn thành đơn hàng{" "}
+                  Confirm order completion{" "}
                   <span className="font-mono font-bold text-slate-800">#ORD-{confirmModal.id}</span>?
-                  Hành động này không thể hoàn tác.
+                  This action cannot be undone.
                 </p>
               </div>
               <button onClick={() => setConfirmModal(null)} className="text-slate-400 hover:text-slate-600">✕</button>
@@ -766,9 +766,9 @@ function OrderTracking() {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold">Cancel Order</h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  Bạn có chắc muốn hủy đơn hàng{" "}
+                  Are you sure you want to cancel your order?{" "}
                   <span className="font-mono font-bold text-slate-800">#ORD-{cancelModal.id}</span>?
-                  Trạng thái sẽ chuyển thành "Cancelled by Franchise".
+                  The status will change to "Cancelled by Franchise".
                 </p>
               </div>
               <button onClick={() => setCancelModal(null)} className="text-slate-400 hover:text-slate-600">✕</button>
