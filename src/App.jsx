@@ -7,8 +7,6 @@ import SignUp from "./pages/SignUpPage";
 import ForgotPassword from "./pages/ForgotPasswordPage/ForgotPassword";
 import ResetPassword from "./pages/ResetPasswordPage/ResetPassword";
 import NotFound from "./pages/NotFound";
-import HomepageFranchise from "./pages/Franchise/HomepageFranchise/HomepageFranchise";
-import HomepageCentral from "./pages/CentralKitchen/HomepageCentral/HomepageCentral";
 import HomepageSupply from "./pages/SupplyCoordinator/HomepageSupply/HomepageSupply";
 import DashboardSupplier from "./pages/SupplyCoordinator/DashboardSupplier/DashboardSupplier";    
 import DashboardCentral from "./pages/CentralKitchen/DashboardCentral/DashboardCentral";
@@ -35,6 +33,7 @@ import InventorySupply from "./pages/SupplyCoordinator/InventorySupply/Inventory
 import InventoryTransactionHistory from "./pages/SupplyCoordinator/InventoryTransactionHistory/InventoryTransactionHistory";
 import InventoryManager from "./pages/ManagerFranchise/InventoryManager/InventoryManager";
 import PurchaseOrderManager from "./pages/ManagerFranchise/PurchaseOrderManager/PurchaseOrderManager";
+import FeedbackManager from "./pages/ManagerFranchise/FeedbackManager/FeedbackManager";
 import MenuManagement from "./pages/ManagerFranchise/MenuManagement/MenuManagement";
 import ReportAnalyticsManager from "./pages/ManagerFranchise/ReportAnalyticsManager/ReportAnalyticsManager";  
 import UserManagement from "./pages/DashboardAdmin/UserManagement/UserManagement";
@@ -42,6 +41,7 @@ import RBACSettings from "./pages/DashboardAdmin/RBACSettings/RBACSettings";
 import SystemConfiguration from "./pages/DashboardAdmin/SystemConfiguration/SystemConfiguration";
 import MasterAdmin from "./pages/MasterAdminPage/MasterAdmin";
 import OrderManagement from "./pages/DashboardAdmin/OrderManagement/OrderManagement";
+import FeedbackManagement from "./pages/DashboardAdmin/FeedbackManagement/FeedbackManagement";
 function App() {
   const dispatch = useDispatch();
 
@@ -63,6 +63,7 @@ function App() {
         <Route path="/DashboardManager" element={<DashboardManager />} />
         <Route path="/InventoryManager" element={<InventoryManager />} />
         <Route path="/PurchaseOrderManager" element={<PurchaseOrderManager />} />
+        <Route path="/FeedbackManager" element={<FeedbackManager />} />
         <Route path="/MenuManagement" element={<MenuManagement />} />
         <Route path="/ReportAnalyticsManager" element={<ReportAnalyticsManager />} /> 
       </Route>
@@ -108,14 +109,15 @@ function App() {
         <Route path="/DashboardAdmin" element={<DashboardAdmin />} />
         <Route path="/UserManagement" element={<UserManagement />} />
         <Route path="/OrderManagement" element={<OrderManagement />} />
+        <Route path="/FeedbackManagement" element={<FeedbackManagement />} />
         <Route path="/RBACSettings" element={<RBACSettings />} />
         <Route path="/SystemConfiguration" element={<SystemConfiguration />} />
         <Route path="/MasterAdmin" element={<MasterAdmin />} />
       </Route>
 
-      {/* Homepage */}
-      <Route path="/HomepageFranchise" element={<HomepageFranchise />} />
-      <Route path="/HomepageCentral" element={<HomepageCentral />} />
+      {/* Legacy homepage URLs — components removed; redirect to role dashboards */}
+      <Route path="/HomepageFranchise" element={<Navigate to="/DashboardFranchise" replace />} />
+      <Route path="/HomepageCentral" element={<Navigate to="/DashboardCentral" replace />} />
       <Route path="/HomepageSupply" element={<HomepageSupply />} /> 
 
       {/* Not found */}

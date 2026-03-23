@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchAllUsers, fetchDashboardCount } from '../../store/userSlice'
 import { fetchGetOrder } from '../../store/orderSlice'
+import { fetchGetAllFeedback } from '../../store/feedbackSlice'
 import './DashboardAdmin.css'
 import PageHeader from '../../components/common/PageHeader'
 
@@ -21,21 +22,26 @@ const STATUS_COLORS = {
   Completed: 'bg-emerald-50 text-emerald-700',
   Cancelled: 'bg-red-50 text-red-700',
   Approved: 'bg-emerald-50 text-emerald-700',
+  Received: 'bg-amber-50 text-amber-700',
+  UnderReview: 'bg-blue-50 text-blue-700',
+  Resolved: 'bg-emerald-50 text-emerald-700',
 };
 
 function DashboardAdmin() {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const { users, dashboardCount } = useSelector((state) => state.USER)
   const { listOrders } = useSelector((state) => state.ORDER || { listOrders: [] })
+  const { listFeedbacks } = useSelector((state) => state.FEEDBACK || { listFeedbacks: [] })
 
   const userList = normalizeArray(users)
   const orderList = normalizeArray(listOrders)
+  const feedbackList = normalizeArray(listFeedbacks)
 
   useEffect(() => {
     dispatch(fetchAllUsers())
     dispatch(fetchDashboardCount())
     dispatch(fetchGetOrder())
+    dispatch(fetchGetAllFeedback())
   }, [dispatch])
 
   // Derive stats from dashboardCount.roleCounts array
@@ -49,6 +55,8 @@ function DashboardAdmin() {
   const totalFranchise = getRoleCount(3) || userList.filter(u => u.roleId === 3).length
   const totalSupplyCoordinator = getRoleCount(5) || userList.filter(u => u.roleId === 5).length
   const totalOrders = orderList.length
+  const totalFeedback = feedbackList.length
+  const openFeedback = feedbackList.filter((f) => f.status === 'Received' || f.status === 'UnderReview').length
 
   // Recent orders (last 5)
   const recentOrders = [...orderList]
@@ -60,6 +68,10 @@ function DashboardAdmin() {
     .sort((a, b) => (b.id || 0) - (a.id || 0))
     .slice(0, 5)
 
+  const recentFeedback = [...feedbackList]
+    .sort((a, b) => new Date(b.feedbackDate || 0) - new Date(a.feedbackDate || 0))
+    .slice(0, 5)
+
   return (
     <>
     <PageHeader
@@ -69,7 +81,7 @@ function DashboardAdmin() {
     />
     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
     {/* Stats Row - 5 columns */}
-    <div className="grid grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
       <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
         <div className="flex justify-between items-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Users</span>
@@ -119,10 +131,20 @@ function DashboardAdmin() {
         <span className="text-2xl font-bold text-slate-900">{totalOrders}</span>
         <span className="text-[11px] text-slate-500">All time</span>
       </div>
+      <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Feedback</span>
+          <div className="size-8 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-600">
+            <i className="fas fa-comment-dots text-sm" />
+          </div>
+        </div>
+        <span className="text-2xl font-bold text-slate-900">{totalFeedback}</span>
+        <span className="text-[11px] text-slate-500">Open: {openFeedback}</span>
+      </div>
     </div>
 
-    {/* Content Grid - 2 columns */}
-    <div className="grid grid-cols-2 gap-4">
+    {/* Content Grid - Orders, Users, Feedback */}
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
       {/* Recent Orders */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="flex justify-between items-center px-4 py-3 border-b border-slate-200">
@@ -205,6 +227,44 @@ function DashboardAdmin() {
           )}
         </div>
       </div>
+
+      {/* Recent Feedback */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="flex justify-between items-center px-4 py-3 border-b border-slate-200">
+          <span className="text-sm font-semibold text-slate-900">Recent Feedback</span>
+          <Link to="/FeedbackManagement" className="text-xs font-medium text-primary hover:underline">Manage →</Link>
+        </div>
+        <div className="p-4">
+          {recentFeedback.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-6">No feedback found.</p>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">Date</th>
+                  <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">Order</th>
+                  <th className="text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-100">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentFeedback.map((fb) => (
+                  <tr key={fb.id} className="hover:bg-slate-50">
+                    <td className="py-2.5 text-xs text-slate-600">
+                      {fb.feedbackDate ? new Date(fb.feedbackDate).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="py-2.5 text-xs font-semibold text-slate-700">#{fb.orderId || fb.refId || 'N/A'}</td>
+                    <td className="py-2.5">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${STATUS_COLORS[fb.status] || 'bg-slate-100 text-slate-600'}`}>
+                        ● {fb.status || 'Unknown'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
 
     {/* Bottom Grid - System Overview + Quick Actions */}
@@ -242,6 +302,20 @@ function DashboardAdmin() {
             </div>
             <span className="text-lg font-bold text-slate-900">{totalFranchise}</span>
           </div>
+          <div className="p-3 border-t border-r border-slate-100">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1">
+              <i className="fas fa-comment-dots text-cyan-600 text-[10px]" />
+              <span>Total Feedback</span>
+            </div>
+            <span className="text-lg font-bold text-slate-900">{totalFeedback}</span>
+          </div>
+          <div className="p-3 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-1">
+              <i className="fas fa-clock text-orange-500 text-[10px]" />
+              <span>Open Feedback</span>
+            </div>
+            <span className="text-lg font-bold text-slate-900">{openFeedback}</span>
+          </div>
         </div>
       </div>
 
@@ -273,6 +347,12 @@ function DashboardAdmin() {
               <i className="fas fa-database text-sm" />
             </div>
             <span className="text-xs font-semibold text-slate-800">Master Data</span>
+          </Link>
+          <Link to="/FeedbackManagement" className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:border-primary hover:bg-slate-50 cursor-pointer transition-colors">
+            <div className="size-8 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-600">
+              <i className="fas fa-comment-dots text-sm" />
+            </div>
+            <span className="text-xs font-semibold text-slate-800">Feedback Desk</span>
           </Link>
         </div>
       </div>
