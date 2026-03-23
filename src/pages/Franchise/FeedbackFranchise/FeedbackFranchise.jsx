@@ -213,7 +213,6 @@ function FeedbackFranchise() {
               <option value="Quality">Quality Issues</option>
               <option value="Delivery">Delivery Issues</option>
               <option value="Packaging">Packaging Issues</option>
-              <option value="Other">Other</option>
             </select>
           </div>
           <div className="flex flex-col gap-2">
