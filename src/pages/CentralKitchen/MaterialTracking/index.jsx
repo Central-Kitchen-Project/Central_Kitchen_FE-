@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch } from "react-redux";
 import axios from "axios";
 import { updateMaterialRequestStatus } from "../../../store/materialSlice";
-import { updateOrderStatus } from "../../../store/orderSlice";
+import { extractApiMessage, extractApiErrorMessage } from "../../../services/api";
 import PageHeader from "../../../components/common/PageHeader";
 
 const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
@@ -117,7 +117,7 @@ function MaterialTracking() {
       );
 
       if (updateMaterialRequestStatus.fulfilled.match(result)) {
-        return nextStatus;
+        return { appliedStatus: nextStatus, payload: result.payload?.payload };
       }
 
       lastError = result.payload || result.error;
@@ -178,22 +178,19 @@ function MaterialTracking() {
     setLoadingActionId(request.id);
     try {
       // Update material request status to Approved (backend will handle inventory update)
-      const appliedStatus = await dispatchMaterialStatusUpdate(request.id, ["Approved", "Fulfilled"]);
-
-      if (request.orderId) {
-        await dispatch(
-          updateOrderStatus({ id: request.orderId, status: "Confirmed", approvedBy })
-        ).unwrap();
-      }
+      const response = await dispatchMaterialStatusUpdate(request.id, ["Approved", "Fulfilled"]);
 
       if (detailModal?.id === request.id) {
-        setDetailModal((prev) => (prev ? { ...prev, status: appliedStatus } : prev));
+        setDetailModal((prev) => (prev ? { ...prev, status: response.appliedStatus } : prev));
       }
 
-      showToast("success", `Request #${request.id} has been confirmed.`);
+      showToast(
+        "success",
+        extractApiMessage(response?.payload, `Request #${request.id} has been confirmed.`)
+      );
       await fetchRequests();
     } catch (err) {
-      showToast("error", `Failed to update status: ${err?.response?.data?.message || err.message}`);
+      showToast("error", extractApiErrorMessage(err, "Failed to update material request status."));
     } finally {
       setLoadingActionId(null);
     }
