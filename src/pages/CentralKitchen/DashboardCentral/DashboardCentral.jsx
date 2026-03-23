@@ -147,7 +147,7 @@ function DashboardCentral() {
           Order Aggregation
         </button>
         <button
-          className="flex items-center gap-2 px-4 py-2 bg-navy-charcoal text-white rounded-lg text-sm font-bold hover:bg-black transition-all shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 transition-all shadow-sm"
           onClick={() => window.location.href = '/MaterialTracking'}
         >
           <span className="material-symbols-outlined text-[18px]">inventory_2</span>
