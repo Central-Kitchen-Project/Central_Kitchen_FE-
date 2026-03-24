@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import { fetchGetAllFeedback, fetchCreateFeedback } from '../../../store/feedbackSlice'
 import { fetchGetOrder } from '../../../store/orderSlice'
+import PageHeader from '../../../components/common/PageHeader'
 import './FeedbackFranchise.css'
 
 function FeedbackFranchise() {
@@ -174,17 +175,11 @@ function FeedbackFranchise() {
   };
   return (
     <>
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
-      <div className="flex flex-col">
-        <h2 className="text-xl font-bold text-slate-900">
-          Feedback &amp; Support
-        </h2>
-        <div className="flex items-center gap-2 text-slate-500">
-          <span className="material-symbols-outlined text-sm">location_on</span>
-          <span className="text-xs font-medium">Downtown Branch</span>
-        </div>
-      </div>
-    </header>
+    <PageHeader
+      as="h2"
+      title="Feedback & Support"
+      subtitle="Send feedback for completed orders."
+    />
     <div className="p-8 space-y-8 max-w-5xl mx-auto">
       <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800">

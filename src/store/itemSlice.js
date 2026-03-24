@@ -9,7 +9,9 @@ const normalizeArray = (data) => {
 };
 
 const initialState = {
-  listItems: []
+  listItems: [],
+  /** Increment after catalog mutations so pages can refetch and stay in sync. */
+  itemsVersion: 0,
 };
 
 const name = "item";
@@ -31,7 +33,10 @@ const itemSlice = createSlice({
   name,
   initialState,
   reducers: {
-    syncHiddenItems: () => {}
+    syncHiddenItems: () => {},
+    bumpItemCatalogVersion: (state) => {
+      state.itemsVersion += 1;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchGetAll.fulfilled, (state, action) => {
@@ -41,5 +46,5 @@ const itemSlice = createSlice({
 });
 
 export const HIDDEN_ITEM_IDS_STORAGE_KEY = "HIDDEN_ITEM_IDS";
-export const { syncHiddenItems } = itemSlice.actions;
+export const { syncHiddenItems, bumpItemCatalogVersion } = itemSlice.actions;
 export default itemSlice.reducer;

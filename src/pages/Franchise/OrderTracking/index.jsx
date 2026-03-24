@@ -121,6 +121,8 @@ const AVATAR_COLORS = [
 
 const STATUS_FILTERS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
 
+const ORDERS_PER_PAGE = 7;
+
 function OrderTracking() {
   const data = useSelector((state) => state.ORDER.listOrders);
   const dispatch = useDispatch();
@@ -149,6 +151,7 @@ function OrderTracking() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
+  const [ordersPage, setOrdersPage] = useState(1);
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -271,6 +274,17 @@ function OrderTracking() {
       return statusMatch && searchMatch && dateMatch;
     });
   }, [myOrders, filterStatus, searchTerm, filterFromDate, filterToDate]);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [filterStatus, searchTerm, filterFromDate, filterToDate]);
+
+  const ordersTotalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+  const ordersSafePage = Math.min(ordersPage, ordersTotalPages);
+  const pagedOrders = filteredOrders.slice(
+    (ordersSafePage - 1) * ORDERS_PER_PAGE,
+    ordersSafePage * ORDERS_PER_PAGE
+  );
 
   const detailLines = useMemo(() => normalizeCollection(detailModal?.orderLines), [detailModal]);
 
@@ -402,8 +416,9 @@ function OrderTracking() {
                         </td>
                       </tr>
                     )}
-                    {filteredOrders.map((order, idx) => {
-                      const avatarColor = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+                    {pagedOrders.map((order, idx) => {
+                      const rowIndex = (ordersSafePage - 1) * ORDERS_PER_PAGE + idx;
+                      const avatarColor = AVATAR_COLORS[rowIndex % AVATAR_COLORS.length];
                       const lines = order.orderLines || [];
                       const total = lines.reduce((s, l) => s + (l.price || 0) * l.quantity, 0);
                       const displayStatus = getOrderDisplayStatus(order.status);
@@ -550,18 +565,43 @@ function OrderTracking() {
               </div>
 
               {/* Footer */}
-              <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
+              <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-xs font-medium text-slate-500">
-                  Showing {filteredOrders.length} of {myOrders.length} orders
+                  {filteredOrders.length === 0 ? (
+                    <>0 orders match filters · {myOrders.length} total</>
+                  ) : (
+                    <>
+                      Hiển thị {(ordersSafePage - 1) * ORDERS_PER_PAGE + 1}–
+                      {Math.min(ordersSafePage * ORDERS_PER_PAGE, filteredOrders.length)} / {filteredOrders.length} đơn
+                      {filteredOrders.length !== myOrders.length && ` (tổng ${myOrders.length} đơn của bạn)`}
+                    </>
+                  )}
                 </span>
-                <div className="flex gap-2">
-                  <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-400 disabled:opacity-50" disabled>
-                    <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-                  </button>
-                  <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
-                    <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                  </button>
-                </div>
+                {filteredOrders.length > ORDERS_PER_PAGE && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
+                      disabled={ordersSafePage <= 1}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Previous page"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </button>
+                    <span className="text-xs font-semibold text-slate-600 px-2 min-w-[4.5rem] text-center">
+                      {ordersSafePage} / {ordersTotalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOrdersPage((p) => Math.min(ordersTotalPages, p + 1))}
+                      disabled={ordersSafePage >= ordersTotalPages}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Next page"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

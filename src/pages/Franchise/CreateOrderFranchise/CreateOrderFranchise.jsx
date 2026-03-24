@@ -3,19 +3,16 @@ import './CreateOrderFranchise.css'
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
 import { fetchGetAll } from '../../../store/itemSlice';
-import axios from 'axios';
+import API from '../../../services/api';
+import { isInactiveItem } from '../../../utils/itemCatalogStatus';
+import PageHeader from '../../../components/common/PageHeader';
 
 function CreateOrderFranchise() {
   const data = useSelector(state => state.ITEM.listItems);
+  const itemsVersion = useSelector(state => state.ITEM.itemsVersion ?? 0);
   const dispatch = useDispatch();
 
-  const activeItems = (data || []).filter((item) => {
-    if (!item || typeof item !== 'object') return false;
-    if (item.active === false) return false;
-    if (item.isActive === false) return false;
-    if (item.isAvailable === false) return false;
-    return true;
-  });
+  const activeItems = (data || []).filter((item) => !isInactiveItem(item));
 
   // Get logged-in user info from localStorage
   const userInfo = (() => {
@@ -39,7 +36,7 @@ function CreateOrderFranchise() {
 
   useEffect(() => {
     dispatch(fetchGetAll({ type: "", category: "" }));
-  }, [dispatch]);
+  }, [dispatch, itemsVersion]);
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -51,7 +48,7 @@ function CreateOrderFranchise() {
     if (itemDetails[itemId] || loadingDetails[itemId]) return;
     setLoadingDetails(prev => ({ ...prev, [itemId]: true }));
     try {
-      const res = await axios.get(`http://meinamfpt-001-site1.ltempurl.com/api/Item/${itemId}`);
+      const res = await API.callWithToken().get(`Item/${itemId}`);
       const detail = res.data?.data;
       if (detail) {
         setItemDetails(prev => ({ ...prev, [itemId]: detail }));
@@ -149,7 +146,7 @@ function CreateOrderFranchise() {
         const detailEntries = await Promise.all(
           missingDetailIds.map(async (itemId) => {
             try {
-              const res = await axios.get(`http://meinamfpt-001-site1.ltempurl.com/api/Item/${itemId}`);
+              const res = await API.callWithToken().get(`Item/${itemId}`);
               return [itemId, res.data?.data || null];
             } catch {
               return [itemId, null];
@@ -169,12 +166,7 @@ function CreateOrderFranchise() {
         items: orderItems,
       };
 
-      await axios.post('http://meinamfpt-001-site1.ltempurl.com/api/Order', payload, {
-        headers: {
-          'accept': '*/*',
-          'Content-Type': 'application/json',
-        },
-      });
+      await API.callWithToken().post('Order', payload);
 
       showToast('success', 'Order placed successfully! Your order has been sent to Central Kitchen.');
       setSelectedItems({});
@@ -219,25 +211,28 @@ function CreateOrderFranchise() {
       <div className="create-order-page flex min-h-screen">
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ height: '100vh' }}>
-          {/* Header */}
-          <div className="header">
-            <div>
-              <div className="breadcrumb-custom">
-                <i className="fas fa-home" />
-                <span>Downtown Branch &gt; Product Order</span>
+          <PageHeader
+            as="h2"
+            title="Create New Order"
+            subtitle="Browse available products, set quantities, and send your order to Central Kitchen."
+            contentClassName="flex-1 max-w-none"
+            subtitleClassName="truncate"
+            actions={
+              <div className="relative w-full min-w-[200px] max-w-sm">
+                <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">
+                  search
+                </span>
+                <input
+                  type="search"
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  autoComplete="off"
+                />
               </div>
-              <div className="header-title">Create New Order</div>
-            </div>
-            <div className="header-right">
-              <input
-                type="text"
-                className="search-box"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
+            }
+          />
 
           {/* Content */}
           <div className="content-area">
