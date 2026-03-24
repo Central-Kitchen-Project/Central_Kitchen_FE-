@@ -260,7 +260,7 @@ function FranchiseTransactionHistory() {
       <PageHeader
         as="h2"
         title="Stock History"
-        subtitle="Stock in tied to your account only: receipts for orders you placed (other franchise accounts are not shown)."
+        subtitle="Stock in tied to your account only: receipts for orders you placed."
       />
       <div className="flex-1 overflow-y-auto p-8 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">

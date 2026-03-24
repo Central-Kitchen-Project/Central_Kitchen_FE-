@@ -37,12 +37,13 @@ function getOrderDisplayStatus(status) {
 function DashboardManager() {
   const dispatch = useDispatch()
   const items = useSelector(state => state.ITEM.listItems) || []
+  const itemsVersion = useSelector(state => state.ITEM.itemsVersion ?? 0)
   const orders = useSelector(state => state.ORDER.listOrders) || []
 
   useEffect(() => {
     dispatch(fetchGetAll({ type: '', category: '' }))
     dispatch(fetchGetOrder())
-  }, [dispatch])
+  }, [dispatch, itemsVersion])
 
   // Stats
   const totalItems = items.length

@@ -1,18 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchGetAll } from '../../../store/itemSlice'
+import { fetchGetAll, bumpItemCatalogVersion } from '../../../store/itemSlice'
 import API from '../../../services/api'
-import axios from 'axios'
 import PageHeader from '../../../components/common/PageHeader'
+import { isInactiveItem } from '../../../utils/itemCatalogStatus'
 
-const isInactiveItem = (item) => {
-  if (!item || typeof item !== 'object') return false
-  if (item.active === false || item.isActive === false || item.isAvailable === false) return true
-
-  const status = String(item.status || '').toLowerCase()
-  if (status === 'inactive' || status === 'disabled' || status === 'unavailable') return true
-
-  return false
+/** PUT catalog flags: single source of truth `isActive` (BE ItemUpdateDto / IsActive). */
+function buildPutItemCatalogPayload(current, row, catalogActive) {
+  const parsedPrice = Number(current.price ?? row.price ?? 0)
+  return {
+    itemName: (current.itemName || current.name || row.name || '').trim(),
+    unit: (current.unit || row.unit || '').trim(),
+    itemType: (current.itemType || current.type || row.type || '').trim(),
+    description: (current.description ?? row.description ?? '').trim(),
+    price: Number.isFinite(parsedPrice) && parsedPrice >= 0 ? parsedPrice : 0,
+    category: (current.category || row.category || '').trim(),
+    isActive: catalogActive,
+  }
 }
 
 const getItemStatus = (item) => {
@@ -27,6 +31,7 @@ function MenuManagement() {
   const dispatch = useDispatch()
 
   const [currentFilter, setCurrentFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('default')
 
   // Detail modal
@@ -63,13 +68,14 @@ function MenuManagement() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [activatingId, setActivatingId] = useState(null)
   const [statusOverride, setStatusOverride] = useState({})
 
   const [toast, setToast] = useState(null)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 8
+  const ITEMS_PER_PAGE = 7
 
   // Edit Item modal state and logic
   const [showEditModal, setShowEditModal] = useState(false)
@@ -127,13 +133,14 @@ function MenuManagement() {
         description: (editForm.description ?? current.description ?? '').trim(),
         price: parsedPrice,
         category: (editForm.category || current.category || '').trim(),
-        isAvailable: current.isAvailable !== false,
+        isActive: current.isActive ?? true,
       }
 
       await API.callWithToken().put(`Item/${editForm.id}`, payload)
       showToast('success', 'Item updated successfully!')
       setShowEditModal(false)
-      dispatch(fetchGetAll({ type: '', category: '' }))
+      await dispatch(fetchGetAll({ type: '', category: '' }))
+      dispatch(bumpItemCatalogVersion())
     } catch (err) {
       console.error('Failed to update item:', err)
       const apiMessage =
@@ -142,6 +149,42 @@ function MenuManagement() {
         (Array.isArray(err?.response?.data?.errors) ? err.response.data.errors.join(', ') : null)
 
       showToast('error', apiMessage || 'Failed to update item. Please try again.')
+    }
+  }
+
+  const activateItem = async (item) => {
+    if (!item?.id) return
+    setActivatingId(item.id)
+    try {
+      const detailRes = await API.callWithToken().get(`Item/${item.id}`)
+      const current = detailRes?.data?.data || {}
+      const payload = buildPutItemCatalogPayload(current, item, true)
+
+      await API.callWithToken().put(`Item/${item.id}`, payload)
+      await dispatch(fetchGetAll({ type: '', category: '' }))
+
+      const verifyRes = await API.callWithToken().get(`Item/${item.id}`)
+      const after = verifyRes?.data?.data || {}
+      if (after.isActive === false) {
+        showToast(
+          'error',
+          'API accepted PUT but isActive is still false. Map ItemUpdateDto.IsActive → Item.IsActive in UpdateItemAsync.'
+        )
+        return
+      }
+
+      dispatch(bumpItemCatalogVersion())
+      showToast('success', `"${item.name}" is now active again.`)
+    } catch (err) {
+      console.error('Failed to activate item:', err)
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.title ||
+        (Array.isArray(err?.response?.data?.errors) ? err.response.data.errors.join(', ') : null)
+
+      showToast('error', apiMessage || 'Failed to activate item. Please try again.')
+    } finally {
+      setActivatingId(null)
     }
   }
 
@@ -158,7 +201,7 @@ function MenuManagement() {
   const fetchItemDetail = async (itemId) => {
     if (itemDetails[itemId]) return itemDetails[itemId]
     try {
-      const res = await axios.get(`/api/Item/${itemId}`)
+      const res = await API.callWithToken().get(`Item/${itemId}`)
       const detail = res.data?.data
       if (detail) {
         setItemDetails(prev => ({ ...prev, [itemId]: detail }))
@@ -181,10 +224,21 @@ function MenuManagement() {
 
   const rawMaterialUnits = [...new Set(rawMaterials.map(item => item.unit?.toLowerCase()).filter(Boolean))].sort()
 
-  const filteredProducts = (data || []).filter(item => {
-    if (currentFilter === 'all') return true
-    return item.type?.toLowerCase() === currentFilter
-  }).sort((a, b) => {
+  const filteredProducts = (data || [])
+    .filter(item => {
+      if (currentFilter === 'all') return true
+      return item.type?.toLowerCase() === currentFilter
+    })
+    .filter(item => {
+      const q = searchQuery.trim().toLowerCase()
+      if (!q) return true
+      const name = String(item.name ?? '').toLowerCase()
+      const desc = String(item.description ?? '').toLowerCase()
+      const cat = String(item.category ?? '').toLowerCase()
+      const type = String(item.type ?? '').toLowerCase()
+      return name.includes(q) || desc.includes(q) || cat.includes(q) || type.includes(q)
+    })
+    .sort((a, b) => {
     switch (sortBy) {
       case 'name-asc': return (a.name || '').localeCompare(b.name || '')
       case 'name-desc': return (b.name || '').localeCompare(a.name || '')
@@ -274,7 +328,7 @@ function MenuManagement() {
     }
     setCreating(true)
     try {
-      await axios.post('/api/Item', {
+      await API.callWithToken().post('Item', {
         itemName: addForm.itemName.trim(),
         unit: addForm.unit.trim(),
         itemType: addForm.itemType.trim(),
@@ -284,7 +338,8 @@ function MenuManagement() {
       })
       showToast('success', 'Item created successfully!')
       setShowAddModal(false)
-      dispatch(fetchGetAll({ type: '', category: '' }))
+      await dispatch(fetchGetAll({ type: '', category: '' }))
+      dispatch(bumpItemCatalogVersion())
     } catch (err) {
       console.error('Failed to create item:', err)
       showToast('error', 'Failed to create item. Please try again.')
@@ -332,9 +387,24 @@ function MenuManagement() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await API.callWithToken().delete(`Item/${deleteTarget.id}`)
+      const detailRes = await API.callWithToken().get(`Item/${deleteTarget.id}`)
+      const current = detailRes?.data?.data || {}
+      const deactivatePayload = buildPutItemCatalogPayload(current, deleteTarget, false)
+      try {
+        await API.callWithToken().put(`Item/${deleteTarget.id}`, deactivatePayload)
+      } catch (putErr) {
+        console.warn('PUT deactivate skipped or failed, using DELETE if needed:', putErr)
+      }
+
+      const verifyRes = await API.callWithToken().get(`Item/${deleteTarget.id}`)
+      const after = verifyRes?.data?.data || {}
+      const clearlyInactive = after.isActive === false || after.is_active === false
+      if (!clearlyInactive) {
+        await API.callWithToken().delete(`Item/${deleteTarget.id}`)
+      }
 
       await dispatch(fetchGetAll({ type: '', category: '' }))
+      dispatch(bumpItemCatalogVersion())
       setStatusOverride((prev) => {
         const next = { ...prev }
         delete next[deleteTarget.id]
@@ -391,9 +461,9 @@ function MenuManagement() {
         }))
       }
       if (hasExisting) {
-        await axios.put('/api/Item/update-ingredients', payload)
+        await API.callWithToken().put('Item/update-ingredients', payload)
       } else {
-        await axios.post('/api/Item/create-recipe', payload)
+        await API.callWithToken().post('Item/create-recipe', payload)
       }
       showToast('success', 'Ingredients saved successfully!')
       // Refresh cached detail
@@ -411,6 +481,11 @@ function MenuManagement() {
       setSavingIngredients(false)
     }
   }
+
+  const addTypeLc = addForm.itemType?.toLowerCase() || ''
+  const addFormIsFinishedType = addTypeLc === 'thanh pham' || addTypeLc === 'finished'
+  const addCategoryLocked =
+    addTypeLc === 'nguyen lieu' || addTypeLc === 'raw material' || addFormIsFinishedType
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
@@ -434,6 +509,39 @@ function MenuManagement() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-8">
+        {/* Search */}
+        <div className="mb-4">
+          <div className="relative max-w-xl">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[22px] pointer-events-none select-none">
+              search
+            </span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+              placeholder="Search by name, description, category, or type…"
+              autoComplete="off"
+              className="w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            />
+            {searchQuery.trim() !== '' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('')
+                  setCurrentPage(1)
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                aria-label="Clear search"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Filter & Actions */}
         <div className="flex gap-2 mb-6 flex-wrap items-center">
           <button
@@ -503,15 +611,22 @@ function MenuManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pagedProducts.map((product, idx) => {
+                {pagedProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-14 text-center text-sm text-slate-500">
+                      No items match this filter or search. Try another keyword or tab.
+                    </td>
+                  </tr>
+                ) : (
+                  pagedProducts.map((product, idx) => {
                   const finished = isFinished(product)
                   const expanded = expandedRows[product.id]
                   const ings = rowIngredients[product.id] || []
                   const isLoadingIng = loadingRow[product.id]
                   const status = statusOverride[product.id] || getItemStatus(product)
                   return (
-                    <>
-                      <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
+                    <Fragment key={product.id}>
+                      <tr className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-5 py-3 text-xs text-slate-400">{(safePage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
                         <td className="px-5 py-3">
                           <div>
@@ -584,13 +699,30 @@ function MenuManagement() {
                               <span className="material-symbols-outlined text-xs">visibility</span>
                               Detail
                             </button>
-                            <button
-                              onClick={() => openDeleteModal(product)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-semibold rounded-md transition-colors"
-                              title="Delete item"
-                            >
-                              <span className="material-symbols-outlined text-xs">delete</span>
-                            </button>
+                            {status === 'Inactive' && (
+                              <button
+                                type="button"
+                                onClick={() => activateItem(product)}
+                                disabled={activatingId === product.id}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-semibold rounded-md transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                                title="Set item available again"
+                              >
+                                <span className="material-symbols-outlined text-xs">
+                                  {activatingId === product.id ? 'hourglass_empty' : 'check_circle'}
+                                </span>
+                                {activatingId === product.id ? 'Activating...' : 'Activate'}
+                              </button>
+                            )}
+                            {status === 'Active' && (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(product)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-semibold rounded-md transition-colors"
+                                title="Delete item"
+                              >
+                                <span className="material-symbols-outlined text-xs">delete</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                             {/* Edit Item Modal */}
@@ -703,9 +835,10 @@ function MenuManagement() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
-                })}
+                })
+                )}
               </tbody>
             </table>
 
@@ -851,13 +984,14 @@ function MenuManagement() {
                     value={addForm.itemType}
                     onChange={e => {
                       const newType = e.target.value
-                      const isTP = newType.toLowerCase() === 'thanh pham'
-                      const isNL = newType.toLowerCase() === 'nguyen lieu' || newType.toLowerCase() === 'raw material'
-                      handleAddFormChange('itemType', newType)
+                      const t = newType.toLowerCase()
+                      const isTP = t === 'thanh pham' || t === 'finished'
+                      const isNL = t === 'nguyen lieu' || t === 'raw material'
                       setAddForm(prev => ({
                         ...prev,
+                        itemType: newType,
                         unit: isTP ? 'pcs' : prev.unit,
-                        category: isNL ? 'nguyen lieu' : prev.category
+                        category: isNL ? 'nguyen lieu' : isTP ? 'thanh pham' : ''
                       }))
                     }}
                     required
@@ -871,7 +1005,7 @@ function MenuManagement() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Unit *</label>
-                  {addForm.itemType?.toLowerCase() === 'thanh pham' ? (
+                  {addFormIsFinishedType ? (
                     <input type="text" value="pcs" disabled className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed" />
                   ) : (
                     <select
@@ -913,21 +1047,30 @@ function MenuManagement() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
-                  <input
-                    type="text"
-                    value={addForm.category}
-                    onChange={e => handleAddFormChange('category', e.target.value)}
-                    placeholder="Enter category"
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-
+                  {addCategoryLocked ? (
+                    <input
+                      type="text"
+                      value={addForm.category}
+                      readOnly
+                      disabled
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={addForm.category}
+                      onChange={e => handleAddFormChange('category', e.target.value)}
+                      placeholder="Enter category"
+                      required
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
                 </div>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 All fields are required. You cannot create an item with empty values.
               </div>
-              {addForm.itemType?.toLowerCase() === 'thanh pham' && (
+              {addFormIsFinishedType && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-xs text-blue-600">
                     <span className="material-symbols-outlined text-xs align-middle mr-1">info</span>

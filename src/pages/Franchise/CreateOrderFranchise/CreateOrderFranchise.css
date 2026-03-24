@@ -20,49 +20,9 @@ body {
     height: 100vh;
 }
 
-/* --- Main Content & Header --- */
+/* --- Main Content layout --- */
 .create-order-page .ml-64 {
     height: 100vh;
-}
-
-.header {
-    background: white;
-    border-bottom: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
-    padding: 16px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.breadcrumb-custom {
-    font-size: 13px;
-    color: #4b5563; /* Thay thế var(--gray-600) */
-    margin-bottom: 8px;
-}
-
-.breadcrumb-custom span {
-    margin: 0 4px;
-}
-
-.header-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: #111827; /* Thay thế var(--gray-900) */
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.search-box {
-    padding: 6px 12px;
-    border: 1px solid #e5e7eb; /* Thay thế var(--gray-200) */
-    border-radius: 6px;
-    width: 220px;
-    font-size: 12px;
-    background: #f9fafb; /* Thay thế var(--gray-50) */
 }
 
 /* --- Content Area --- */

@@ -20,6 +20,7 @@ function ReportAnalyticsManager() {
   const dispatch = useDispatch()
 
   const listItems = useSelector((state) => state.ITEM.listItems) || []
+  const itemsVersion = useSelector((state) => state.ITEM.itemsVersion ?? 0)
   const listInventory = useSelector((state) => state.INVENTORY.listInventory) || []
   const inventoryLoading = useSelector((state) => state.INVENTORY.loading)
   const users = useSelector((state) => state.USER?.users) || []
@@ -28,7 +29,7 @@ function ReportAnalyticsManager() {
   useEffect(() => {
     dispatch(fetchGetAll({ type: '', category: '' }))
     dispatch(fetchAllUsers())
-  }, [dispatch])
+  }, [dispatch, itemsVersion])
 
   const trackableUsers = useMemo(() => {
     const userList = Array.isArray(users) ? users : []
