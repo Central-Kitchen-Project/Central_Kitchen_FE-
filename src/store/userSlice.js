@@ -1,10 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import userService from "../services/userService";
 
-// The .NET API may return { $id, $values: [...] } or a plain array
+// The .NET API may return { data: { $values: [...] } }, envelopes, or a plain array
 const normalizeArray = (data) => {
+  if (data == null) return [];
   if (Array.isArray(data)) return data;
   if (data && Array.isArray(data.$values)) return data.$values;
+  if (data && data.data !== undefined) return normalizeArray(data.data);
   if (data && typeof data === "object") return Object.values(data).find(Array.isArray) || [];
   return [];
 };
@@ -14,7 +16,7 @@ export const fetchAllUsers = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await userService.getAllUsers();
-      return normalizeArray(res.data);
+      return normalizeArray(res.data?.data ?? res.data);
     } catch (err) {
       return rejectWithValue(err.response?.data || "Failed to fetch users");
     }
@@ -26,7 +28,7 @@ export const fetchUsersByRole = createAsyncThunk(
   async (roleId, { rejectWithValue }) => {
     try {
       const res = await userService.getUsersByRole(roleId);
-      return normalizeArray(res.data);
+      return normalizeArray(res.data?.data ?? res.data);
     } catch (err) {
       return rejectWithValue(err.response?.data || "Failed to fetch users by role");
     }

@@ -1,9 +1,25 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetAll, bumpItemCatalogVersion } from '../../../store/itemSlice'
 import API from '../../../services/api'
+import { fetchMeasurementUnits } from '../../../services/unitService'
 import PageHeader from '../../../components/common/PageHeader'
 import { isInactiveItem } from '../../../utils/itemCatalogStatus'
+
+/** Merge API + catalog units; preserve first-seen casing per normalized key. */
+function mergeUnitChoices(apiList, fromItemUnits, extraCurrent) {
+  const seen = new Map()
+  const add = (s) => {
+    const t = String(s || '').trim()
+    if (!t) return
+    const k = t.toLowerCase()
+    if (!seen.has(k)) seen.set(k, t)
+  }
+  ;(apiList || []).forEach(add)
+  ;(fromItemUnits || []).forEach(add)
+  add(extraCurrent)
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+}
 
 /** PUT catalog flags: single source of truth `isActive` (BE ItemUpdateDto / IsActive). */
 function buildPutItemCatalogPayload(current, row, catalogActive) {
@@ -72,6 +88,7 @@ function MenuManagement() {
   const [statusOverride, setStatusOverride] = useState({})
 
   const [toast, setToast] = useState(null)
+  const [apiUnits, setApiUnits] = useState([])
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -126,9 +143,15 @@ function MenuManagement() {
       const detailRes = await API.callWithToken().get(`Item/${editForm.id}`)
       const current = detailRes?.data?.data || {}
 
+      const typeLc = (editForm.itemType || current.itemType || current.type || '').toLowerCase()
+      const isFinishedItem = typeLc === 'thanh pham' || typeLc === 'finished'
+      const unitToSave = isFinishedItem
+        ? 'pcs'
+        : (editForm.unit || current.unit || '').trim()
+
       const payload = {
         itemName: editForm.itemName.trim() || current.itemName || current.name || '',
-        unit: (editForm.unit || current.unit || '').trim(),
+        unit: unitToSave,
         itemType: (editForm.itemType || current.itemType || current.type || '').trim(),
         description: (editForm.description ?? current.description ?? '').trim(),
         price: parsedPrice,
@@ -192,6 +215,20 @@ function MenuManagement() {
     dispatch(fetchGetAll({ type: '', category: '' }))
   }, [dispatch])
 
+  useEffect(() => {
+    let cancelled = false
+    fetchMeasurementUnits()
+      .then((list) => {
+        if (!cancelled && Array.isArray(list) && list.length > 0) {
+          setApiUnits(list)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const showToast = (type, message) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3000)
@@ -223,6 +260,16 @@ function MenuManagement() {
   })
 
   const rawMaterialUnits = [...new Set(rawMaterials.map(item => item.unit?.toLowerCase()).filter(Boolean))].sort()
+
+  const addUnitDropdownOptions = useMemo(
+    () => mergeUnitChoices(apiUnits, rawMaterialUnits, ''),
+    [apiUnits, rawMaterialUnits]
+  )
+
+  const editUnitDropdownOptions = useMemo(
+    () => mergeUnitChoices(apiUnits, rawMaterialUnits, showEditModal ? editForm.unit : ''),
+    [apiUnits, rawMaterialUnits, showEditModal, editForm.unit]
+  )
 
   const filteredProducts = (data || [])
     .filter(item => {
@@ -749,12 +796,42 @@ function MenuManagement() {
                                   </div>
                                   <div className="mb-3">
                                     <label className="block text-xs font-semibold mb-1">Unit</label>
-                                    <input
-                                      type="text"
-                                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-                                      value={editForm.unit}
-                                      onChange={e => handleEditChange('unit', e.target.value)}
-                                    />
+                                    {(() => {
+                                      const t = (editForm.itemType || '').toLowerCase()
+                                      const isFin = t === 'thanh pham' || t === 'finished'
+                                      if (isFin) {
+                                        return (
+                                          <input
+                                            type="text"
+                                            value="pcs"
+                                            readOnly
+                                            disabled
+                                            className="w-full border border-slate-200 bg-slate-100 text-slate-500 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                                          />
+                                        )
+                                      }
+                                      const cur = String(editForm.unit || '').trim()
+                                      const matched =
+                                        cur &&
+                                        editUnitDropdownOptions.find(
+                                          (u) => u.toLowerCase() === cur.toLowerCase()
+                                        )
+                                      const selectValue = matched || cur || ''
+                                      return (
+                                        <select
+                                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"
+                                          value={selectValue}
+                                          onChange={(e) => handleEditChange('unit', e.target.value)}
+                                        >
+                                          <option value="">Select unit</option>
+                                          {editUnitDropdownOptions.map((u) => (
+                                            <option key={u} value={u}>
+                                              {u}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      )
+                                    })()}
                                   </div>
                                   <div className="mb-3">
                                     <label className="block text-xs font-semibold mb-1">Type</label>
@@ -1015,8 +1092,10 @@ function MenuManagement() {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select unit</option>
-                      {rawMaterialUnits.map(u => (
-                        <option key={u} value={u}>{u}</option>
+                      {addUnitDropdownOptions.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
                       ))}
                     </select>
                   )}

@@ -1,6 +1,23 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import inventoryService from "../services/inventoryService";
 
+/** Unwrap .NET / OData style payloads to a plain array for Redux. */
+function normalizeInventoryPayload(data) {
+  if (data == null) return [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.$values)) return data.$values;
+  if (data.data !== undefined) return normalizeInventoryPayload(data.data);
+  if (Array.isArray(data.value)) return data.value;
+  if (data.value != null && typeof data.value === "object") {
+    return normalizeInventoryPayload(data.value);
+  }
+  if (typeof data === "object") {
+    const nested = Object.values(data).find(Array.isArray);
+    return nested || [];
+  }
+  return [];
+}
+
 const initialState = {
   listInventory: [],
   loading: false,
@@ -14,10 +31,12 @@ export const fetchGetInventory = createAsyncThunk(
   async (userId, { rejectWithValue }) => {
     try {
       const response = await inventoryService.GetAll(userId);
-      console.log("inventory response", response);
-      return response.data.value || response.data;
+      const raw =
+        response.data?.value ??
+        response.data?.data ??
+        response.data;
+      return normalizeInventoryPayload(raw);
     } catch (error) {
-      console.log(error);
       return rejectWithValue(error.response?.data || "Failed to fetch inventory");
     }
   }
@@ -28,10 +47,8 @@ export const fetchUpdateInventory = createAsyncThunk(
   async ({ id, quantity, userId }, { rejectWithValue }) => {
     try {
       const response = await inventoryService.UpdateStock(id, quantity, userId);
-      console.log("update inventory response", response);
       return { id, quantity, data: response.data };
     } catch (error) {
-      console.log(error);
       return rejectWithValue(error.response?.data || "Failed to update inventory");
     }
   }
@@ -49,7 +66,7 @@ const inventorySlice = createSlice({
     });
     builder.addCase(fetchGetInventory.fulfilled, (state, action) => {
       state.loading = false;
-      state.listInventory = action.payload;
+      state.listInventory = normalizeInventoryPayload(action.payload);
     });
     builder.addCase(fetchGetInventory.rejected, (state, action) => {
       state.loading = false;
@@ -59,7 +76,7 @@ const inventorySlice = createSlice({
     // Update stock
     builder.addCase(fetchUpdateInventory.fulfilled, (state, action) => {
       const { id, quantity } = action.payload;
-      const item = state.listInventory.find((inv) => inv.id === id);
+      const item = state.listInventory.find((inv) => inv.id === id || inv.Id === id);
       if (item) {
         item.quantity = quantity;
       }
