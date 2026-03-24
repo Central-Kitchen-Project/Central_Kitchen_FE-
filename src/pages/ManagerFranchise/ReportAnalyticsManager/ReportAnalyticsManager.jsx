@@ -2,13 +2,178 @@ import { useState, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchGetAll } from '../../../store/itemSlice'
 import { fetchGetInventory } from '../../../store/inventorySlice'
+import { fetchGetMaterialRequest } from '../../../store/materialSlice'
 import { fetchAllUsers } from '../../../store/userSlice'
 import PageHeader from '../../../components/common/PageHeader'
 
-const TRACKABLE_ROLE_OPTIONS = [
-  { value: '4', label: 'Central Kitchen' },
-  { value: '5', label: 'Supply Coordinator' },
+const ROLE_CENTRAL_KITCHEN = '4'
+const ROLE_SUPPLY = '5'
+/** Sentinel: aggregate material-request stats for every Central Kitchen user in scope. */
+const CENTRAL_USER_ALL = '__all__'
+
+const MATERIAL_CENTRAL_HANDLER_ID_KEYS = [
+  'handledByUserId',
+  'HandledByUserId',
+  'approvedByUserId',
+  'ApprovedByUserId',
+  'acceptedByUserId',
+  'AcceptedByUserId',
+  'processedByUserId',
+  'ProcessedByUserId',
+  'centralKitchenUserId',
+  'CentralKitchenUserId',
+  'centralUserId',
+  'CentralUserId',
+  'updatedByUserId',
+  'UpdatedByUserId',
+  'lastModifiedByUserId',
+  'LastModifiedByUserId',
 ]
+
+const MATERIAL_CENTRAL_HANDLER_NAME_KEYS = [
+  'handledByUsername',
+  'HandledByUsername',
+  'acceptedByUsername',
+  'AcceptedByUsername',
+  'approvedByUsername',
+  'ApprovedByUsername',
+]
+
+function handlerIdFromValue(v) {
+  if (v == null || v === '') return null
+  if (typeof v === 'object') {
+    const inner = v.id ?? v.Id ?? v.userId ?? v.UserId
+    return inner != null ? String(inner) : null
+  }
+  return String(v)
+}
+
+function scopeHasCentralHandlerMetadata(scoped) {
+  return scoped.some((r) => {
+    for (const k of MATERIAL_CENTRAL_HANDLER_ID_KEYS) {
+      const id = handlerIdFromValue(r[k])
+      if (id) return true
+    }
+    for (const k of MATERIAL_CENTRAL_HANDLER_NAME_KEYS) {
+      const n = String(r[k] || '').trim()
+      if (n) return true
+    }
+    return false
+  })
+}
+
+const TRACKABLE_ROLE_OPTIONS = [
+  { value: ROLE_CENTRAL_KITCHEN, label: 'Central Kitchen' },
+  { value: ROLE_SUPPLY, label: 'Supply Coordinator' },
+]
+
+function formatVnd(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '—'
+  return `${n.toLocaleString('en-US')} ₫`
+}
+
+function getMaterialRequestDisplayStatus(status) {
+  switch (status) {
+    case 'Approved':
+    case 'Fulfilled':
+    case 'Confirmed':
+      return 'Confirmed'
+    case 'Pending':
+    case 'Processing':
+      return 'Processing'
+    default:
+      return status || 'Unknown'
+  }
+}
+
+function getMaterialStatusBadgeClass(status) {
+  const display = getMaterialRequestDisplayStatus(status)
+  if (display === 'Confirmed') return 'bg-green-50 text-green-600'
+  if (display === 'Processing') return 'bg-blue-50 text-blue-700'
+  return 'bg-slate-50 text-slate-500'
+}
+
+function isMaterialProcessingOrConfirmed(rawStatus) {
+  const d = getMaterialRequestDisplayStatus(rawStatus)
+  return d === 'Processing' || d === 'Confirmed'
+}
+
+function userRoleId(user) {
+  const r = user?.roleId ?? user?.RoleId
+  return r != null ? String(r) : ''
+}
+
+function userRowId(user) {
+  const id = user?.id ?? user?.Id
+  return id != null ? String(id) : ''
+}
+
+function userDisplayName(user) {
+  return (
+    user?.username ||
+    user?.Username ||
+    user?.email ||
+    user?.Email ||
+    (userRowId(user) ? `User #${userRowId(user)}` : 'User')
+  )
+}
+
+function materialMatchesCentralUserFilter(mat, userIdStr, userRow) {
+  if (!userIdStr || userIdStr === CENTRAL_USER_ALL) return true
+  const uid = String(userIdStr)
+  for (const k of MATERIAL_CENTRAL_HANDLER_ID_KEYS) {
+    const id = handlerIdFromValue(mat[k])
+    if (id && id === uid) return true
+  }
+  const udisp = String(userDisplayName(userRow) || '')
+    .trim()
+    .toLowerCase()
+  if (!udisp) return false
+  for (const k of MATERIAL_CENTRAL_HANDLER_NAME_KEYS) {
+    const n = String(mat[k] || '')
+      .trim()
+      .toLowerCase()
+    if (n && n === udisp) return true
+  }
+  return false
+}
+
+/** Display label when BE exposes who accepted/handled the request; otherwise em dash. */
+function getMaterialAcceptedByDisplay(mat) {
+  if (!mat || typeof mat !== 'object') return '—'
+  const keys = [
+    ...MATERIAL_CENTRAL_HANDLER_NAME_KEYS,
+    'acceptedByUsername',
+    'AcceptedByUsername',
+    'confirmedByUsername',
+    'ConfirmedByUsername',
+    'processedByUsername',
+    'ProcessedByUsername',
+    'acceptedBy',
+    'AcceptedBy',
+    'handledBy',
+    'HandledBy',
+  ]
+  for (const k of keys) {
+    const v = mat[k]
+    if (v == null || v === '') continue
+    if (typeof v === 'object') {
+      const name =
+        v.username ??
+        v.Username ??
+        v.name ??
+        v.Name ??
+        v.email ??
+        v.Email
+      if (name != null && String(name).trim() !== '') return String(name).trim()
+      continue
+    }
+    const s = String(v).trim()
+    if (s) return s
+  }
+  return '—'
+}
 
 function ReportAnalyticsManager() {
   const [activeReport, setActiveReport] = useState('cost')
@@ -23,8 +188,13 @@ function ReportAnalyticsManager() {
   const itemsVersion = useSelector((state) => state.ITEM.itemsVersion ?? 0)
   const listInventory = useSelector((state) => state.INVENTORY.listInventory) || []
   const inventoryLoading = useSelector((state) => state.INVENTORY.loading)
+  const listMaterials = useSelector((state) => state.MATERIAL?.listMaterials) || []
+  const materialsLoading = useSelector((state) => state.MATERIAL?.loading)
   const users = useSelector((state) => state.USER?.users) || []
   const userLoading = useSelector((state) => state.USER?.loading)
+
+  const isSupplyRole = selectedRoleId === ROLE_SUPPLY
+  const isCentralRole = selectedRoleId === ROLE_CENTRAL_KITCHEN
 
   useEffect(() => {
     dispatch(fetchGetAll({ type: '', category: '' }))
@@ -35,25 +205,25 @@ function ReportAnalyticsManager() {
     const userList = Array.isArray(users) ? users : []
 
     return userList
-      .filter((user) => ['4', '5'].includes(String(user?.roleId)))
+      .filter((user) => ['4', '5'].includes(userRoleId(user)))
       .sort((a, b) => {
-        const nameA = String(a?.username || a?.email || a?.id || '').toLowerCase()
-        const nameB = String(b?.username || b?.email || b?.id || '').toLowerCase()
+        const nameA = String(a?.username || a?.email || userRowId(a) || '').toLowerCase()
+        const nameB = String(b?.username || b?.email || userRowId(b) || '').toLowerCase()
         return nameA.localeCompare(nameB)
       })
   }, [users])
 
   const availableUsers = useMemo(
-    () => trackableUsers.filter((user) => String(user?.roleId) === selectedRoleId),
+    () => trackableUsers.filter((user) => userRoleId(user) === selectedRoleId),
     [trackableUsers, selectedRoleId]
   )
 
   useEffect(() => {
     if (!trackableUsers.length) return
 
-    const hasRoleOption = trackableUsers.some((user) => String(user?.roleId) === selectedRoleId)
+    const hasRoleOption = trackableUsers.some((user) => userRoleId(user) === selectedRoleId)
     if (!hasRoleOption) {
-      setSelectedRoleId(String(trackableUsers[0].roleId))
+      setSelectedRoleId(userRoleId(trackableUsers[0]))
     }
   }, [trackableUsers, selectedRoleId])
 
@@ -63,24 +233,32 @@ function ReportAnalyticsManager() {
       return
     }
 
-    const hasSelectedUser = availableUsers.some((user) => String(user?.id) === String(selectedUserId))
+    const isAllCentral =
+      isCentralRole && String(selectedUserId) === CENTRAL_USER_ALL
+    const hasSelectedUser =
+      isAllCentral ||
+      availableUsers.some((user) => userRowId(user) === String(selectedUserId))
     if (!hasSelectedUser) {
-      setSelectedUserId(String(availableUsers[0].id))
+      setSelectedUserId(userRowId(availableUsers[0]))
     }
-  }, [availableUsers, selectedUserId])
+  }, [availableUsers, selectedUserId, isCentralRole])
 
   useEffect(() => {
-    if (selectedUserId) {
-      dispatch(fetchGetInventory(selectedUserId))
-    }
-  }, [dispatch, selectedUserId])
+    if (!isSupplyRole || !selectedUserId || selectedUserId === CENTRAL_USER_ALL) return
+    dispatch(fetchGetInventory(selectedUserId))
+  }, [dispatch, isSupplyRole, selectedUserId])
+
+  useEffect(() => {
+    if (!isCentralRole || !selectedUserId) return
+    dispatch(fetchGetMaterialRequest())
+  }, [dispatch, isCentralRole, selectedUserId])
 
   useEffect(() => {
     setStockPage(1)
   }, [selectedUserId])
 
   const selectedUser = useMemo(
-    () => availableUsers.find((user) => String(user?.id) === String(selectedUserId)) || null,
+    () => availableUsers.find((user) => userRowId(user) === String(selectedUserId)) || null,
     [availableUsers, selectedUserId]
   )
 
@@ -99,11 +277,16 @@ function ReportAnalyticsManager() {
   }, [listItems])
 
   const getInventoryStatus = (inventoryItem) => {
-    const quantity = Number(inventoryItem?.quantity ?? 0)
+    const quantity = Number(
+      inventoryItem?.quantity ?? inventoryItem?.Quantity ?? 0
+    )
     const minThreshold = Number(
       inventoryItem?.minThreshold ??
+      inventoryItem?.MinThreshold ??
       inventoryItem?.item?.minThreshold ??
+      inventoryItem?.Item?.minThreshold ??
       inventoryItem?.item?.minimumThreshold ??
+      inventoryItem?.Item?.minimumThreshold ??
       10
     )
     const rawStatus = String(inventoryItem?.status || '').toLowerCase()
@@ -117,9 +300,14 @@ function ReportAnalyticsManager() {
   }
 
   const stockData = useMemo(() => {
-    const inventoryArr = selectedUserId && !inventoryLoading && Array.isArray(listInventory)
-      ? listInventory
-      : []
+    const inventoryArr =
+      isSupplyRole &&
+      selectedUserId &&
+      selectedUserId !== CENTRAL_USER_ALL &&
+      !inventoryLoading &&
+      Array.isArray(listInventory)
+        ? listInventory
+        : []
 
     if (!inventoryArr.length) {
       return { totalItems: 0, inStock: 0, lowStock: 0, outOfStock: 0, stockItems: [] }
@@ -130,10 +318,19 @@ function ReportAnalyticsManager() {
     let outOfStock = 0
 
     const stockItems = inventoryArr.map((inventoryItem, index) => {
-      const itemId = inventoryItem?.item?.id || inventoryItem?.itemId
-      const item = inventoryItem?.item || itemById[itemId] || {}
-      const quantity = Number(inventoryItem?.quantity ?? 0)
-      const price = Number(item?.price ?? inventoryItem?.price ?? 0)
+      const nestedItem = inventoryItem?.item ?? inventoryItem?.Item ?? {}
+      const itemId =
+        nestedItem?.id ??
+        nestedItem?.Id ??
+        inventoryItem?.itemId ??
+        inventoryItem?.ItemId
+      const item = nestedItem && Object.keys(nestedItem).length ? nestedItem : itemById[itemId] || {}
+      const quantity = Number(
+        inventoryItem?.quantity ?? inventoryItem?.Quantity ?? 0
+      )
+      const price = Number(
+        item?.price ?? item?.Price ?? inventoryItem?.price ?? inventoryItem?.Price ?? 0
+      )
       const status = getInventoryStatus(inventoryItem)
 
       if (status === 'Out of Stock') {
@@ -146,9 +343,16 @@ function ReportAnalyticsManager() {
 
       return {
         id: inventoryItem?.id || itemId || index,
-        name: item?.itemName || item?.name || inventoryItem?.itemName || `Item #${itemId ?? index + 1}`,
+        name:
+          item?.itemName ||
+          item?.ItemName ||
+          item?.name ||
+          item?.Name ||
+          inventoryItem?.itemName ||
+          inventoryItem?.ItemName ||
+          `Item #${itemId ?? index + 1}`,
         quantity,
-        unit: item?.unit || inventoryItem?.unit || '-',
+        unit: item?.unit || item?.Unit || inventoryItem?.unit || inventoryItem?.Unit || '-',
         status,
         price,
         stockValue: quantity * price,
@@ -161,7 +365,46 @@ function ReportAnalyticsManager() {
     })
 
     return { totalItems: inventoryArr.length, inStock, lowStock, outOfStock, stockItems }
-  }, [inventoryLoading, listInventory, itemById, selectedUserId])
+  }, [inventoryLoading, listInventory, itemById, selectedUserId, isSupplyRole])
+
+  const centralOps = useMemo(() => {
+    const materials = Array.isArray(listMaterials) ? listMaterials : []
+    const scoped = materials.filter((r) => isMaterialProcessingOrConfirmed(r.status))
+
+    let working = scoped
+    if (
+      isCentralRole &&
+      selectedUserId &&
+      selectedUserId !== CENTRAL_USER_ALL &&
+      scopeHasCentralHandlerMetadata(scoped)
+    ) {
+      working = scoped.filter((r) =>
+        materialMatchesCentralUserFilter(r, selectedUserId, selectedUser)
+      )
+    }
+
+    const processingCount = working.filter(
+      (r) => getMaterialRequestDisplayStatus(r.status) === 'Processing'
+    ).length
+    const confirmedCount = working.filter(
+      (r) => getMaterialRequestDisplayStatus(r.status) === 'Confirmed'
+    ).length
+    const totalScoped = working.length
+    const confirmedPct =
+      totalScoped > 0 ? Math.round((confirmedCount / totalScoped) * 100) : 0
+
+    const latestMaterials = [...working]
+      .sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0))
+      .slice(0, 8)
+
+    return {
+      totalScoped,
+      processingCount,
+      confirmedCount,
+      confirmedPct,
+      latestMaterials,
+    }
+  }, [listMaterials, isCentralRole, selectedUserId, selectedUser])
 
   // Cost Analysis — based on tracked inventory for the current user
   const costData = useMemo(() => {
@@ -205,22 +448,25 @@ function ReportAnalyticsManager() {
     }
   }
 
+  const centralLoading = materialsLoading
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
       {/* Header */}
-      <PageHeader
-        title="Reports & Analytics"
-        subtitle="Track inventory value and stock health by selected central kitchen or supply user."
-      />
+      <PageHeader title="Reports & Analytics" subtitle="View reports and analytics." />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col items-start gap-4">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Inventory Tracking Scope</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {isCentralRole ? 'Material requests' : 'Inventory scope'}
+              </p>
               <p className="mt-1 text-sm text-slate-500">
-                Choose a `Central Kitchen` or `Supply Coordinator` user to load inventory via their `userId`.
+                {isCentralRole
+                  ? 'Only material requests in Processing or Confirmed are included; the percentage is Confirmed divided by the total in that scope.'
+                  : 'Select a Supply Coordinator user to load their inventory.'}
               </p>
             </div>
             <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
@@ -255,11 +501,16 @@ function ReportAnalyticsManager() {
                       {userLoading ? 'Loading users...' : `No ${selectedRoleLabel.toLowerCase()} users`}
                     </option>
                   ) : (
-                    availableUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.username || user.email || `User #${user.id}`}
-                      </option>
-                    ))
+                    <>
+                      {isCentralRole ? (
+                        <option value={CENTRAL_USER_ALL}>All</option>
+                      ) : null}
+                      {availableUsers.map((user) => (
+                        <option key={userRowId(user)} value={userRowId(user)}>
+                          {userDisplayName(user)}
+                        </option>
+                      ))}
+                    </>
                   )}
                 </select>
               </label>
@@ -270,11 +521,167 @@ function ReportAnalyticsManager() {
               Role: {selectedRoleLabel}
             </span>
             <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
-              User: {selectedUser?.username || selectedUser?.email || (selectedUserId ? `#${selectedUserId}` : 'Not selected')}
+              User:{' '}
+              {String(selectedUserId) === CENTRAL_USER_ALL
+                ? 'All'
+                : selectedUser
+                  ? userDisplayName(selectedUser)
+                  : selectedUserId
+                    ? `#${selectedUserId}`
+                    : 'Not selected'}
             </span>
           </div>
         </div>
 
+        {isCentralRole ? (
+          <div className="space-y-4 animate-fade-in">
+            {!selectedUserId ? (
+              <p className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                Select a Central Kitchen account to load material requests.
+              </p>
+            ) : centralLoading ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white py-12 text-slate-500">
+                <span className="material-symbols-outlined mb-2 animate-spin text-3xl">progress_activity</span>
+                <p className="text-sm">Loading material requests…</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+                  <div className="relative bg-gradient-to-b from-slate-50/90 via-white to-emerald-50/30 px-5 py-5 sm:px-6 sm:py-6">
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-30"
+                      style={{
+                        backgroundImage:
+                          'radial-gradient(ellipse 70% 45% at 50% -15%, rgb(16 185 129 / 0.1), transparent)',
+                      }}
+                    />
+                    <div className="relative mx-auto flex max-w-md flex-col items-center text-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        Confirmed share of scoped requests
+                      </p>
+                      <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-4xl">
+                        {centralOps.confirmedPct}
+                        <span className="text-xl font-bold text-slate-400 sm:text-2xl">%</span>
+                      </p>
+                      <p className="mt-2 text-xs text-slate-600 sm:text-sm">
+                        <span className="font-semibold text-emerald-700">{centralOps.confirmedCount}</span>
+                        {' confirmed'}
+                        <span className="mx-1.5 inline-block h-1 w-1 rounded-full bg-slate-300 align-middle" aria-hidden="true" />
+                        <span className="font-semibold text-slate-800">{centralOps.totalScoped}</span>
+                        {' total'}
+                      </p>
+                      <div className="mt-4 w-full">
+                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200/90 shadow-inner ring-1 ring-slate-200/60">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-sm transition-all duration-700 ease-out"
+                            style={{ width: `${Math.min(100, Math.max(0, centralOps.confirmedPct))}%` }}
+                          />
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                            <span className="size-1.5 shrink-0 rounded-full bg-blue-600" aria-hidden="true" />
+                            Processing {centralOps.processingCount}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
+                            <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                            Confirmed {centralOps.confirmedCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                        <span className="material-symbols-outlined text-[20px]">assignment</span>
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-xl font-bold tabular-nums text-slate-900">{centralOps.totalScoped}</div>
+                        <div className="text-xs font-medium text-slate-500">Total</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <span className="material-symbols-outlined text-[20px]">hourglass_top</span>
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-xl font-bold tabular-nums text-slate-900">{centralOps.processingCount}</div>
+                        <div className="text-xs font-semibold text-blue-700">Processing</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                        <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-xl font-bold tabular-nums text-slate-900">{centralOps.confirmedCount}</div>
+                        <div className="text-xs font-medium text-emerald-800">Confirmed</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <h3 className="mb-2 text-sm font-bold text-slate-800">Recent material requests</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
+                          <th className="px-3 py-2">Code / ID</th>
+                          <th className="px-3 py-2">Reference order</th>
+                          <th className="px-3 py-2">Requested by</th>
+                          <th className="px-3 py-2">Accepted by</th>
+                          <th className="px-3 py-2">Materials</th>
+                          <th className="px-3 py-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {centralOps.latestMaterials.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                              No requests yet
+                            </td>
+                          </tr>
+                        ) : (
+                          centralOps.latestMaterials.map((mat, idx) => (
+                            <tr key={mat.id || idx}>
+                              <td className="px-3 py-2 font-mono">{mat.code || mat.id || '—'}</td>
+                              <td className="px-3 py-2">{mat.orderId ? `#ORD-${mat.orderId}` : '—'}</td>
+                              <td className="px-3 py-2">{mat.requestedByUsername || mat.requestedBy || '—'}</td>
+                              <td className="px-3 py-2 text-slate-600">{getMaterialAcceptedByDisplay(mat)}</td>
+                              <td className="px-3 py-2">
+                                {mat.items?.length
+                                  ? `${mat.items[0].requestedQuantity} ${mat.items[0].unit} ${mat.items[0].materialName}${
+                                      mat.items.length > 1 ? ` +${mat.items.length - 1}` : ''
+                                    }`
+                                  : '—'}
+                              </td>
+                              <td className="px-3 py-2">
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${getMaterialStatusBadgeClass(mat.status)}`}
+                                >
+                                  {getMaterialRequestDisplayStatus(mat.status)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+        <>
         {/* Report Tabs */}
         <div className="flex items-center gap-3 mb-6">
           <button
@@ -312,8 +719,8 @@ function ReportAnalyticsManager() {
               </div>
               <div className="p-5 space-y-0">
                 {[
-                  { label: 'Total Stock Value', value: `${costData.totalInventoryValue.toLocaleString('vi-VN')}đ` },
-                  { label: 'Average Unit Cost', value: `${costData.avgCostPerUnit.toLocaleString('vi-VN')}đ` },
+                  { label: 'Total Stock Value', value: formatVnd(costData.totalInventoryValue) },
+                  { label: 'Average Unit Cost', value: formatVnd(costData.avgCostPerUnit) },
                   { label: 'High-Value SKUs (>100k/unit)', value: costData.highValueItems },
                   { label: 'Tracked SKUs', value: costData.totalSKUs },
                 ].map((item, idx) => (
@@ -349,7 +756,7 @@ function ReportAnalyticsManager() {
                           </div>
                         </td>
                         <td className="py-3 text-sm font-semibold text-slate-900 text-right">
-                          {item.value.toLocaleString('vi-VN')}đ
+                          {formatVnd(item.value)}
                         </td>
                       </tr>
                     ))}
@@ -412,7 +819,7 @@ function ReportAnalyticsManager() {
                 <div className="p-5 space-y-4">
                   <div className="flex justify-between items-center py-3 border-b border-slate-50">
                     <span className="text-sm text-slate-500">Total Stock Value</span>
-                    <span className="text-lg font-bold text-slate-900">{totalStockValue.toLocaleString('vi-VN')}đ</span>
+                    <span className="text-lg font-bold text-slate-900">{formatVnd(totalStockValue)}</span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-slate-50">
                     <span className="text-sm text-slate-500">Risk Level</span>
@@ -496,7 +903,7 @@ function ReportAnalyticsManager() {
                                   </td>
                                   <td className="px-5 py-3 text-sm text-slate-500 text-center">{item.unit}</td>
                                   <td className="px-5 py-3 text-sm text-slate-700 text-right">
-                                    {item.price > 0 ? `${item.price.toLocaleString('vi-VN')}đ` : '-'}
+                                    {item.price > 0 ? formatVnd(item.price) : '-'}
                                   </td>
                                   <td className="px-5 py-3 text-center">
                                     <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusBadge(item.status)}`}>
@@ -552,6 +959,8 @@ function ReportAnalyticsManager() {
               </div>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
