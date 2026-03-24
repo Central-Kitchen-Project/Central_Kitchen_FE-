@@ -34,12 +34,8 @@ function FranchiseLayout() {
               </span>
             </div>
             <div>
-              <h1 className="text-base font-bold">
-                Franchise Store
-              </h1>
-              <p className="text-xs text-slate-500">
-                Management System
-              </p>
+              <h1 className="text-base font-bold text-slate-900">CENTRAL KITCHEN</h1>
+              <p className="text-xs text-slate-500">Management System</p>
             </div>
           </div>
         </div>

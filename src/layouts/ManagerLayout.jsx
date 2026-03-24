@@ -39,16 +39,12 @@ function ManagerLayout() {
       <aside className="w-64 flex flex-col bg-white border-r border-slate-200 shrink-0 shadow-sm">
         <div className="p-6 flex flex-col gap-8 h-full">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 size-10 rounded-lg flex items-center justify-center text-white shadow-md">
-              <span className="material-symbols-outlined text-2xl">manage_accounts</span>
+            <div className="bg-blue-600 rounded-lg p-2 text-white">
+              <span className="material-symbols-outlined">restaurant</span>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-slate-900 text-sm font-bold leading-tight uppercase tracking-wider">
-                Central Kitchen
-              </h1>
-              <p className="text-slate-500 text-[10px] font-medium uppercase tracking-tighter">
-                Management System
-              </p>
+            <div>
+              <h1 className="text-base font-bold text-slate-900">CENTRAL KITCHEN</h1>
+              <p className="text-xs text-slate-500">Management System</p>
             </div>
           </div>
 
