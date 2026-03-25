@@ -219,7 +219,7 @@ function OrderTracking() {
       setCancelModal(null);
       dispatch(fetchGetOrder());
     } catch (err) {
-      showToast("error", `Lỗi: ${extractApiErrorMessage(err)}`);
+      showToast("error", `Error: ${extractApiErrorMessage(err)}`);
     } finally {
       setLoadingId(null);
     }
@@ -514,7 +514,7 @@ function OrderTracking() {
                               <button
                                 onClick={() => navigate(`/FeedbackFranchise?orderId=${order.id}`)}
                                 className="ml-auto inline-flex min-w-[100px] items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-700"
-                                title="Gửi feedback cho đơn đã hoàn thành"
+                                title="Send feedback for a completed order"
                               >
                                 <span className="material-symbols-outlined text-[16px]">rate_review</span>
                                 Feedback
@@ -564,40 +564,53 @@ function OrderTracking() {
                 </table>
               </div>
 
-              {/* Footer */}
-              <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs font-medium text-slate-500">
-                  {filteredOrders.length === 0 ? (
-                    <>0 orders match filters · {myOrders.length} total</>
-                  ) : (
-                    <>
-                      Hiển thị {(ordersSafePage - 1) * ORDERS_PER_PAGE + 1}–
-                      {Math.min(ordersSafePage * ORDERS_PER_PAGE, filteredOrders.length)} / {filteredOrders.length} đơn
-                      {filteredOrders.length !== myOrders.length && ` (tổng ${myOrders.length} đơn của bạn)`}
-                    </>
-                  )}
-                </span>
+              {/* Footer — typography matches Franchise Stock History (FranchiseTransactionHistory) */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3">
+                {filteredOrders.length === 0 ? (
+                  <p className="text-sm text-slate-600">
+                    <span className="font-semibold text-slate-800">0</span> orders match filters ·{' '}
+                    <span className="font-semibold text-slate-800">{myOrders.length}</span> total
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-600">
+                    Showing{' '}
+                    <span className="font-semibold text-slate-800">
+                      {(ordersSafePage - 1) * ORDERS_PER_PAGE + 1}–
+                      {Math.min(ordersSafePage * ORDERS_PER_PAGE, filteredOrders.length)}
+                    </span>{' '}
+                    of <span className="font-semibold text-slate-800">{filteredOrders.length}</span> orders
+                    {filteredOrders.length !== myOrders.length && (
+                      <>
+                        {' '}
+                        (
+                        <span className="font-semibold text-slate-800">{myOrders.length}</span> total in your history)
+                      </>
+                    )}
+                  </p>
+                )}
                 {filteredOrders.length > ORDERS_PER_PAGE && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setOrdersPage((p) => Math.max(1, p - 1))}
                       disabled={ordersSafePage <= 1}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label="Previous page"
                     >
                       <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                      Previous
                     </button>
-                    <span className="text-xs font-semibold text-slate-600 px-2 min-w-[4.5rem] text-center">
-                      {ordersSafePage} / {ordersTotalPages}
+                    <span className="text-sm tabular-nums text-slate-600 px-1 min-w-[4.5rem] text-center">
+                      Page {ordersSafePage} / {ordersTotalPages}
                     </span>
                     <button
                       type="button"
                       onClick={() => setOrdersPage((p) => Math.min(ordersTotalPages, p + 1))}
                       disabled={ordersSafePage >= ordersTotalPages}
-                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label="Next page"
                     >
+                      Next
                       <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                     </button>
                   </div>
@@ -637,7 +650,7 @@ function OrderTracking() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  <span className="text-sm">Đang tải chi tiết đơn...</span>
+                  <span className="text-sm">Loading order details...</span>
                 </div>
               ) : (
                 <>

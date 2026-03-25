@@ -15,7 +15,7 @@ const EMPTY_FORM = { roleName: "", description: "" };
 
 function RBACSettings() {
   const dispatch = useDispatch();
-  const { roles: roleList, loading: rolesLoading, error: roleError } = useSelector(
+  const { roles: roleList, loading: rolesLoading } = useSelector(
     (state) => state.ROLE || { roles: [], loading: false, error: null }
   );
   const { dashboardCount } = useSelector(
@@ -139,7 +139,7 @@ function RBACSettings() {
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-slate-50/50">
         {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Roles</span>
@@ -160,16 +160,6 @@ function RBACSettings() {
             <span className="text-2xl font-bold text-slate-900">{totalUsersAssigned}</span>
             <span className="text-[11px] text-slate-500">Across all roles</span>
           </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</span>
-              <div className="size-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
-                <span className="material-symbols-outlined text-base">verified</span>
-              </div>
-            </div>
-            <span className="text-2xl font-bold text-slate-900">{roleError ? "Error" : "Active"}</span>
-            <span className="text-[11px] text-slate-500">{roleError ? String(roleError) : "System operational"}</span>
-          </div>
         </div>
 
         {/* Success */}
@@ -182,21 +172,15 @@ function RBACSettings() {
 
         {/* Toolbar */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Role Management</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Configure roles and their permissions</p>
-            </div>
-            <div className="relative">
-              <span className="material-symbols-outlined text-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-              <input
-                type="text"
-                placeholder="Search roles..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-52"
-              />
-            </div>
+          <div className="relative">
+            <span className="material-symbols-outlined text-[16px] absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+            <input
+              type="text"
+              placeholder="Search roles..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-52"
+            />
           </div>
           <button
             onClick={openCreate}
@@ -270,22 +254,30 @@ function RBACSettings() {
           </div>
           {/* Footer with pagination */}
           {filtered.length > 0 && (
-            <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-slate-500">
-                Showing {(safeCurrentPage - 1) * pageSize + 1}–{Math.min(safeCurrentPage * pageSize, filtered.length)} of {filtered.length} roles
-              </span>
-              <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 shrink-0">
+              <p className="text-sm text-slate-600">
+                Showing{' '}
+                <span className="font-semibold text-slate-800">
+                  {(safeCurrentPage - 1) * pageSize + 1}–{Math.min(safeCurrentPage * pageSize, filtered.length)}
+                </span>{' '}
+                of <span className="font-semibold text-slate-800">{filtered.length}</span> roles
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-1">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(1)}
                   disabled={safeCurrentPage === 1}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="First page"
                 >
                   <span className="material-symbols-outlined text-sm">first_page</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={safeCurrentPage === 1}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_left</span>
                 </button>
@@ -298,12 +290,15 @@ function RBACSettings() {
                   }, [])
                   .map((p, i) =>
                     p === "..." ? (
-                      <span key={`dot-${i}`} className="px-1 text-xs text-slate-400">...</span>
+                      <span key={`dot-${i}`} className="px-1 text-sm text-slate-400">
+                        ...
+                      </span>
                     ) : (
                       <button
+                        type="button"
                         key={p}
                         onClick={() => setCurrentPage(p)}
-                        className={`min-w-[28px] px-2 py-1 rounded text-xs font-bold transition-colors ${
+                        className={`min-w-[2rem] rounded-lg border border-transparent px-2 py-1.5 text-sm font-semibold transition-colors ${
                           p === safeCurrentPage
                             ? "bg-blue-600 text-white"
                             : "text-slate-600 hover:bg-slate-100"
@@ -314,16 +309,20 @@ function RBACSettings() {
                     )
                   )}
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safeCurrentPage === totalPages}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_right</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={safeCurrentPage === totalPages}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Last page"
                 >
                   <span className="material-symbols-outlined text-sm">last_page</span>
                 </button>

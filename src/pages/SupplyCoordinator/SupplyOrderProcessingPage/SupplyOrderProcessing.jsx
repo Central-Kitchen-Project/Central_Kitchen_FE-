@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./SupplyOrderProcessing.css";
 import { useDispatch, useSelector } from "react-redux";
@@ -551,8 +551,13 @@ function SupplyOrderProcessing() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [orderShortages, setOrderShortages] = useState({});
   const [orderInventoryStatus, setOrderInventoryStatus] = useState({});
+  const orderInventoryStatusRef = useRef({});
   const [itemDetailsById, setItemDetailsById] = useState({});
   const [userInventory, setUserInventory] = useState([]);
+
+  useEffect(() => {
+    orderInventoryStatusRef.current = orderInventoryStatus;
+  }, [orderInventoryStatus]);
 
   const [requestItems, setRequestItems] = useState([]);
   const [requestNote, setRequestNote] = useState("");
@@ -573,6 +578,74 @@ function SupplyOrderProcessing() {
   const [filterStatus, setFilterStatus] = useState("All");
   const STATUS_OPTIONS = ["All", "Pending", "Processing", "Confirmed", "Delivery", "Completed", "Rejected", "Cancelled"];
   const inventoryLookup = useMemo(() => buildInventoryLookup(userInventory), [userInventory]);
+
+  /** Always use fresh API inventory for gating Accept / Delivery (local state can be stale after Central fulfills). */
+  const refreshInventoryLookup = useCallback(async () => {
+    const userInfo = JSON.parse(localStorage.getItem("USER_INFO") || "null");
+    const userId = userInfo?.id;
+    if (!userId) {
+      return {
+        ok: false,
+        error: "Không xác định được tài khoản để kiểm tra tồn kho.",
+        lookup: null,
+      };
+    }
+    try {
+      const invRes = await inventoryService.GetAll(userId);
+      const inventory = normalizeCollection(invRes.data?.value ?? invRes.data?.data ?? invRes.data);
+      setUserInventory(inventory);
+      return { ok: true, lookup: buildInventoryLookup(inventory) };
+    } catch (err) {
+      return {
+        ok: false,
+        error: extractApiErrorMessage(err, "Không tải được dữ liệu tồn kho."),
+        lookup: null,
+      };
+    }
+  }, []);
+
+  /** Re-fetch inventory + BOM per order so Inventory Check / Delivery update after Central fulfills again. */
+  const recomputeInventoryStatusForOrderIds = useCallback(
+    async (orderIds) => {
+      const ids = [...new Set(orderIds)].filter((id) => id != null);
+      if (ids.length === 0) return;
+      const invRefresh = await refreshInventoryLookup();
+      if (!invRefresh.ok || !invRefresh.lookup) return;
+      const { lookup } = invRefresh;
+      const payload = await Promise.all(
+        ids.map(async (orderId) => {
+          try {
+            const res = await API.callWithToken().get(`MaterialRequest/order/${orderId}/materials`);
+            const materials = normalizeCollection(res.data?.data ?? res.data);
+            if (materials.length === 0) return null;
+            return {
+              orderId,
+              status: { isLoading: false, ...buildInventoryStatus(materials, lookup) },
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const ok = payload.filter(Boolean);
+      if (ok.length === 0) return;
+      setOrderInventoryStatus((prev) => {
+        const next = { ...prev };
+        ok.forEach(({ orderId, status }) => {
+          next[orderId] = status;
+        });
+        return next;
+      });
+      setOrderShortages((prev) => {
+        const next = { ...prev };
+        ok.forEach(({ orderId, status }) => {
+          next[orderId] = status.shortageLookup || {};
+        });
+        return next;
+      });
+    },
+    [refreshInventoryLookup]
+  );
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem("USER_INFO") || "null");
@@ -734,27 +807,34 @@ function SupplyOrderProcessing() {
     };
   }, [data, orderInventoryStatus, readyOrders, inventoryLookup, itemDetailsById]);
 
-  // Poll for confirmed material requests on Processing orders
+  // Poll MaterialRequest: Processing & Confirmed — sync readyOrders + re-run inventory check after Central fulfills (kể cả lần 2).
   useEffect(() => {
     const checkFulfillments = async () => {
-      const processingOrderIds = new Set(
-        (data || []).filter((o) => o.status === "Processing").map((o) => o.id)
+      const watchedOrderIds = new Set(
+        (data || [])
+          .filter((o) => {
+            const st = String(o.status || "").toLowerCase();
+            return st === "processing" || st === "confirmed" || st === "filled";
+          })
+          .map((o) => o.id)
       );
-      if (processingOrderIds.size === 0) return;
+      if (watchedOrderIds.size === 0) return;
+
+      const idsToRecompute = new Set();
+
       try {
         const res = await API.callWithToken().get("MaterialRequest");
         const requests = normalizeCollection(res.data?.data ?? res.data);
-        const fulfilledForProcessing = requests.filter(
+        const fulfilledForWatched = requests.filter(
           (req) =>
-            processingOrderIds.has(req.orderId) &&
+            watchedOrderIds.has(req.orderId) &&
             (req.status === "Fulfilled" || req.status === "Confirmed")
         );
 
-        // Keep the row badge state in sync with current fulfilled requests.
-        if (fulfilledForProcessing.length > 0) {
+        if (fulfilledForWatched.length > 0) {
           setReadyOrders((prev) => {
             const next = { ...prev };
-            fulfilledForProcessing.forEach((req) => {
+            fulfilledForWatched.forEach((req) => {
               next[req.orderId] = true;
             });
             return next;
@@ -762,41 +842,52 @@ function SupplyOrderProcessing() {
           dispatch(fetchGetOrder());
         }
 
-        // First run only seeds known fulfilled requests, no toast.
         if (!fulfilledSyncInitializedRef.current) {
-          fulfilledForProcessing.forEach((req) => seenFulfilledRef.current.add(req.id));
+          fulfilledForWatched.forEach((req) => seenFulfilledRef.current.add(req.id));
           fulfilledSyncInitializedRef.current = true;
-          return;
+        } else {
+          const newlyFulfilled = [];
+          requests.forEach((req) => {
+            if (
+              watchedOrderIds.has(req.orderId) &&
+              (req.status === "Fulfilled" || req.status === "Confirmed") &&
+              !seenFulfilledRef.current.has(req.id)
+            ) {
+              seenFulfilledRef.current.add(req.id);
+              newlyFulfilled.push(req);
+            }
+          });
+          if (newlyFulfilled.length > 0) {
+            const orderIds = [...new Set(newlyFulfilled.map((r) => r.orderId))];
+            orderIds.forEach((id) => idsToRecompute.add(id));
+            setReadyOrders((prev) => {
+              const next = { ...prev };
+              orderIds.forEach((id) => {
+                next[id] = true;
+              });
+              return next;
+            });
+            const label =
+              orderIds.length === 1 ? `đơn #${orderIds[0]}` : `${orderIds.length} đơn hàng`;
+            setToast({
+              type: "success",
+              message: `✓ Nguyên liệu đã được thêm vào kho cho ${label}!`,
+              details: [],
+            });
+            setTimeout(() => setToast(null), 5000);
+          }
         }
 
-        const newlyFulfilled = [];
-        requests.forEach((req) => {
-          if (
-            processingOrderIds.has(req.orderId) &&
-            (req.status === "Fulfilled" || req.status === "Confirmed") &&
-            !seenFulfilledRef.current.has(req.id)
-          ) {
-            seenFulfilledRef.current.add(req.id);
-            newlyFulfilled.push(req);
+        (data || []).forEach((o) => {
+          if (!watchedOrderIds.has(o.id)) return;
+          const inv = orderInventoryStatusRef.current[o.id];
+          if (inv?.hasData && inv.hasShortage) {
+            idsToRecompute.add(o.id);
           }
         });
-        if (newlyFulfilled.length > 0) {
-          const orderIds = [...new Set(newlyFulfilled.map((r) => r.orderId))];
-          setReadyOrders((prev) => {
-            const next = { ...prev };
-            orderIds.forEach((id) => { next[id] = true; });
-            return next;
-          });
-          const label =
-            orderIds.length === 1
-              ? `đơn #${orderIds[0]}`
-              : `${orderIds.length} đơn hàng`;
-          setToast({
-            type: "success",
-            message: `✓ Nguyên liệu đã được thêm vào kho cho ${label}!`,
-            details: [],
-          });
-          setTimeout(() => setToast(null), 5000);
+
+        if (idsToRecompute.size > 0) {
+          await recomputeInventoryStatusForOrderIds([...idsToRecompute]);
         }
       } catch {
         // silent
@@ -806,7 +897,7 @@ function SupplyOrderProcessing() {
     checkFulfillments();
     const interval = setInterval(checkFulfillments, 15000);
     return () => clearInterval(interval);
-  }, [data]);
+  }, [data, dispatch, recomputeInventoryStatusForOrderIds]);
 
   const showToast = (type, message, details = []) => {
     setToast({ type, message, details });
@@ -861,7 +952,13 @@ function SupplyOrderProcessing() {
         return;
       }
 
-      const inventorySnapshot = buildInventoryStatus(materials, inventoryLookup);
+      const invRefresh = await refreshInventoryLookup();
+      if (!invRefresh.ok || !invRefresh.lookup) {
+        showToast("error", invRefresh.error || "Không thể kiểm tra tồn kho.");
+        return;
+      }
+
+      const inventorySnapshot = buildInventoryStatus(materials, invRefresh.lookup);
 
       setOrderInventoryStatus((prev) => ({
         ...prev,
@@ -915,7 +1012,14 @@ function SupplyOrderProcessing() {
         return;
       }
 
-      const inventorySnapshot = buildInventoryStatus(materials, inventoryLookup);
+      const invRefresh = await refreshInventoryLookup();
+      if (!invRefresh.ok || !invRefresh.lookup) {
+        showToast("error", invRefresh.error || "Không thể kiểm tra tồn kho.");
+        setAcceptModalOpen(false);
+        return;
+      }
+
+      const inventorySnapshot = buildInventoryStatus(materials, invRefresh.lookup);
 
       setOrderInventoryStatus((prev) => ({
         ...prev,
@@ -1103,16 +1207,24 @@ function SupplyOrderProcessing() {
       
       // First create the material request
       const materialRequestResponse = await dispatch(createMaterialRequest(payload)).unwrap();
-      
-      // Then update order status to "Processing" with approvedBy field
+
       const approvedBy = userInfo?.id || 1;
-      const statusResponse = await dispatchOrderStatusUpdate(selectedOrder.id, ["Processing"], approvedBy);
-      
+      const orderStatusLower = String(selectedOrder.status || "").toLowerCase();
+      let statusResponse = null;
+      if (orderStatusLower === "pending") {
+        statusResponse = await dispatchOrderStatusUpdate(selectedOrder.id, ["Processing"], approvedBy);
+      }
+
       showToast(
         "success",
         extractApiMessage(
           materialRequestResponse,
-          extractApiMessage(statusResponse?.payload, `Material request for order #${selectedOrder.id} has been submitted.`)
+          statusResponse
+            ? extractApiMessage(
+                statusResponse?.payload,
+                `Material request for order #${selectedOrder.id} has been submitted.`
+              )
+            : `Đã gửi yêu cầu bổ sung nguyên liệu cho đơn #${selectedOrder.id}.`
         )
       );
       setRequestModalOpen(false);
@@ -1129,29 +1241,69 @@ function SupplyOrderProcessing() {
 
   const handleDeliver = async (e, order) => {
     e.stopPropagation();
-    const fallbackInventoryStatus = buildInventoryStatusFromOrderLines(
-      order.orderLines || [],
-      inventoryLookup,
-      itemDetailsById
-    );
-    const resolvedInventoryStatus =
-      orderInventoryStatus[order.id]?.hasData ||
-      orderInventoryStatus[order.id]?.hasShortage ||
-      !fallbackInventoryStatus
-        ? orderInventoryStatus[order.id]
-        : fallbackInventoryStatus;
-    const hasEffectiveShortage = !!resolvedInventoryStatus?.hasShortage && !readyOrders[order.id];
 
-    if (hasEffectiveShortage) {
-      showToast("error", `Đơn #${order.id} chưa đủ tồn kho để chuyển sang Delivery.`);
-      return;
-    }
-
-    const userInfo = JSON.parse(localStorage.getItem("USER_INFO"));
+    const userInfo = JSON.parse(localStorage.getItem("USER_INFO") || "null");
     const approvedBy = userInfo?.id || 1;
 
     setLoadingDeliveryId(order.id);
     try {
+      const invRefresh = await refreshInventoryLookup();
+      if (!invRefresh.ok || !invRefresh.lookup) {
+        showToast("error", invRefresh.error || "Không thể kiểm tra tồn kho trước khi chuyển Delivery.");
+        return;
+      }
+      const { lookup: freshLookup } = invRefresh;
+
+      let freshStatus;
+      try {
+        const materials = await getOrderMaterialsSnapshot(order.id);
+        if (materials.length > 0) {
+          freshStatus = buildInventoryStatus(materials, freshLookup);
+        } else {
+          freshStatus = buildInventoryStatusFromOrderLines(
+            order.orderLines || [],
+            freshLookup,
+            itemDetailsById
+          );
+        }
+      } catch {
+        freshStatus = buildInventoryStatusFromOrderLines(
+          order.orderLines || [],
+          freshLookup,
+          itemDetailsById
+        );
+      }
+
+      if (!freshStatus?.hasData) {
+        showToast(
+          "error",
+          `Đơn #${order.id}: không xác minh được nhu cầu nguyên liệu / tồn kho. Vui lòng thử lại sau khi dữ liệu đồng bộ.`
+        );
+        return;
+      }
+
+      setOrderInventoryStatus((prev) => ({
+        ...prev,
+        [order.id]: { isLoading: false, ...freshStatus },
+      }));
+      setOrderShortages((prev) => ({
+        ...prev,
+        [order.id]: freshStatus.shortageLookup || {},
+      }));
+
+      if (freshStatus.hasShortage) {
+        const shortageDetails = Object.values(freshStatus.shortageLookup || {}).map(
+          (s) =>
+            `${normalizeDisplayText(s.materialName)}: cần ${formatMeasure(s.quantityNeeded)}, trong kho ${formatMeasure(s.currentStock)}`
+        );
+        showToast(
+          "error",
+          `Đơn #${order.id}: tồn kho vẫn thiếu sau khi Central xử lý — không thể chuyển Delivery.${freshStatus.shortageCount ? ` (${freshStatus.shortageCount} dòng thiếu.)` : ""}`,
+          shortageDetails
+        );
+        return;
+      }
+
       const result = await dispatchOrderStatusUpdate(order.id, ["Delivery", "Delivering"], approvedBy);
       showToast("success", extractApiMessage(result?.payload, `Order #${order.id} has been moved to Delivery.`));
       dispatch(fetchGetOrder());
@@ -1341,25 +1493,34 @@ function SupplyOrderProcessing() {
                       const displayStatus = getOrderDisplayStatus(order.status, hasInventoryReady);
                       const statusBadge = getStatusBadge(displayStatus);
                       const isPending = order.status === "Pending";
-                      const isProcessing = order.status === "Processing";
                       const isCompleted = order.status === "Completed";
                       const isCancelled = String(order.status || "").toLowerCase().includes("cancel");
                       const isRejected = String(order.status || "").toLowerCase().includes("reject");
                       const isConfirmed = displayStatus === "Confirmed";
-                      const isInventoryReady = hasInventoryReady || isConfirmed;
-                      const hasEffectiveShortage = hasInsufficientStock && !isInventoryReady;
-                      const inNeedQuantity = inventoryStatus?.totalMissingQuantity ?? 0;
+                      const orderStatusLower = String(order.status || "").toLowerCase();
+                      const isOrderConfirmedStatus =
+                        orderStatusLower === "confirmed" || orderStatusLower === "filled";
                       const inventoryKnown = !!inventoryStatus && !inventoryStatus?.isLoading && inventoryStatus?.hasData;
+                      const showInventoryReadyBadge = inventoryKnown && !hasInsufficientStock;
+                      const showInventoryMissingBadge = inventoryKnown && hasInsufficientStock;
+                      const shouldShowInventoryColumns =
+                        isPending ||
+                        hasInventoryReady ||
+                        isOrderConfirmedStatus ||
+                        (isConfirmed && !isPending);
+                      const hasEffectiveShortage = isPending && inventoryKnown && hasInsufficientStock;
                       const isLockedStatus = isCancelled || isRejected;
-                      const needsInventoryCheck = isPending || (isProcessing && !hasInventoryReady);
-                      const shouldShowInventoryColumns = isPending || hasInventoryReady;
-                      const isInventoryReadyForPending =
-                        (isPending && inventoryKnown && inNeedQuantity <= 0) || isInventoryReady;
-                      const shouldShowMissingButton =
-                        isPending && inventoryKnown && inNeedQuantity > 0;
-                      const canDeliver = isConfirmed && !isLockedStatus && !hasEffectiveShortage;
+                      const canDeliver =
+                        isConfirmed && !isLockedStatus && !(inventoryKnown && hasInsufficientStock);
                       const acceptDisabled = !isPending || isCompleted || isLockedStatus || hasEffectiveShortage;
-                      const requestDisabled = !isPending || isCompleted || isLockedStatus;
+                      /** Dùng display Confirmed (gồm cả API Processing + Central đã fulfill), không chỉ order.status === confirmed */
+                      const canRequestMoreMaterials =
+                        isConfirmed &&
+                        !isPending &&
+                        !isLockedStatus &&
+                        inventoryKnown &&
+                        hasInsufficientStock;
+                      const requestDisabled = isCompleted || isLockedStatus;
 
                       return (
                         <tr
@@ -1402,14 +1563,16 @@ function SupplyOrderProcessing() {
                             )}
                           </td>
                           <td className="px-3 py-4 text-center align-top">
-                            {!shouldShowInventoryColumns ? null : isInventoryReadyForPending ? (
+                            {!shouldShowInventoryColumns ? null : !inventoryKnown ? (
+                              <span className="text-xs font-medium text-slate-300">--</span>
+                            ) : showInventoryReadyBadge ? (
                               <div className="flex flex-col items-center gap-1">
                                 <span className="inline-flex min-w-[72px] items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600">
                                   Ready
                                 </span>
                                 {isPending ? <span className="text-[10px] text-slate-400">enough stock</span> : null}
                               </div>
-                            ) : shouldShowMissingButton ? (
+                            ) : showInventoryMissingBadge ? (
                               <div className="flex flex-col items-center gap-1">
                                 <span className="inline-flex min-w-[72px] items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
                                   Missing
@@ -1461,6 +1624,16 @@ function SupplyOrderProcessing() {
                                   </button>
                                 </>
                               )}
+                              {canRequestMoreMaterials && (
+                                <button
+                                  onClick={(e) => openRequestModal(e, order)}
+                                  disabled={requestDisabled}
+                                  title="Gửi yêu cầu bổ sung nguyên liệu lên Central"
+                                  className="px-2.5 py-1.5 bg-white border border-amber-200 text-amber-800 text-xs font-bold rounded-lg hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Request
+                                </button>
+                              )}
                               {canDeliver && (
                                 <button
                                   onClick={(e) => handleDeliver(e, order)}
@@ -1505,15 +1678,30 @@ function SupplyOrderProcessing() {
                 </table>
               </div>
 
-              <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">
-                  Showing {filteredOrders.length} of {incomingOrders.length} Orders
-                </span>
-                <div className="flex gap-2">
-                  <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-400 disabled:opacity-50" disabled>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3">
+                <p className="text-sm text-slate-600">
+                  Showing{' '}
+                  <span className="font-semibold text-slate-800">{filteredOrders.length}</span>
+                  {' '}
+                  of <span className="font-semibold text-slate-800">{incomingOrders.length}</span> orders
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Previous page"
+                  >
                     <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                    Previous
                   </button>
-                  <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Next page"
+                  >
+                    Next
                     <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                   </button>
                 </div>

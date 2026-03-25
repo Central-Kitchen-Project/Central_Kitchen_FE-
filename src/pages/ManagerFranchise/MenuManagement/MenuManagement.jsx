@@ -920,38 +920,44 @@ function MenuManagement() {
             </table>
 
             {/* Pagination */}
-            {filteredProducts.length > ITEMS_PER_PAGE && (
-              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-400">
-                  Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filteredProducts.length)} of {filteredProducts.length}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={safePage <= 1}
-                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <span className="material-symbols-outlined text-base">chevron_left</span>
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            {filteredProducts.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-5 py-3">
+                <p className="text-sm text-slate-600">
+                  Showing{' '}
+                  <span className="font-semibold text-slate-800">
+                    {(safePage - 1) * ITEMS_PER_PAGE + 1}–
+                    {Math.min(safePage * ITEMS_PER_PAGE, filteredProducts.length)}
+                  </span>{' '}
+                  of{' '}
+                  <span className="font-semibold text-slate-800">{filteredProducts.length}</span> items
+                </p>
+                {totalPages > 1 ? (
+                  <div className="flex items-center gap-2">
                     <button
-                      key={p}
-                      onClick={() => setCurrentPage(p)}
-                      className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
-                        p === safePage ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
-                      }`}
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={safePage <= 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      aria-label="Previous page"
                     >
-                      {p}
+                      <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                      Previous
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={safePage >= totalPages}
-                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <span className="material-symbols-outlined text-base">chevron_right</span>
-                  </button>
-                </div>
+                    <span className="text-sm tabular-nums text-slate-600 px-1">
+                      Page {safePage} / {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={safePage >= totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      aria-label="Next page"
+                    >
+                      Next
+                      <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
