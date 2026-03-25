@@ -16,8 +16,12 @@ const materialService = {
   Create: function (data) {
     return API.callWithToken().post(`MaterialRequest`, data);
   },
-  UpdateStatus: function (id, status) {
-    return API.callWithToken().put(`MaterialRequest/${id}/status`, { status });
+  UpdateStatus: function (id, status, acceptedByUserId) {
+    const body = { status };
+    if (acceptedByUserId != null) {
+      body.acceptedByUserId = acceptedByUserId;
+    }
+    return API.callWithToken().put(`MaterialRequest/${id}/status`, body);
   },
 };
 

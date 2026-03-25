@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://meinamfpt-001-site1.ltempurl.com',
+        target: 'http://centralkitchen-001-site1.mtempurl.com/',
         changeOrigin: true,
         secure: false,
       },

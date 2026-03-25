@@ -43,9 +43,9 @@ export const createMaterialRequest = createAsyncThunk(
 
 export const updateMaterialRequestStatus = createAsyncThunk(
   `${name}/updateMaterialRequestStatus`,
-  async ({ id, status }, { rejectWithValue }) => {
+  async ({ id, status, acceptedByUserId }, { rejectWithValue }) => {
     try {
-      const response = await materialService.UpdateStatus(id, status);
+      const response = await materialService.UpdateStatus(id, status, acceptedByUserId);
       return { id, status, payload: response.data };
     } catch (error) {
       return rejectWithValue(error?.response?.data || error.message);

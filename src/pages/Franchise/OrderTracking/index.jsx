@@ -6,7 +6,7 @@ import { fetchGetOrder, updateOrderStatus } from "../../../store/orderSlice";
 import { extractApiErrorMessage, extractApiMessage } from "../../../services/api";
 import PageHeader from "../../../components/common/PageHeader";
 
-const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
+const BASE_URL = "http://centralkitchen-001-site1.mtempurl.com/api";
 
 function parseUTC(dateStr) {
   if (!dateStr) return null;

@@ -9,7 +9,7 @@ import API, { extractApiErrorMessage, extractApiMessage } from "../../../service
 import inventoryService from "../../../services/inventoryService";
 import PageHeader from "../../../components/common/PageHeader";
 
-const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
+const BASE_URL = "http://centralkitchen-001-site1.mtempurl.com/api";
 
 function getTimeDiff(dateStr) {
   if (!dateStr) return "";
