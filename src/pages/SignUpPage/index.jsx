@@ -52,7 +52,7 @@ export default function SignUp() {
       setLoading(true);
 
       const response = await fetch(
-        "http://meinamfpt-001-site1.ltempurl.com/api/Auth/register",
+        "http://centralkitchen-001-site1.mtempurl.com/api/Auth/register",
         {
           method: "POST",
           headers: {

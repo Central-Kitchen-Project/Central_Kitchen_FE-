@@ -50,7 +50,7 @@ function DetailModal({ requestId, onClose }) {
     setLoading(true);
     setError(null);
     fetch(
-      `http://meinamfpt-001-site1.ltempurl.com/api/MaterialRequest/${requestId}`,
+      `http://centralkitchen-001-site1.mtempurl.com/api/MaterialRequest/${requestId}`,
       {
         headers: { accept: "*/*" },
       },
@@ -266,6 +266,17 @@ function OrderAggregation() {
   const navigate = useNavigate();
   const data = useSelector((state) => state.MATERIAL.listMaterials);
   const dispatch = useDispatch();
+  const currentUserId = (() => {
+    try {
+      const raw = localStorage.getItem("USER_INFO");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const n = Number(parsed?.id);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    } catch {
+      return null;
+    }
+  })();
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -283,7 +294,7 @@ function OrderAggregation() {
 
     for (const nextStatus of nextStatuses) {
       const result = await dispatch(
-        updateMaterialRequestStatus({ id: requestId, status: nextStatus })
+        updateMaterialRequestStatus({ id: requestId, status: nextStatus, acceptedByUserId: currentUserId })
       );
 
       if (updateMaterialRequestStatus.fulfilled.match(result)) {

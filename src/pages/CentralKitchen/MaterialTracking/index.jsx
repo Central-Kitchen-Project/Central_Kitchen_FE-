@@ -5,7 +5,7 @@ import { updateMaterialRequestStatus } from "../../../store/materialSlice";
 import { extractApiMessage, extractApiErrorMessage } from "../../../services/api";
 import PageHeader from "../../../components/common/PageHeader";
 
-const BASE_URL = "http://meinamfpt-001-site1.ltempurl.com/api";
+const BASE_URL = "http://centralkitchen-001-site1.mtempurl.com/api";
 
 function parseUTC(dateStr) {
   if (!dateStr) return null;
@@ -75,6 +75,89 @@ const AVATAR_COLORS = [
 
 const STATUS_TABS = ["All", "Processing", "Confirmed"];
 
+const ACCEPTED_BY_ID_KEYS = [
+  "acceptedByUserId",
+  "AcceptedByUserId",
+  "acceptedBy",
+  "AcceptedBy",
+  "handledByUserId",
+  "HandledByUserId",
+  "approvedByUserId",
+  "ApprovedByUserId",
+  "processedByUserId",
+  "ProcessedByUserId",
+];
+
+const ACCEPTED_BY_NAME_KEYS = [
+  "acceptedByUsername",
+  "AcceptedByUsername",
+  "acceptedBy",
+  "AcceptedBy",
+  "handledByUsername",
+  "HandledByUsername",
+  "approvedByUsername",
+  "ApprovedByUsername",
+  "processedByUsername",
+  "ProcessedByUsername",
+];
+
+function parsePositiveInt(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+function resolveAcceptedByUserId(req) {
+  if (!req || typeof req !== "object") return null;
+
+  for (const key of ACCEPTED_BY_ID_KEYS) {
+    const value = req[key];
+    if (value == null || value === "") continue;
+
+    if (typeof value === "object") {
+      const nested =
+        value.id ??
+        value.Id ??
+        value.userId ??
+        value.UserId;
+      const parsedNested = parsePositiveInt(nested);
+      if (parsedNested != null) return parsedNested;
+      continue;
+    }
+
+    const parsed = parsePositiveInt(value);
+    if (parsed != null) return parsed;
+  }
+
+  return null;
+}
+
+function resolveAcceptedByName(req) {
+  if (!req || typeof req !== "object") return "";
+  for (const key of ACCEPTED_BY_NAME_KEYS) {
+    const value = req[key];
+    if (value == null || value === "") continue;
+
+    if (typeof value === "object") {
+      const nested = value.username ?? value.Username ?? value.name ?? value.Name ?? value.email ?? value.Email;
+      const nestedText = String(nested || "").trim().toLowerCase();
+      if (nestedText) return nestedText;
+      continue;
+    }
+
+    const text = String(value).trim().toLowerCase();
+    if (text) return text;
+  }
+  return "";
+}
+
+function hasAcceptedByMetadata(list) {
+  return (list || []).some((req) => {
+    return resolveAcceptedByUserId(req) != null || Boolean(resolveAcceptedByName(req));
+  });
+}
+
 function DetailStat({ label, value, valueClass = "text-slate-800" }) {
   return (
     <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
@@ -88,6 +171,19 @@ function DetailStat({ label, value, valueClass = "text-slate-800" }) {
 
 function MaterialTracking() {
   const dispatch = useDispatch();
+  const currentUserInfo = (() => {
+    try {
+      const raw = localStorage.getItem("USER_INFO");
+      if (!raw) return { id: null, username: "" };
+      const parsed = JSON.parse(raw);
+      return {
+        id: parsePositiveInt(parsed?.id),
+        username: String(parsed?.username || "").trim().toLowerCase(),
+      };
+    } catch {
+      return { id: null, username: "" };
+    }
+  })();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -113,7 +209,11 @@ function MaterialTracking() {
 
     for (const nextStatus of nextStatuses) {
       const result = await dispatch(
-        updateMaterialRequestStatus({ id: requestId, status: nextStatus })
+        updateMaterialRequestStatus({
+          id: requestId,
+          status: nextStatus,
+          acceptedByUserId: currentUserInfo.id,
+        })
       );
 
       if (updateMaterialRequestStatus.fulfilled.match(result)) {
@@ -151,7 +251,24 @@ function MaterialTracking() {
   }), [requests]);
 
   const filteredRequests = useMemo(() => {
+    const hasHandlerMetadata = hasAcceptedByMetadata(requests);
+
     return requests.filter((req) => {
+      const acceptedByCurrentUser = (() => {
+        if (!hasHandlerMetadata) return true;
+        const acceptedById = resolveAcceptedByUserId(req);
+        if (acceptedById != null && currentUserInfo.id != null) {
+          return acceptedById === currentUserInfo.id;
+        }
+
+        const acceptedByName = resolveAcceptedByName(req);
+        if (acceptedByName && currentUserInfo.username) {
+          return acceptedByName === currentUserInfo.username;
+        }
+
+        return false;
+      })();
+
       const statusMatch =
         filterStatus === "All" || getMaterialRequestDisplayStatus(req.status) === filterStatus;
       const searchMatch =
@@ -168,9 +285,9 @@ function MaterialTracking() {
         const reqDay = parseUTC(req.createdAt).toISOString().slice(0, 10);
         dateMatch = reqDay === filterDate;
       }
-      return statusMatch && searchMatch && dateMatch;
+      return acceptedByCurrentUser && statusMatch && searchMatch && dateMatch;
     });
-  }, [requests, filterStatus, searchTerm, filterDate]);
+  }, [requests, filterStatus, searchTerm, filterDate, currentUserInfo.id, currentUserInfo.username]);
 
   const handleAcceptRequest = async (request) => {
     if (!request?.id) return;

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://meinamfpt-001-site1.ltempurl.com/api';
+const BASE_URL = 'http://centralkitchen-001-site1.mtempurl.com/api';
 
 const getMessageFromPayload = (payload) => {
     if (!payload) return "";
