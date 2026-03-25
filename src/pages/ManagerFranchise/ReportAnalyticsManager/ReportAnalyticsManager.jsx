@@ -409,7 +409,7 @@ function ReportAnalyticsManager() {
   // Cost Analysis — based on tracked inventory for the current user
   const costData = useMemo(() => {
     if (!stockData.stockItems.length) {
-      return { totalInventoryValue: 0, avgCostPerUnit: 0, highValueItems: 0, totalSKUs: 0, topItems: [] }
+      return { totalInventoryValue: 0, avgCostPerUnit: 0, topItems: [] }
     }
 
     const pricedItems = stockData.stockItems.filter((item) => item.price > 0)
@@ -417,8 +417,6 @@ function ReportAnalyticsManager() {
     const avgCostPerUnit = pricedItems.length
       ? Math.round(pricedItems.reduce((sum, item) => sum + item.price, 0) / pricedItems.length)
       : 0
-    const highValueItems = pricedItems.filter((item) => item.price > 100000).length
-    const totalSKUs = stockData.totalItems
     const topItems = [...stockData.stockItems]
       .sort((a, b) => (b.stockValue || 0) - (a.stockValue || 0))
       .slice(0, 5)
@@ -428,7 +426,7 @@ function ReportAnalyticsManager() {
         unit: item.unit || 'unit',
       }))
 
-    return { totalInventoryValue, avgCostPerUnit, highValueItems, totalSKUs, topItems }
+    return { totalInventoryValue, avgCostPerUnit, topItems }
   }, [stockData])
 
   const totalStockValue = costData.totalInventoryValue
@@ -577,16 +575,6 @@ function ReportAnalyticsManager() {
                             style={{ width: `${Math.min(100, Math.max(0, centralOps.confirmedPct))}%` }}
                           />
                         </div>
-                        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-                            <span className="size-1.5 shrink-0 rounded-full bg-blue-600" aria-hidden="true" />
-                            Processing {centralOps.processingCount}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] font-semibold text-emerald-900">
-                            <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                            Confirmed {centralOps.confirmedCount}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -721,8 +709,6 @@ function ReportAnalyticsManager() {
                 {[
                   { label: 'Total Stock Value', value: formatVnd(costData.totalInventoryValue) },
                   { label: 'Average Unit Cost', value: formatVnd(costData.avgCostPerUnit) },
-                  { label: 'High-Value SKUs (>100k/unit)', value: costData.highValueItems },
-                  { label: 'Tracked SKUs', value: costData.totalSKUs },
                 ].map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center py-4 border-b border-slate-50 last:border-0">
                     <span className="text-sm text-slate-500">{item.label}</span>
@@ -918,39 +904,43 @@ function ReportAnalyticsManager() {
                       </div>
                       {/* Pagination */}
                       {!inventoryLoading && filtered.length > 0 && (
-                        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-xs text-slate-400">
-                            Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => setStockPage((p) => Math.max(1, p - 1))}
-                              disabled={safePage <= 1}
-                              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              <span className="material-symbols-outlined text-base">chevron_left</span>
-                            </button>
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-5 py-3">
+                          <p className="text-sm text-slate-600">
+                            Showing{' '}
+                            <span className="font-semibold text-slate-800">
+                              {(safePage - 1) * ITEMS_PER_PAGE + 1}–
+                              {Math.min(safePage * ITEMS_PER_PAGE, filtered.length)}
+                            </span>{' '}
+                            of{' '}
+                            <span className="font-semibold text-slate-800">{filtered.length}</span> items
+                          </p>
+                          {totalPages > 1 ? (
+                            <div className="flex items-center gap-2">
                               <button
-                                key={p}
-                                onClick={() => setStockPage(p)}
-                                className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
-                                  p === safePage
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-500 hover:bg-slate-100'
-                                }`}
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                disabled={safePage <= 1}
+                                onClick={() => setStockPage((p) => Math.max(1, p - 1))}
+                                aria-label="Previous page"
                               >
-                                {p}
+                                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                                Previous
                               </button>
-                            ))}
-                            <button
-                              onClick={() => setStockPage((p) => Math.min(totalPages, p + 1))}
-                              disabled={safePage >= totalPages}
-                              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              <span className="material-symbols-outlined text-base">chevron_right</span>
-                            </button>
-                          </div>
+                              <span className="text-sm tabular-nums text-slate-600 px-1">
+                                Page {safePage} / {totalPages}
+                              </span>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                disabled={safePage >= totalPages}
+                                onClick={() => setStockPage((p) => Math.min(totalPages, p + 1))}
+                                aria-label="Next page"
+                              >
+                                Next
+                                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       )}
                     </>

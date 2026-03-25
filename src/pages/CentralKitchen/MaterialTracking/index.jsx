@@ -73,8 +73,6 @@ const AVATAR_COLORS = [
   "bg-slate-100 text-slate-600",
 ];
 
-const STATUS_TABS = ["All", "Processing", "Confirmed"];
-
 const ACCEPTED_BY_ID_KEYS = [
   "acceptedByUserId",
   "AcceptedByUserId",
@@ -190,7 +188,6 @@ function MaterialTracking() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
   const [filterDate, setFilterDate] = useState("");
 
   // Modals
@@ -244,33 +241,33 @@ function MaterialTracking() {
     fetchRequests();
   }, []);
 
-  const stats = useMemo(() => ({
-    total: requests.length,
-    processing: requests.filter((r) => getMaterialRequestDisplayStatus(r.status) === "Processing").length,
-    confirmed: requests.filter((r) => getMaterialRequestDisplayStatus(r.status) === "Confirmed").length,
-  }), [requests]);
+  /** Requests this central user accepted (or all requests if API has no accept-by metadata). */
+  const scopedRequests = useMemo(() => {
+    const hasHandlerMetadata = hasAcceptedByMetadata(requests);
+    return requests.filter((req) => {
+      if (!hasHandlerMetadata) return true;
+      const acceptedById = resolveAcceptedByUserId(req);
+      if (acceptedById != null && currentUserInfo.id != null) {
+        return acceptedById === currentUserInfo.id;
+      }
+      const acceptedByName = resolveAcceptedByName(req);
+      if (acceptedByName && currentUserInfo.username) {
+        return acceptedByName === currentUserInfo.username;
+      }
+      return false;
+    });
+  }, [requests, currentUserInfo.id, currentUserInfo.username]);
+
+  const stats = useMemo(
+    () => ({
+      total: scopedRequests.length,
+      confirmed: scopedRequests.filter((r) => getMaterialRequestDisplayStatus(r.status) === "Confirmed").length,
+    }),
+    [scopedRequests]
+  );
 
   const filteredRequests = useMemo(() => {
-    const hasHandlerMetadata = hasAcceptedByMetadata(requests);
-
-    return requests.filter((req) => {
-      const acceptedByCurrentUser = (() => {
-        if (!hasHandlerMetadata) return true;
-        const acceptedById = resolveAcceptedByUserId(req);
-        if (acceptedById != null && currentUserInfo.id != null) {
-          return acceptedById === currentUserInfo.id;
-        }
-
-        const acceptedByName = resolveAcceptedByName(req);
-        if (acceptedByName && currentUserInfo.username) {
-          return acceptedByName === currentUserInfo.username;
-        }
-
-        return false;
-      })();
-
-      const statusMatch =
-        filterStatus === "All" || getMaterialRequestDisplayStatus(req.status) === filterStatus;
+    return scopedRequests.filter((req) => {
       const searchMatch =
         searchTerm === "" ||
         String(req.id).includes(searchTerm) ||
@@ -285,9 +282,9 @@ function MaterialTracking() {
         const reqDay = parseUTC(req.createdAt).toISOString().slice(0, 10);
         dateMatch = reqDay === filterDate;
       }
-      return acceptedByCurrentUser && statusMatch && searchMatch && dateMatch;
+      return searchMatch && dateMatch;
     });
-  }, [requests, filterStatus, searchTerm, filterDate, currentUserInfo.id, currentUserInfo.username]);
+  }, [scopedRequests, searchTerm, filterDate]);
 
   const handleAcceptRequest = async (request) => {
     if (!request?.id) return;
@@ -349,11 +346,10 @@ function MaterialTracking() {
           <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-slate-50/50">
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {[
-                { label: "Total Requests", value: stats.total,     icon: "assignment",      color: "text-slate-700",   bg: "bg-slate-100"  },
-                { label: "Processing",     value: stats.processing, icon: "autorenew",       color: "text-blue-600",    bg: "bg-blue-50"    },
-                { label: "Confirmed",      value: stats.confirmed,  icon: "task_alt",        color: "text-emerald-600", bg: "bg-emerald-50" },
+                { label: "Total Requests", value: stats.total, icon: "assignment", color: "text-slate-700", bg: "bg-slate-100" },
+                { label: "Confirmed", value: stats.confirmed, icon: "task_alt", color: "text-emerald-600", bg: "bg-emerald-50" },
               ].map((card) => (
                 <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-5 flex items-center gap-4">
                   <div className={`w-11 h-11 rounded-lg ${card.bg} flex items-center justify-center ${card.color}`}>
@@ -371,7 +367,7 @@ function MaterialTracking() {
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden flex flex-col">
 
               {/* Toolbar */}
-              <div className="p-4 border-b border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+              <div className="p-4 border-b border-slate-100 flex flex-wrap gap-3 items-center">
                 <div className="flex items-center gap-3 flex-wrap">
                   {/* Search */}
                   <div className="relative w-64">
@@ -398,28 +394,6 @@ function MaterialTracking() {
                       </button>
                     )}
                   </div>
-                </div>
-
-                {/* Status tabs */}
-                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-                  {STATUS_TABS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setFilterStatus(s)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                        filterStatus === s
-                          ? "bg-white text-slate-800 shadow-sm"
-                          : "text-slate-500 hover:text-slate-700"
-                      }`}
-                    >
-                      {s}
-                      {s === "Processing" && stats.processing > 0 && (
-                        <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500 text-white text-[9px] rounded-full font-black">
-                          {stats.processing}
-                        </span>
-                      )}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -561,15 +535,31 @@ function MaterialTracking() {
               </div>
 
               {/* Footer */}
-              <div className="p-4 bg-slate-50/50 border-t border-slate-200 flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">
-                  Showing {filteredRequests.length} of {requests.length} material requests
-                </span>
-                <div className="flex gap-2">
-                  <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-400 disabled:opacity-50" disabled>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3">
+                <p className="text-sm text-slate-600">
+                  Showing{' '}
+                  <span className="font-semibold text-slate-800">{filteredRequests.length}</span>
+                  {' '}
+                  of{' '}
+                  <span className="font-semibold text-slate-800">{scopedRequests.length}</span> material requests
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Previous page"
+                  >
                     <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                    Previous
                   </button>
-                  <button className="p-1.5 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Next page"
+                  >
+                    Next
                     <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                   </button>
                 </div>

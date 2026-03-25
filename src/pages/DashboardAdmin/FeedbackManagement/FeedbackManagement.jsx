@@ -137,24 +137,19 @@ function FeedbackManagement() {
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col flex-1 min-h-[420px]">
           <div className="px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-slate-900">Feedback List</h3>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Status:</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="text-xs rounded-md border-slate-200"
-                >
-                  {STATUS_OPTIONS.map((item) => (
-                    <option key={item} value={item}>
-                      {item === 'All' ? 'All Statuses' : item === 'UnderReview' ? 'Under Review' : item}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <span className="text-xs text-slate-400">
-                Showing {filteredFeedbacks.length} of {feedbackList.length} feedbacks
-              </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Status:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-xs rounded-md border-slate-200"
+              >
+                {STATUS_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item === 'All' ? 'All Statuses' : item === 'UnderReview' ? 'Under Review' : item}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -233,22 +228,30 @@ function FeedbackManagement() {
           </div>
 
           {filteredFeedbacks.length > 0 && (
-            <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between shrink-0">
-              <span className="text-xs text-slate-500">
-                Showing {(safeCurrentPage - 1) * pageSize + 1}-{Math.min(safeCurrentPage * pageSize, filteredFeedbacks.length)} of {filteredFeedbacks.length} feedbacks
-              </span>
-              <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 shrink-0">
+              <p className="text-sm text-slate-600">
+                Showing{' '}
+                <span className="font-semibold text-slate-800">
+                  {(safeCurrentPage - 1) * pageSize + 1}–{Math.min(safeCurrentPage * pageSize, filteredFeedbacks.length)}
+                </span>{' '}
+                of <span className="font-semibold text-slate-800">{filteredFeedbacks.length}</span> feedbacks
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-1">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(1)}
                   disabled={safeCurrentPage === 1}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="First page"
                 >
                   <span className="material-symbols-outlined text-sm">first_page</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={safeCurrentPage === 1}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_left</span>
                 </button>
@@ -261,12 +264,15 @@ function FeedbackManagement() {
                   }, [])
                   .map((p, i) =>
                     p === '...' ? (
-                      <span key={`dot-${i}`} className="px-1 text-xs text-slate-400">...</span>
+                      <span key={`dot-${i}`} className="px-1 text-sm text-slate-400">
+                        ...
+                      </span>
                     ) : (
                       <button
+                        type="button"
                         key={p}
                         onClick={() => setCurrentPage(p)}
-                        className={`min-w-[28px] px-2 py-1 rounded text-xs font-bold transition-colors ${
+                        className={`min-w-[2rem] rounded-lg border border-transparent px-2 py-1.5 text-sm font-semibold transition-colors ${
                           p === safeCurrentPage
                             ? 'bg-blue-600 text-white'
                             : 'text-slate-600 hover:bg-slate-100'
@@ -277,16 +283,20 @@ function FeedbackManagement() {
                     )
                   )}
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safeCurrentPage === totalPages}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_right</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={safeCurrentPage === totalPages}
-                  className="px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Last page"
                 >
                   <span className="material-symbols-outlined text-sm">last_page</span>
                 </button>

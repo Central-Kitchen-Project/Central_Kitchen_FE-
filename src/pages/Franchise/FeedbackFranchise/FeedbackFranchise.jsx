@@ -160,19 +160,15 @@ function FeedbackFranchise() {
     }
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil((filteredFeedbacks?.length || 0) / ITEMS_PER_PAGE);
-  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  // Pagination logic 
+  const feedbackListLen = filteredFeedbacks?.length || 0;
+  const totalPages =
+    feedbackListLen === 0 ? 0 : Math.ceil(feedbackListLen / ITEMS_PER_PAGE);
+  const safePage =
+    totalPages === 0 ? 1 : Math.min(Math.max(1, currentPage), totalPages);
+  const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
   const endIdx = startIdx + ITEMS_PER_PAGE;
   const paginatedFeedbacks = filteredFeedbacks?.slice(startIdx, endIdx) || [];
-
-  const handlePrevious = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
   return (
     <>
     <PageHeader
@@ -428,39 +424,48 @@ function FeedbackFranchise() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-          <p className="text-xs text-slate-500">
-            Showing {paginatedFeedbacks.length > 0 ? startIdx + 1 : 0} to {Math.min(endIdx, filteredFeedbacks?.length || 0)} of {filteredFeedbacks?.length || 0} reports
-          </p>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handlePrevious}
-              disabled={currentPage === 1}
-              className="p-2 border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-slate-400"
-            >
-              <span className="material-symbols-outlined text-sm">chevron_left</span>
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/60 px-6 py-3">
+          {feedbackListLen === 0 ? (
+            <p className="text-sm text-slate-600">
+              <span className="font-semibold text-slate-800">0</span> reports
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600">
+              Showing{' '}
+              <span className="font-semibold text-slate-800">{startIdx + 1}</span>–
+              <span className="font-semibold text-slate-800">
+                {Math.min(endIdx, feedbackListLen)}
+              </span>{' '}
+              of <span className="font-semibold text-slate-800">{feedbackListLen}</span> reports
+            </p>
+          )}
+          {totalPages > 1 ? (
+            <div className="flex items-center gap-2">
               <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`w-8 h-8 flex items-center justify-center rounded text-sm font-medium transition-colors ${
-                  currentPage === page
-                    ? 'bg-primary text-white'
-                    : 'border border-slate-200 hover:bg-slate-50 text-slate-600'
-                }`}
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                aria-label="Previous page"
               >
-                {page}
+                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                Previous
               </button>
-            ))}
-            <button 
-              onClick={handleNext}
-              disabled={currentPage === totalPages}
-              className="p-2 border border-slate-200 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-slate-400"
-            >
-              <span className="material-symbols-outlined text-sm">chevron_right</span>
-            </button>
-          </div>
+              <span className="text-sm tabular-nums text-slate-600 px-1">
+                Page {safePage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                aria-label="Next page"
+              >
+                Next
+                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
